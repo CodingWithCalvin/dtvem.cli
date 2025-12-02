@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/runtimes.schema.json",
+  "title": "dtvem Runtimes Configuration",
+  "description": "Configuration file for dtvem (Development Tool Virtual Environment Manager) to specify runtime versions for a project",
+  "type": "object",
+  "additionalProperties": {
+    "type": "string",
+    "description": "Version string for the runtime (e.g., '3.11.0', '18.16.0')",
+    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+  },
+  "propertyNames": {
+    "description": "Runtime name (e.g., 'python', 'node'). NOTE: When adding a new runtime provider, update this enum list to include the new runtime name.",
+    "enum": [
+      "python",
+      "node"
+    ]
+  },
+  "examples": [
+    {
+      "python": "3.11.0",
+      "node": "18.16.0"
+    },
+    {
+      "python": "3.12.0",
+      "node": "20.0.0"
+    }
+  ],
+  "minProperties": 1
+}

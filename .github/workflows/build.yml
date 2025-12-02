@@ -1,0 +1,251 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: write  # Required for PR comments
+  checks: write         # Required for golangci-lint annotations
+
+jobs:
+  golangci-lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Install golangci-lint
+        run: |
+          # Download and install golangci-lint v2.6.2
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
+          golangci-lint --version
+
+      - name: Run golangci-lint
+        run: golangci-lint run --timeout=5m --config=../.golangci.yml
+        working-directory: src
+
+      - name: Verify no linting issues
+        if: success()
+        run: echo "✅ All linting checks passed (errcheck, govet, ineffassign, unused, misspell, dupl, goconst, gocyclo, errorlint)"
+
+  go-mod:
+    name: Dependencies Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Check go.mod and go.sum are tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+          if [ $? -ne 0 ]; then
+            echo "❌ go.mod or go.sum is not tidy"
+            echo "Please run: go mod tidy"
+            exit 1
+          fi
+          echo "✅ go.mod and go.sum are tidy"
+
+  build:
+    needs: [golangci-lint, go-mod]
+    name: Build ${{ matrix.platform }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux - current
+          - os: ubuntu-latest    # Ubuntu 22.04
+            goos: linux
+            goarch: amd64
+            platform: linux-amd64
+
+          # macOS Intel - current
+          - os: macos-latest     # macOS 12
+            goos: darwin
+            goarch: amd64
+            platform: macos-amd64
+
+          # macOS ARM - current
+          - os: macos-latest     # macOS 12
+            goos: darwin
+            goarch: arm64
+            platform: macos-arm64
+
+          # Windows - current
+          - os: windows-latest   # Windows Server 2022
+            goos: windows
+            goarch: amd64
+            platform: windows-amd64
+          - os: windows-latest   # Windows Server 2022
+            goos: windows
+            goarch: arm64
+            platform: windows-arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        cache: true  # Explicitly enable caching (suppresses some warnings)
+
+    - name: Get dependencies
+      run: go mod download
+
+    - name: Build main CLI
+      run: |
+        go build -v -o dist/dtvem${{ matrix.goos == 'windows' && '.exe' || '' }} ./src
+      shell: bash
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - name: Build shim executable
+      run: |
+        go build -v -o dist/dtvem-shim${{ matrix.goos == 'windows' && '.exe' || '' }} ./src/cmd/shim
+      shell: bash
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - name: Verify build - Check version
+      if: matrix.platform != 'windows-arm64'
+      run: |
+        ./dist/dtvem${{ matrix.goos == 'windows' && '.exe' || '' }} version
+      shell: bash
+
+    - name: Verify build - Check help
+      if: matrix.platform != 'windows-arm64'
+      run: |
+        ./dist/dtvem${{ matrix.goos == 'windows' && '.exe' || '' }} help
+      shell: bash
+
+    - name: Run tests with coverage
+      run: |
+        # Run tests with coverage and capture output (from root, test src packages)
+        go test -v -coverprofile=coverage.out -covermode=atomic ./src/... 2>&1 | tee test-output.log
+        TEST_EXIT_CODE=${PIPESTATUS[0]}
+
+        # Generate HTML coverage report
+        go tool cover -html=coverage.out -o coverage.html
+
+        # Exit with test result code
+        exit $TEST_EXIT_CODE
+      shell: bash
+
+    - name: Generate test summary
+      if: always()
+      run: |
+        echo "## Test Results - ${{ matrix.platform }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Check if test output file exists
+        if [ ! -f test-output.log ]; then
+          echo "⚠️ Test output file not found" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+
+        # Count individual test results (not packages)
+        # grep -c returns a number or fails; capture and sanitize
+        PASS_COUNT=$(grep -c "^--- PASS:" test-output.log 2>/dev/null) || PASS_COUNT=0
+        FAIL_COUNT=$(grep -c "^--- FAIL:" test-output.log 2>/dev/null) || FAIL_COUNT=0
+        SKIP_COUNT=$(grep -c "^--- SKIP:" test-output.log 2>/dev/null) || SKIP_COUNT=0
+
+        # Sanitize: take only the first number, remove any extra characters
+        PASS_COUNT=$(echo "$PASS_COUNT" | head -n1 | tr -cd '0-9')
+        FAIL_COUNT=$(echo "$FAIL_COUNT" | head -n1 | tr -cd '0-9')
+        SKIP_COUNT=$(echo "$SKIP_COUNT" | head -n1 | tr -cd '0-9')
+
+        # Default to 0 if empty after sanitization
+        PASS_COUNT=${PASS_COUNT:-0}
+        FAIL_COUNT=${FAIL_COUNT:-0}
+        SKIP_COUNT=${SKIP_COUNT:-0}
+
+        # Calculate total
+        TOTAL_COUNT=$((PASS_COUNT + FAIL_COUNT + SKIP_COUNT))
+
+        if [ "$FAIL_COUNT" = "0" ]; then
+          echo "✅ **All tests passed!**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Some tests failed**" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- 📊 Total: $TOTAL_COUNT test(s)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Passed: $PASS_COUNT test(s)" >> $GITHUB_STEP_SUMMARY
+        echo "- ❌ Failed: $FAIL_COUNT test(s)" >> $GITHUB_STEP_SUMMARY
+        if [ "$SKIP_COUNT" != "0" ]; then
+          echo "- ⏭️  Skipped: $SKIP_COUNT test(s)" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Show test details
+        echo "<details>" >> $GITHUB_STEP_SUMMARY
+        echo "<summary>Test Output</summary>" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        tail -100 test-output.log >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "</details>" >> $GITHUB_STEP_SUMMARY
+      shell: bash
+
+    - name: Generate coverage report
+      run: |
+        # Calculate total coverage percentage
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+        echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+
+        # Generate summary
+        echo "## Test Coverage Report - ${{ matrix.platform }}" > coverage-summary.md
+        echo "" >> coverage-summary.md
+        echo "**Total Coverage:** \`$COVERAGE\`" >> coverage-summary.md
+        echo "" >> coverage-summary.md
+        echo "### Coverage by Package" >> coverage-summary.md
+        echo '```' >> coverage-summary.md
+        go tool cover -func=coverage.out | grep -v "total:" >> coverage-summary.md
+        echo '```' >> coverage-summary.md
+        echo "" >> coverage-summary.md
+        echo "📊 Full HTML coverage report available in workflow artifacts" >> coverage-summary.md
+      shell: bash
+
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.os }}-${{ matrix.platform }}
+        path: |
+          coverage.out
+          coverage.html
+          coverage-summary.md
+        retention-days: 30
+
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: coverage-report-${{ matrix.os }}-${{ matrix.platform }}
+        path: coverage-summary.md
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dtvem-${{ matrix.os }}-${{ matrix.platform }}
+        path: |
+          dist/dtvem*
+        retention-days: 7

@@ -1,0 +1,544 @@
+name: Release
+
+run-name: Release v${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0, 0.2.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write     # Required for creating releases and tags
+  discussions: write  # Required for creating announcement discussions
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Verify build workflow passed
+      run: |
+        echo "Checking if build workflow passed for commit ${{ github.sha }}..."
+
+        # Query for successful build workflow runs for this commit
+        BUILD_RUNS=$(gh run list \
+          --workflow=build.yml \
+          --commit=${{ github.sha }} \
+          --status=success \
+          --json databaseId,conclusion \
+          --jq 'length')
+
+        if [ "$BUILD_RUNS" -eq 0 ]; then
+          echo "❌ Error: No successful build workflow run found for commit ${{ github.sha }}"
+          echo ""
+          echo "The build workflow must pass before creating a release."
+          echo "Please ensure the build workflow has completed successfully for this commit."
+          echo ""
+          echo "View workflows: https://github.com/${{ github.repository }}/actions"
+          exit 1
+        fi
+
+        echo "✓ Build workflow has passed for this commit"
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Validate version format
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Error: Version must be in format X.Y.Z (e.g., 1.0.0)"
+          exit 1
+        fi
+        echo "✓ Version format is valid: $VERSION"
+      shell: bash
+
+    - name: Validate version is greater than latest release
+      run: |
+        NEW_VERSION="${{ github.event.inputs.version }}"
+
+        # Get the latest release tag (e.g., v0.0.1)
+        LATEST_TAG=$(git describe --tags --abbrev=0 --match "v*" 2>/dev/null || echo "")
+
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No previous release tags found"
+          echo "✓ This will be the first release: v$NEW_VERSION"
+          exit 0
+        fi
+
+        # Strip 'v' prefix from tag to get version number
+        CURRENT_VERSION="${LATEST_TAG#v}"
+        echo "Latest release: $CURRENT_VERSION (tag: $LATEST_TAG)"
+        echo "New version: $NEW_VERSION"
+
+        # Parse versions into components
+        IFS='.' read -r curr_major curr_minor curr_patch <<< "$CURRENT_VERSION"
+        IFS='.' read -r new_major new_minor new_patch <<< "$NEW_VERSION"
+
+        # Convert to integers for comparison (10# forces base-10 to handle leading zeros)
+        curr_major=$((10#$curr_major))
+        curr_minor=$((10#$curr_minor))
+        curr_patch=$((10#$curr_patch))
+        new_major=$((10#$new_major))
+        new_minor=$((10#$new_minor))
+        new_patch=$((10#$new_patch))
+
+        # Compare versions
+        if [ $new_major -gt $curr_major ]; then
+          echo "✓ Version is valid (major version increased: $curr_major → $new_major)"
+        elif [ $new_major -eq $curr_major ] && [ $new_minor -gt $curr_minor ]; then
+          echo "✓ Version is valid (minor version increased: $curr_minor → $new_minor)"
+        elif [ $new_major -eq $curr_major ] && [ $new_minor -eq $curr_minor ] && [ $new_patch -gt $curr_patch ]; then
+          echo "✓ Version is valid (patch version increased: $curr_patch → $new_patch)"
+        else
+          echo "❌ Error: New version ($NEW_VERSION) must be greater than latest release ($CURRENT_VERSION)"
+          echo ""
+          echo "Latest release tag: $LATEST_TAG"
+          echo "Version progression must increase at least one component"
+          exit 1
+        fi
+      shell: bash
+
+  build:
+    name: Build ${{ matrix.asset_name_suffix }}
+    runs-on: ${{ matrix.os }}
+    needs: validate
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            asset_name_suffix: linux-amd64
+            archive_ext: tar.gz
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            asset_name_suffix: macos-amd64
+            archive_ext: tar.gz
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            asset_name_suffix: macos-arm64
+            archive_ext: tar.gz
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            asset_name_suffix: windows-amd64
+            archive_ext: zip
+          - os: windows-latest
+            goos: windows
+            goarch: arm64
+            asset_name_suffix: windows-arm64
+            archive_ext: zip
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Get dependencies
+      run: go mod download
+
+    - name: Run tests
+      run: |
+        go test -v ./src/...
+      shell: bash
+
+    - name: Update version in source and scripts
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+
+        # Update version.go (cross-platform sed with backup file)
+        sed -i.bak 's/var Version = "dev"/var Version = "'"$VERSION"'"/' src/cmd/version.go
+        rm -f src/cmd/version.go.bak
+        echo "✓ Updated version.go to version $VERSION"
+        cat src/cmd/version.go | grep "var Version"
+
+        # Update install.sh (inject version WITH "v" prefix for GitHub release URLs)
+        sed -i.bak 's/DTVEM_RELEASE_VERSION=""/DTVEM_RELEASE_VERSION="v'"$VERSION"'"/' install.sh
+        rm -f install.sh.bak
+        echo "✓ Updated install.sh with version v$VERSION"
+
+        # Update install.ps1 (inject version WITH "v" prefix for GitHub release URLs)
+        sed -i.bak 's/\$DTVEM_RELEASE_VERSION = ""/\$DTVEM_RELEASE_VERSION = "v'"$VERSION"'"/' install.ps1
+        rm -f install.ps1.bak
+        echo "✓ Updated install.ps1 with version v$VERSION"
+      shell: bash
+
+    - name: Build main CLI
+      run: |
+        go build -v -o dist/dtvem${{ matrix.goos == 'windows' && '.exe' || '' }} ./src
+      shell: bash
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - name: Build shim executable
+      run: |
+        go build -v -o dist/dtvem-shim${{ matrix.goos == 'windows' && '.exe' || '' }} ./src/cmd/shim
+      shell: bash
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - name: Create archive (Unix)
+      if: matrix.archive_ext == 'tar.gz'
+      run: |
+        cd dist
+        tar -czf dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }} dtvem*
+        cd ..
+      shell: bash
+
+    - name: Create archive (Windows)
+      if: matrix.archive_ext == 'zip'
+      run: |
+        cd dist
+        7z a dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }} dtvem*.exe
+        cd ..
+      shell: bash
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.asset_name_suffix }}
+        path: dist/dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }}
+        retention-days: 1
+
+    - name: Upload install scripts (linux-amd64 only)
+      if: matrix.asset_name_suffix == 'linux-amd64'
+      uses: actions/upload-artifact@v4
+      with:
+        name: install-scripts
+        path: |
+          install.sh
+          install.ps1
+        retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for changelog generation
+
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Download install scripts
+      uses: actions/download-artifact@v4
+      with:
+        name: install-scripts
+        path: .
+
+    - name: Create and push release tag
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Create tag on current commit (version files are not committed back to main)
+        # The version updates exist only in the build artifacts, not in source
+        git tag -a "v$VERSION" -m "Release v$VERSION"
+        git push origin "v$VERSION"
+        echo "✓ Created and pushed tag v$VERSION"
+        echo ""
+        echo "Note: Version remains 'dev' in main branch source code"
+        echo "Released binaries and install scripts contain version $VERSION"
+      shell: bash
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get commits since last release tag
+        PREVIOUS_TAG=$(git describe --abbrev=0 --tags --match "v*" 2>/dev/null || echo "")
+        if [ -z "$PREVIOUS_TAG" ]; then
+          # First release - get all commits
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          # Get commits since previous tag
+          CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+
+        # If changelog is empty, use a fun message
+        if [ -z "$CHANGELOG" ]; then
+          CHANGELOG="So much goodness, we lost track! 🎉"
+        fi
+
+        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        files: |
+          artifacts/build-linux-amd64/dtvem-${{ github.event.inputs.version }}-linux-amd64.tar.gz
+          artifacts/build-macos-amd64/dtvem-${{ github.event.inputs.version }}-macos-amd64.tar.gz
+          artifacts/build-macos-arm64/dtvem-${{ github.event.inputs.version }}-macos-arm64.tar.gz
+          artifacts/build-windows-amd64/dtvem-${{ github.event.inputs.version }}-windows-amd64.zip
+          artifacts/build-windows-arm64/dtvem-${{ github.event.inputs.version }}-windows-arm64.zip
+          install.sh
+          install.ps1
+        body: |
+          ## Changes in v${{ github.event.inputs.version }}
+
+          ${{ steps.changelog.outputs.CHANGELOG }}
+
+          ## Installation
+
+          ### Quick Install (Recommended)
+
+          **macOS / Linux:**
+          ```bash
+          curl -fsSL https://github.com/${{ github.repository }}/releases/download/v${{ github.event.inputs.version }}/install.sh | bash
+          ```
+
+          **Windows (PowerShell):**
+          ```powershell
+          irm https://github.com/${{ github.repository }}/releases/download/v${{ github.event.inputs.version }}/install.ps1 | iex
+          ```
+
+          ### Manual Installation
+
+          1. Download the appropriate archive for your platform from the assets below
+          2. Extract the archive
+          3. Move binaries to a directory in your PATH
+          4. Run `dtvem init` to complete setup
+
+          ## Supported Platforms
+
+          - ✅ Windows (amd64, arm64)
+          - ✅ macOS (amd64, arm64/Apple Silicon)
+          - ✅ Linux (amd64)
+
+          ## Checksums
+
+          See the assets below for SHA256 checksums.
+        draft: false
+        prerelease: false
+        generate_release_notes: true  # GitHub will auto-generate additional notes
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Send Release Notifications
+    runs-on: ubuntu-latest
+    needs: release
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create GitHub Discussion Announcement
+      id: discussion
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+        REPO_URL="https://github.com/${{ github.repository }}"
+
+        # Get repository ID and Announcements category ID
+        REPO_DATA=$(gh api graphql -f query='
+          query($owner: String!, $repo: String!) {
+            repository(owner: $owner, name: $repo) {
+              id
+              discussionCategories(first: 10) {
+                nodes {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}")
+
+        REPO_ID=$(echo "$REPO_DATA" | jq -r '.data.repository.id')
+        CATEGORY_ID=$(echo "$REPO_DATA" | jq -r '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')
+
+        if [ -z "$CATEGORY_ID" ]; then
+          echo "Error: Could not find Announcements category"
+          exit 1
+        fi
+
+        echo "Repository ID: $REPO_ID"
+        echo "Announcements Category ID: $CATEGORY_ID"
+
+        # Create discussion body (build it with string concatenation to avoid heredoc issues)
+        DISCUSSION_BODY="## Changes in this release"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"See the [full changelog](RELEASE_URL_PLACEHOLDER) for details on what's new in this release."
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"## Installation"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"### Quick Install (Recommended)"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"**macOS / Linux:**"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```bash'
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"curl -fsSL REPO_URL_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/install.sh | bash"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```'
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"**Windows (PowerShell):**"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```powershell'
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"irm REPO_URL_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/install.ps1 | iex"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```'
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"### Manual Installation"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"1. Download the appropriate archive for your platform from the [release page](RELEASE_URL_PLACEHOLDER)"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"2. Extract the archive"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"3. Move binaries to a directory in your PATH"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"4. Run \`dtvem init\` to complete setup"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"## Supported Platforms"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"- ✅ Windows (amd64, arm64)"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"- ✅ macOS (amd64, arm64/Apple Silicon)"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"- ✅ Linux (amd64)"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"---"
+        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"📦 [View Release](RELEASE_URL_PLACEHOLDER) | 📖 [Documentation](REPO_URL_PLACEHOLDER)"
+        # Replace placeholders with actual values
+        DISCUSSION_BODY="${DISCUSSION_BODY//RELEASE_URL_PLACEHOLDER/$RELEASE_URL}"
+        DISCUSSION_BODY="${DISCUSSION_BODY//REPO_URL_PLACEHOLDER/$REPO_URL}"
+        DISCUSSION_BODY="${DISCUSSION_BODY//VERSION_PLACEHOLDER/${{ github.event.inputs.version }}}"
+
+        # Create the discussion
+        DISCUSSION_RESULT=$(gh api graphql -f query='
+          mutation($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
+            createDiscussion(input: {
+              repositoryId: $repositoryId
+              categoryId: $categoryId
+              title: $title
+              body: $body
+            }) {
+              discussion {
+                url
+              }
+            }
+          }
+        ' -f repositoryId="$REPO_ID" -f categoryId="$CATEGORY_ID" -f title="🎉 dtvem v$VERSION has been released!" -f body="$DISCUSSION_BODY")
+
+        DISCUSSION_URL=$(echo "$DISCUSSION_RESULT" | jq -r '.data.createDiscussion.discussion.url')
+        echo "✓ Created discussion: $DISCUSSION_URL"
+        echo "discussion_url=$DISCUSSION_URL" >> $GITHUB_OUTPUT
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Post to BlueSky
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
+        DISCUSSION_URL="${{ steps.discussion.outputs.discussion_url }}"
+
+        # Discover runtimes from src/runtimes/ directory
+        RUNTIME_DIRS=$(find src/runtimes -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+
+        # Capitalize runtime names
+        RUNTIME_LIST=()
+        for runtime in $RUNTIME_DIRS; do
+          RUNTIME_LIST+=("${runtime^}")  # Capitalize first letter
+        done
+
+        # Format runtime names based on count (with hashtags)
+        RUNTIME_COUNT=${#RUNTIME_LIST[@]}
+        if [ $RUNTIME_COUNT -eq 1 ]; then
+          RUNTIME_NAMES="#${RUNTIME_LIST[0]}"
+        elif [ $RUNTIME_COUNT -eq 2 ]; then
+          RUNTIME_NAMES="#${RUNTIME_LIST[0]} and #${RUNTIME_LIST[1]}"
+        else
+          # Three or more: "#A, #B, and #C"
+          RUNTIME_NAMES=""
+          for i in "${!RUNTIME_LIST[@]}"; do
+            if [ $i -eq 0 ]; then
+              RUNTIME_NAMES="#${RUNTIME_LIST[$i]}"
+            elif [ $i -eq $((RUNTIME_COUNT - 1)) ]; then
+              RUNTIME_NAMES="${RUNTIME_NAMES}, and #${RUNTIME_LIST[$i]}"
+            else
+              RUNTIME_NAMES="${RUNTIME_NAMES}, #${RUNTIME_LIST[$i]}"
+            fi
+          done
+        fi
+
+        echo "Detected runtimes: $RUNTIME_NAMES"
+
+        # Authenticate with BlueSky
+        echo "Authenticating with BlueSky..."
+        AUTH_RESPONSE=$(curl -s -X POST https://bsky.social/xrpc/com.atproto.server.createSession \
+          -H "Content-Type: application/json" \
+          -d "{\"identifier\": \"${{ secrets.BLUESKY_USERNAME }}\", \"password\": \"${{ secrets.BLUESKY_APP_PASSWORD }}\"}")
+
+        ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessJwt')
+        DID=$(echo "$AUTH_RESPONSE" | jq -r '.did')
+
+        if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
+          echo "Error: Failed to authenticate with BlueSky"
+          echo "Response: $AUTH_RESPONSE"
+          exit 1
+        fi
+
+        echo "✓ Authenticated as $DID"
+
+        # Create post text (must be under 300 graphemes)
+        POST_TEXT="🚀 #dtvem v${VERSION} is now available!"
+        POST_TEXT="${POST_TEXT}"$'\n\n'"Cross-platform version manager for ${RUNTIME_NAMES} - supports #Windows, #Linux, and #MacOS"
+        POST_TEXT="${POST_TEXT}"$'\n\n'"Release: ${RELEASE_URL}"
+        POST_TEXT="${POST_TEXT}"$'\n'"Discuss: ${DISCUSSION_URL}"
+
+        echo "Post text: $POST_TEXT"
+        echo "Post length: $(echo -n "$POST_TEXT" | wc -c) characters"
+
+        # Get current timestamp in ISO 8601 format
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # Calculate facets (byte positions for hashtags and links)
+        echo "Calculating facets for links and hashtags..."
+        export POST_TEXT
+        FACETS=$(python3 -c "import json; import re; import os; text = os.environ['POST_TEXT']; facets = []; [facets.append({'index': {'byteStart': len(text[:m.start()].encode('utf-8')), 'byteEnd': len(text[:m.start()+len(m.group(0))].encode('utf-8'))}, 'features': [{'\$type': 'app.bsky.richtext.facet#tag', 'tag': m.group(1)}]}) for m in re.finditer(r'#(\w+)', text)]; [facets.append({'index': {'byteStart': len(text[:m.start()].encode('utf-8')), 'byteEnd': len(text[:m.start()+len(m.group())].encode('utf-8'))}, 'features': [{'\$type': 'app.bsky.richtext.facet#link', 'uri': m.group()}]}) for m in re.finditer(r'https?://[^\s]+', text)]; print(json.dumps(facets))")
+
+        echo "Facets: $FACETS"
+
+        # Create the post using jq to properly escape JSON
+        echo "Creating BlueSky post..."
+        POST_RESPONSE=$(jq -n \
+          --arg did "$DID" \
+          --arg text "$POST_TEXT" \
+          --arg timestamp "$TIMESTAMP" \
+          --argjson facets "$FACETS" \
+          '{
+            repo: $did,
+            collection: "app.bsky.feed.post",
+            record: {
+              text: $text,
+              facets: $facets,
+              createdAt: $timestamp,
+              "$type": "app.bsky.feed.post"
+            }
+          }' | curl -s -X POST https://bsky.social/xrpc/com.atproto.repo.createRecord \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $ACCESS_TOKEN" \
+          -d @-)
+
+        POST_URI=$(echo "$POST_RESPONSE" | jq -r '.uri')
+
+        if [ -z "$POST_URI" ] || [ "$POST_URI" == "null" ]; then
+          echo "Error: Failed to create BlueSky post"
+          echo "Response: $POST_RESPONSE"
+          exit 1
+        fi
+
+        # Extract the post ID from the URI (format: at://did:plc:.../app.bsky.feed.post/POST_ID)
+        POST_ID=$(echo "$POST_URI" | sed 's|.*/||')
+        POST_URL="https://bsky.app/profile/${{ secrets.BLUESKY_USERNAME }}/post/$POST_ID"
+
+        echo "✓ Posted to BlueSky: $POST_URL"
+      shell: bash
