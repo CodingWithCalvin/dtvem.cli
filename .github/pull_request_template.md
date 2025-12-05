@@ -69,7 +69,6 @@ Relates to #
 - [ ] I have updated the documentation (README.md, CONTRIBUTING.md, etc.) if needed
 - [ ] My changes generate no new warnings or errors
 - [ ] I have checked my code works on multiple platforms (Windows, macOS, Linux) if applicable
-- [ ] I have updated `.claude/TODO.md` if I completed any TODO items
 - [ ] I have added appropriate error handling
 - [ ] I have followed conventional commit format in my commit messages
 

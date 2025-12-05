@@ -32,9 +32,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 1. Fork the repo and create your branch from `main`
 2. If you've added code that should be tested, add tests
 3. Ensure your code follows the existing style
-4. Update the README.md TODO section if you've completed items
-5. Write a clear commit message describing your changes
-6. Submit your pull request!
+4. Write a clear commit message describing your changes
+5. Submit your pull request!
 
 ## Development Setup
 
@@ -222,9 +221,10 @@ To add support for a new runtime (e.g., Ruby):
    ```go
    _ "github.com/dtvem/dtvem/src/runtimes/ruby"
    ```
-5. Update the shim mapping in `src/cmd/shim/main.go`
-6. Add shim definitions to `src/internal/shim/manager.go`
-7. Update README.md to reflect the new runtime support
+5. Implement the `Shims()` method to define which executables this runtime provides
+6. Implement the `ShouldReshimAfter()` method for automatic reshim detection
+7. Add tests using the provider contract harness
+8. Update README.md to reflect the new runtime support
 
 ## Testing Guidelines
 
@@ -264,7 +264,7 @@ func TestNodeProvider_DetectInstalled(t *testing.T) {
 ## Documentation
 
 - Update README.md when adding new features
-- Mark completed TODO items in README.md
+- Close related GitHub Issues when completing work
 - Add inline comments for complex logic
 - Update command help text when modifying commands
 - Add examples for new functionality
