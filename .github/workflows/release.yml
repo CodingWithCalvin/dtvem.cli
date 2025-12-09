@@ -248,26 +248,12 @@ jobs:
         name: install-scripts
         path: .
 
-    - name: Create and push release tag
-      run: |
-        VERSION="${{ github.event.inputs.version }}"
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        # Create tag on current commit (version files are not committed back to main)
-        # The version updates exist only in the build artifacts, not in source
-        git tag -a "v$VERSION" -m "Release v$VERSION"
-        git push origin "v$VERSION"
-        echo "✓ Created and pushed tag v$VERSION"
-        echo ""
-        echo "Note: Version remains 'dev' in main branch source code"
-        echo "Released binaries and install scripts contain version $VERSION"
-      shell: bash
-
     - name: Generate changelog
       id: changelog
       run: |
         # Get commits since last release tag
+        # NOTE: This must run BEFORE creating the new tag, otherwise git describe
+        # will find the new tag and the changelog will be empty
         PREVIOUS_TAG=$(git describe --abbrev=0 --tags --match "v*" 2>/dev/null || echo "")
         if [ -z "$PREVIOUS_TAG" ]; then
           # First release - get all commits
@@ -285,6 +271,22 @@ jobs:
         echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Create and push release tag
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Create tag on current commit (version files are not committed back to main)
+        # The version updates exist only in the build artifacts, not in source
+        git tag -a "v$VERSION" -m "Release v$VERSION"
+        git push origin "v$VERSION"
+        echo "✓ Created and pushed tag v$VERSION"
+        echo ""
+        echo "Note: Version remains 'dev' in main branch source code"
+        echo "Released binaries and install scripts contain version $VERSION"
       shell: bash
 
     - name: Create GitHub Release
