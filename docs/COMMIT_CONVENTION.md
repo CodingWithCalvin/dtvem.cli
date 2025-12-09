@@ -70,7 +70,7 @@ The scope should be the name of the affected module or component:
 The subject contains a succinct description of the change:
 
 - Use the imperative, present tense: "add" not "added" nor "adds"
-- Don't capitalize the first letter
+- Start with lowercase (but uppercase abbreviations like PR, API, CLI, URL are allowed)
 - No period (.) at the end
 - Maximum 72 characters
 
@@ -78,10 +78,12 @@ The subject contains a succinct description of the change:
 - `fix(python): handle missing pip.exe on Windows`
 - `feat(cli): add --yes flag to install command`
 - `docs: add troubleshooting section to README`
+- `chore(ci): remove PR coverage comments`
+- `feat: add API endpoint for version lookup`
 
 **Bad examples:**
-- `Fixed bug` (missing scope, not descriptive)
-- `feat(node): Added support for nvm.` (wrong tense, capitalized, period)
+- `Fixed bug` (missing type, not descriptive)
+- `feat(node): Added support for nvm.` (wrong tense, period at end)
 - `Update code` (missing type, not descriptive)
 
 ### Body (Optional)
@@ -156,9 +158,29 @@ Reverting due to Windows compatibility issues that need more investigation.
 Relates to #234
 ```
 
+## Pull Requests and Squash Merges
+
+This project uses **squash merges** for all pull requests. This means:
+
+- All commits in your PR are combined into a single commit on merge
+- **The PR title becomes the commit message** on the main branch
+- Your PR title must follow the conventional commit format
+
+When creating a PR, ensure your title follows the format:
+```
+<type>(<scope>): <subject>
+```
+
+For example:
+- `feat(node): add support for Node.js 22.x`
+- `fix(shim): handle API errors on Windows`
+- `chore(ci): update PR linting workflow`
+
+The PR title is validated automatically - if it doesn't follow the convention, the CI check will fail.
+
 ## Validation
 
-All commits in pull requests are automatically validated using [commitlint](https://commitlint.js.org/). If your commits don't follow this convention, the CI check will fail.
+Both PR titles and individual commits are automatically validated using [commitlint](https://commitlint.js.org/). If they don't follow this convention, the CI check will fail.
 
 ### Tips for Success
 

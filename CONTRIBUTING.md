@@ -32,8 +32,10 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 1. Fork the repo and create your branch from `main`
 2. If you've added code that should be tested, add tests
 3. Ensure your code follows the existing style
-4. Write a clear commit message describing your changes
+4. **Use a conventional commit format for your PR title** (e.g., `feat(node): add version caching`)
 5. Submit your pull request!
+
+**Note:** We use squash merges, so your PR title becomes the commit message on main. Make sure it follows the [commit convention](docs/COMMIT_CONVENTION.md).
 
 ## Development Setup
 
@@ -196,7 +198,7 @@ test(migrate): add tests for package preservation
 
 For detailed guidelines and examples, see [Commit Convention Guide](docs/COMMIT_CONVENTION.md).
 
-**Note:** Pull requests are automatically checked for commit message compliance. Non-conforming commits will fail CI checks.
+**Note:** PR titles are automatically validated for conventional commit compliance. Non-conforming titles will fail CI checks. Since we use squash merges, your PR title becomes the final commit message.
 
 ## Adding a New Runtime Provider
 

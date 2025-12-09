@@ -134,13 +134,19 @@ dtvem freeze
 dtvem install          # Prompts for confirmation
 dtvem install --yes    # Skip confirmation
 
-# Check currently active versions
+# Check currently active versions (all runtimes)
 dtvem current
 
-# List installed versions
+# Check active version for specific runtime
+dtvem current python
+
+# List all installed versions (all runtimes)
+dtvem list
+
+# List installed versions for specific runtime
 dtvem list python
 
-# List all available versions
+# List all available versions for download
 dtvem list-all python
 
 # List with filtering
@@ -297,7 +303,7 @@ This scans all installed versions and creates shims for every executable found, 
 | `init` | Initialize dtvem (setup directories and PATH) | ✅ Complete |
 | `install [runtime] [version]` | Install a specific runtime version, or all from `.dtvem/runtimes.json` | ✅ Complete |
 | `uninstall <runtime> <version>` | Remove an installed version | ✅ Complete |
-| `list <runtime>` | List installed versions | ✅ Complete |
+| `list [runtime]` | List installed versions (all runtimes or specific) | ✅ Complete |
 | `list-all <runtime>` | List all available versions (with filtering) | ✅ Complete |
 
 ### Version Management
