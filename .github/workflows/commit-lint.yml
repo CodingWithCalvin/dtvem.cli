@@ -9,6 +9,29 @@ permissions:
   pull-requests: read
 
 jobs:
+  lint-pr-title:
+    name: Lint PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install commitlint
+        run: |
+          npm install --save-dev @commitlint/cli@18.4.3 @commitlint/config-conventional@18.4.3
+
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Validating PR title: $PR_TITLE"
+          echo "$PR_TITLE" | npx commitlint --verbose
+
   commitlint:
     name: Lint Commit Messages
     runs-on: ubuntu-latest
