@@ -35,19 +35,13 @@ Example:
 
 		spinner.Success("Directories created")
 
-		// Setup PATH
+		// Setup PATH - AddToPath handles checking position and moving if needed
 		shimsDir := path.ShimsDir()
 
-		if path.IsInPath(shimsDir) {
-			ui.Success("PATH is already configured correctly")
-			ui.Info("Shims directory: %s", ui.Highlight(shimsDir))
-		} else {
-			ui.Info("Setting up PATH...")
-			if err := path.AddToPath(shimsDir); err != nil {
-				ui.Error("Failed to configure PATH: %v", err)
-				ui.Info("You can manually add %s to your PATH", shimsDir)
-				return
-			}
+		if err := path.AddToPath(shimsDir); err != nil {
+			ui.Error("Failed to configure PATH: %v", err)
+			ui.Info("You can manually add %s to your PATH", shimsDir)
+			return
 		}
 
 		ui.Success("dtvem initialized successfully!")

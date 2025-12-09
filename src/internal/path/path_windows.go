@@ -13,6 +13,7 @@ import (
 
 	"github.com/dtvem/dtvem/src/internal/constants"
 	"github.com/dtvem/dtvem/src/internal/ui"
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -27,69 +28,180 @@ const (
 	SMTO_ABORTIFHUNG = 0x0002
 )
 
-// AddToPath adds the shims directory to the user's PATH on Windows
+// AddToPath adds the shims directory to the System PATH on Windows.
+// This requires administrator privileges. If not elevated, it will prompt
+// the user to re-run with elevation.
 func AddToPath(shimsDir string) error {
-	// Check if already in PATH
-	if IsInPath(shimsDir) {
-		ui.Info("%s is already in your PATH", shimsDir)
+	// Check current System PATH status
+	needsUpdate, action, err := checkSystemPath(shimsDir)
+	if err != nil {
+		return err
+	}
+
+	if !needsUpdate {
+		ui.Success("%s is already at the beginning of your System PATH", shimsDir)
 		return nil
 	}
 
-	// Prompt user for confirmation
-	ui.Header("PATH Setup Required")
-	ui.Info("dtvem needs to add the shims directory to your PATH")
-	ui.Info("Directory: %s", ui.Highlight(shimsDir))
-	ui.Info("This will modify your user PATH environment variable")
-	fmt.Printf("\nProceed? [Y/n]: ")
+	// Check if we have admin privileges
+	if !isAdmin() {
+		return promptForElevation(shimsDir, action)
+	}
+
+	// We have admin privileges - proceed with modification
+	return modifySystemPath(shimsDir, action)
+}
+
+// checkSystemPath checks if the shims directory needs to be added/moved in System PATH
+// Returns: needsUpdate, action ("add" or "move"), error
+func checkSystemPath(shimsDir string) (bool, string, error) {
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.QUERY_VALUE)
+	if err != nil {
+		return false, "", fmt.Errorf("failed to open System PATH registry key: %w", err)
+	}
+	defer func() { _ = key.Close() }()
+
+	currentPath, _, err := key.GetStringValue("Path")
+	if err != nil && !errors.Is(err, registry.ErrNotExist) {
+		return false, "", fmt.Errorf("failed to read System PATH: %w", err)
+	}
+
+	paths := strings.Split(currentPath, ";")
+	foundAt := -1
+
+	for i, p := range paths {
+		trimmed := strings.TrimSpace(p)
+		if strings.EqualFold(trimmed, shimsDir) {
+			foundAt = i
+			break
+		}
+	}
+
+	if foundAt == 0 {
+		return false, "", nil // Already at beginning
+	} else if foundAt > 0 {
+		return true, "move", nil // Exists but not at beginning
+	}
+	return true, "add", nil // Not in PATH
+}
+
+// isAdmin checks if the current process has administrator privileges
+func isAdmin() bool {
+	_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// promptForElevation prompts the user to re-run dtvem init with admin privileges
+func promptForElevation(shimsDir, action string) error {
+	if action == "move" {
+		ui.Header("PATH Fix Required (Administrator)")
+		ui.Warning("%s is in your System PATH but not at the beginning", shimsDir)
+		ui.Info("It needs to be first to take priority over other installations")
+	} else {
+		ui.Header("PATH Setup Required (Administrator)")
+		ui.Info("dtvem needs to add the shims directory to your System PATH")
+		ui.Info("Directory: %s", ui.Highlight(shimsDir))
+	}
+
+	ui.Info("")
+	ui.Info("On Windows, System PATH takes priority over User PATH.")
+	ui.Info("Modifying System PATH requires administrator privileges.")
+
+	fmt.Printf("\nRe-run with administrator privileges? [Y/n]: ")
 
 	var response string
 	_, _ = fmt.Scanln(&response)
 	response = strings.ToLower(strings.TrimSpace(response))
 
 	if response != "" && response != constants.ResponseY && response != constants.ResponseYes {
-		ui.Warning("PATH not modified. You can add it manually later by running: dtvem init")
+		ui.Warning("PATH not modified. You can run 'dtvem init' again later.")
 		return nil
 	}
 
-	// Get current user PATH from registry
-	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	// Re-launch with elevation
+	return relaunchElevated()
+}
+
+// relaunchElevated re-launches the current executable with administrator privileges
+func relaunchElevated() error {
+	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to open registry key: %w", err)
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Use ShellExecute with "runas" verb to request elevation
+	verb := windows.StringToUTF16Ptr("runas")
+	exePath := windows.StringToUTF16Ptr(exe)
+	args := windows.StringToUTF16Ptr("init")
+	dir := windows.StringToUTF16Ptr(cwd)
+
+	err = windows.ShellExecute(0, verb, exePath, args, dir, windows.SW_SHOWNORMAL)
+	if err != nil {
+		return fmt.Errorf("failed to elevate: %w", err)
+	}
+
+	ui.Info("Elevated process launched. Please complete the setup in the new window.")
+	return nil
+}
+
+// modifySystemPath modifies the System PATH (requires admin privileges)
+func modifySystemPath(shimsDir, action string) error {
+	key, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return fmt.Errorf("failed to open System PATH registry key for writing: %w", err)
 	}
 	defer func() { _ = key.Close() }()
 
 	currentPath, _, err := key.GetStringValue("Path")
 	if err != nil && !errors.Is(err, registry.ErrNotExist) {
-		return fmt.Errorf("failed to read current PATH: %w", err)
+		return fmt.Errorf("failed to read System PATH: %w", err)
 	}
 
-	// Check if already present (double-check)
+	// Parse and filter current PATH entries
 	paths := strings.Split(currentPath, ";")
+	var filteredPaths []string
+
 	for _, p := range paths {
-		if strings.EqualFold(strings.TrimSpace(p), shimsDir) {
-			ui.Info("%s is already in your registry PATH", shimsDir)
-			return nil
+		trimmed := strings.TrimSpace(p)
+		if trimmed == "" {
+			continue
 		}
+		// Skip if it's the shims dir (we'll prepend it)
+		if strings.EqualFold(trimmed, shimsDir) {
+			continue
+		}
+		filteredPaths = append(filteredPaths, trimmed)
 	}
 
-	// Prepend the shims directory to the BEGINNING for priority
+	// Build new PATH with shimsDir at the beginning
 	newPath := shimsDir
-	if currentPath != "" {
-		newPath += ";" + currentPath
+	if len(filteredPaths) > 0 {
+		newPath += ";" + strings.Join(filteredPaths, ";")
 	}
 
 	// Write back to registry
 	err = key.SetStringValue("Path", newPath)
 	if err != nil {
-		return fmt.Errorf("failed to update PATH in registry: %w", err)
+		return fmt.Errorf("failed to update System PATH in registry: %w", err)
 	}
 
 	// Broadcast WM_SETTINGCHANGE to notify running processes
 	broadcastSettingChange()
 
-	ui.Success("Added %s to your PATH", shimsDir)
+	if action == "move" {
+		ui.Success("Moved %s to the beginning of your System PATH", shimsDir)
+	} else {
+		ui.Success("Added %s to your System PATH", shimsDir)
+	}
 	ui.Warning("Please restart your terminal for the changes to take effect")
-	ui.Info("You can verify by running: echo %%PATH%%")
 
 	return nil
 }
