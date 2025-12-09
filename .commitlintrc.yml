@@ -50,11 +50,9 @@ rules:
     - never
     - '.'
 
-  # Subject should be in sentence case (lowercase)
+  # Disable subject-case to allow uppercase abbreviations (PR, API, CLI, etc.)
   subject-case:
-    - 2
-    - always
-    - lower-case
+    - 0
 
   # Header (first line) max length
   header-max-length:
