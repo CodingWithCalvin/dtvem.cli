@@ -3,8 +3,38 @@ name: Build & Test
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'assets/**'
+      - 'schemas/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.idea/**'
+      - '.claude/**'
+      - '.gitignore'
+      - '.commitlintrc.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'LICENSE'
+      - 'install.sh'
+      - 'install.ps1'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'assets/**'
+      - 'schemas/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.idea/**'
+      - '.claude/**'
+      - '.gitignore'
+      - '.commitlintrc.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'LICENSE'
+      - 'install.sh'
+      - 'install.ps1'
 
 permissions:
   contents: read
