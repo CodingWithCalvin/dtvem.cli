@@ -1,0 +1,4 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/runtimes.schema.json",
+  "node": "22.0.0"
+}

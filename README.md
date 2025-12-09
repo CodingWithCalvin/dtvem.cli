@@ -489,6 +489,21 @@ func init() {
 
 - Go 1.23 or higher
 - Git
+- Node.js (for git hooks) - managed via dtvem, see `.dtvem/runtimes.json`
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/dtvem/dtvem.git
+cd dtvem
+
+# Install Node.js via dtvem (if not already installed)
+dtvem install
+
+# Install dev dependencies (sets up git hooks for conventional commits)
+npm install
+```
 
 ### Building
 
