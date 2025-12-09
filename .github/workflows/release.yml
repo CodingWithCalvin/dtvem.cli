@@ -257,10 +257,56 @@ jobs:
         PREVIOUS_TAG=$(git describe --abbrev=0 --tags --match "v*" 2>/dev/null || echo "")
         if [ -z "$PREVIOUS_TAG" ]; then
           # First release - get all commits
-          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          COMMITS=$(git log --pretty=format:"%s (%h)|%b" --no-merges | tr '\n' ' ')
         else
           # Get commits since previous tag
-          CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h)|%b" --no-merges | tr '\n' ' ')
+        fi
+
+        # Categorize commits by conventional commit type
+        BUGS=""
+        FEATURES=""
+        CHORES=""
+
+        # Process each commit
+        while IFS= read -r line; do
+          subject=$(echo "$line" | cut -d'|' -f1)
+          body=$(echo "$line" | cut -d'|' -f2-)
+
+          # Extract issue number from body if present
+          issue=$(echo "$body" | grep -oE "Fixes #[0-9]+" | head -1 || echo "")
+          if [ -n "$issue" ]; then
+            entry="- $subject - $issue"
+          else
+            entry="- $subject"
+          fi
+
+          # Categorize by prefix
+          if echo "$subject" | grep -qE "^fix(\(|:)"; then
+            BUGS="${BUGS}${entry}"$'\n'
+          elif echo "$subject" | grep -qE "^feat(\(|:)"; then
+            FEATURES="${FEATURES}${entry}"$'\n'
+          elif echo "$subject" | grep -qE "^chore(\(|:)"; then
+            CHORES="${CHORES}${entry}"$'\n'
+          else
+            # Default to chores for uncategorized
+            CHORES="${CHORES}${entry}"$'\n'
+          fi
+        done < <(git log ${PREVIOUS_TAG:+$PREVIOUS_TAG..}HEAD --pretty=format:"%s (%h)|%b---END---" --no-merges | sed 's/---END---/\n/g')
+
+        # Build changelog with categories
+        CHANGELOG=""
+
+        if [ -n "$BUGS" ]; then
+          CHANGELOG="${CHANGELOG}### 🐛 Bugs Squashed"$'\n\n'"${BUGS}"$'\n'
+        fi
+
+        if [ -n "$FEATURES" ]; then
+          CHANGELOG="${CHANGELOG}### 🎉 Features Added"$'\n\n'"${FEATURES}"$'\n'
+        fi
+
+        if [ -n "$CHORES" ]; then
+          CHANGELOG="${CHANGELOG}### 🧹 Chores Addressed"$'\n\n'"${CHORES}"$'\n'
         fi
 
         # If changelog is empty, use a fun message

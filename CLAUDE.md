@@ -1,5 +1,9 @@
 # Claude Code Instructions for dtvem
 
+## Commits
+
+All commits must be authored by `calvin@codingwithcalvin.net`. Do not add co-authors (including Claude) to commits.
+
 ## Deployment
 
 After building, always deploy both executables to the user's installation directory:
