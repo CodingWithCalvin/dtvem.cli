@@ -3,6 +3,8 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -77,4 +79,67 @@ func Highlight(text string) string {
 // HighlightVersion prints a version string in a highlighted color
 func HighlightVersion(version string) string {
 	return color.New(color.FgMagenta, color.Bold).Sprint(version)
+}
+
+// PromptInstall prompts the user to install a missing version.
+// Returns true if the user wants to install, false otherwise.
+// Respects DTVEM_AUTO_INSTALL environment variable:
+//   - "true": auto-install without prompting
+//   - "false": never prompt, return false
+//   - unset: prompt interactively
+func PromptInstall(displayName, version string) bool {
+	// Check if running in non-interactive mode (CI/automation)
+	if os.Getenv("DTVEM_AUTO_INSTALL") == "false" {
+		return false
+	}
+
+	// If DTVEM_AUTO_INSTALL=true, auto-install without prompting
+	if os.Getenv("DTVEM_AUTO_INSTALL") == "true" {
+		return true
+	}
+
+	// Interactive prompt
+	Printf("Install %s %s now? [Y/n]: ", displayName, version)
+
+	var response string
+	_, _ = fmt.Scanln(&response)
+	response = strings.ToLower(strings.TrimSpace(response))
+
+	// Default to "yes" if empty response
+	return response == "" || response == "y" || response == "yes"
+}
+
+// MissingRuntime represents a runtime that needs to be installed
+type MissingRuntime interface {
+	DisplayName() string
+	Version() string
+}
+
+// PromptInstallMissing prompts the user to install multiple missing versions.
+// Returns true if the user wants to install, false otherwise.
+// Respects DTVEM_AUTO_INSTALL environment variable.
+func PromptInstallMissing[T any](missing []T) bool {
+	if len(missing) == 0 {
+		return false
+	}
+
+	// Check if running in non-interactive mode (CI/automation)
+	if os.Getenv("DTVEM_AUTO_INSTALL") == "false" {
+		return false
+	}
+
+	// If DTVEM_AUTO_INSTALL=true, auto-install without prompting
+	if os.Getenv("DTVEM_AUTO_INSTALL") == "true" {
+		return true
+	}
+
+	// Interactive prompt
+	Printf("Install missing version(s)? [Y/n]: ")
+
+	var response string
+	_, _ = fmt.Scanln(&response)
+	response = strings.ToLower(strings.TrimSpace(response))
+
+	// Default to "yes" if empty response
+	return response == "" || response == "y" || response == "yes"
 }

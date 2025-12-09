@@ -194,33 +194,10 @@ func findInSystemPath(execName string) string {
 	return ""
 }
 
-// shouldAutoInstall prompts the user to install a missing version
-// Returns true if the user wants to install, false otherwise
+// shouldAutoInstall prompts the user to install a missing version.
+// Delegates to ui.PromptInstall for consistent behavior across CLI and shim.
 func shouldAutoInstall(displayName, version string) bool {
-	// Check if running in non-interactive mode (CI/automation)
-	if os.Getenv("DTVEM_AUTO_INSTALL") == "false" {
-		return false
-	}
-
-	// If DTVEM_AUTO_INSTALL=true, auto-install without prompting
-	if os.Getenv("DTVEM_AUTO_INSTALL") == "true" {
-		return true
-	}
-
-	// Interactive prompt
-	ui.Warning("%s %s is not installed", displayName, version)
-	ui.Info("Install it now? [Y/n]: ")
-
-	var response string
-	_, _ = fmt.Scanln(&response)
-	response = strings.ToLower(strings.TrimSpace(response))
-
-	// Default to "yes" if empty response
-	if response == "" || response == constants.ResponseY || response == constants.ResponseYes {
-		return true
-	}
-
-	return false
+	return ui.PromptInstall(displayName, version)
 }
 
 // getShimName returns the name of this shim binary
