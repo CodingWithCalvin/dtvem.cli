@@ -311,7 +311,17 @@ func executeCommand(execPath string, args []string) error {
 			Stdout: os.Stdout,
 			Stderr: os.Stderr,
 		}
-		return cmd.Run()
+		if err := cmd.Run(); err != nil {
+			// Check if this is an exit error (command ran but returned non-zero)
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				// Command executed successfully but returned non-zero exit code
+				// This is not a shim error - propagate the exit code
+				os.Exit(exitErr.ExitCode())
+			}
+			// Other errors (couldn't start, etc.) are actual failures
+			return err
+		}
 	}
 
 	return nil
