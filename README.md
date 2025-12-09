@@ -5,14 +5,13 @@
 
   A cross-platform virtual environment manager for multiple developer tools, written in Go, with first-class support for Windows, MacOS, and Linux - right out of the box.
 
-  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)]()
-  [![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?logo=go)]()
-  [![License](https://img.shields.io/badge/license-MIT-green)]()
-  [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=for-the-badge)]()
+  [![Go Version](https://img.shields.io/badge/go-1.23+-00ADD8?style=for-the-badge&logo=go)]()
+  [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)]()
+  [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow?style=for-the-badge)](https://conventionalcommits.org)
 
-  [![Build & Test](https://github.com/dtvem/dtvem/actions/workflows/build.yml/badge.svg)](https://github.com/dtvem/dtvem/actions)
-  [![Lint](https://github.com/dtvem/dtvem/actions/workflows/lint.yml/badge.svg)](https://github.com/dtvem/dtvem/actions)
-  [![Release](https://github.com/dtvem/dtvem/actions/workflows/release.yml/badge.svg)](https://github.com/dtvem/dtvem/actions)
+  [![Build & Test](https://img.shields.io/github/actions/workflow/status/dtvem/dtvem/build.yml?style=for-the-badge&label=Build%20%26%20Test)](https://github.com/dtvem/dtvem/actions)
+  [![Release](https://img.shields.io/github/actions/workflow/status/dtvem/dtvem/release.yml?style=for-the-badge&label=Release)](https://github.com/dtvem/dtvem/actions)
 
 </div>
 
