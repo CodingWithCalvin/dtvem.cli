@@ -112,6 +112,11 @@ npm run check      # Run format, lint, and tests
 
 Looking for something to work on? Check out [good first issues](https://github.com/dtvem/dtvem/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
+## 👥 Contributors
+
+<!-- readme: contributors -start -->
+<!-- readme: contributors -end -->
+
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE) file for details
