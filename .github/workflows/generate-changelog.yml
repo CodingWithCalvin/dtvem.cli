@@ -46,67 +46,74 @@ jobs:
         declare -a MAINTENANCE    # docs, style, test, build, ci, chore
         declare -a OTHER          # anything else (except revert which is omitted)
 
+        # Get list of commit SHAs
+        COMMIT_SHAS=$(git log ${COMMIT_RANGE} --pretty=format:"%H" --no-merges)
+
+        # Track processed PRs to avoid duplicates
+        declare -A PROCESSED_PRS
+
         # Process each commit
-        while IFS= read -r line; do
-          [ -z "$line" ] && continue
-
-          SHA=$(echo "$line" | cut -d'|' -f1)
-          SUBJECT=$(echo "$line" | cut -d'|' -f2)
-          SHORT_SHA=$(echo "$line" | cut -d'|' -f3)
-          BODY=$(echo "$line" | cut -d'|' -f4-)
-
+        for SHA in $COMMIT_SHAS; do
           echo "Processing commit: $SHA"
 
-          # Skip revert commits
-          if echo "$SUBJECT" | grep -qE "^revert(\(|:)"; then
-            echo "  Skipping revert commit"
+          # Find the PR associated with this commit
+          PR_DATA=$(gh pr list --search "$SHA" --state merged --json number,title --limit 1 2>/dev/null || echo "[]")
+
+          if [ "$PR_DATA" = "[]" ] || [ -z "$PR_DATA" ]; then
+            echo "  No PR found, skipping"
             continue
           fi
 
-          # Check for PR and /release-note comments
-          PR_DATA=$(gh pr list --search "$SHA" --state merged --json number --limit 1 2>/dev/null || echo "[]")
-          if [ "$PR_DATA" != "[]" ] && [ -n "$PR_DATA" ]; then
-            PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
-            if [ -n "$PR_NUMBER" ]; then
-              echo "  Found PR #$PR_NUMBER"
+          PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
+          PR_TITLE=$(echo "$PR_DATA" | jq -r '.[0].title // empty')
 
-              # Check for /release-note in PR comments
-              PR_COMMENTS=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
-              RELEASE_NOTE=$(echo "$PR_COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
-              if [ -n "$RELEASE_NOTE" ]; then
-                echo "  Found /release-note: $RELEASE_NOTE"
-                HIGHLIGHTS+=("$RELEASE_NOTE")
-              fi
-            fi
+          if [ -z "$PR_NUMBER" ] || [ -z "$PR_TITLE" ]; then
+            echo "  Could not get PR details, skipping"
+            continue
           fi
 
-          # Extract issue number from commit body for sorting
-          ISSUE_NUM=$(echo "$BODY" | grep -oiE "(fixes|closes|resolves)\s*#[0-9]+" | grep -oE "[0-9]+" | head -1 || echo "99999")
-          ISSUE_REF=$(echo "$BODY" | grep -oiE "(fixes|closes|resolves)\s*#[0-9]+" | head -1 || echo "")
+          # Skip if we've already processed this PR
+          if [ -n "${PROCESSED_PRS[$PR_NUMBER]}" ]; then
+            echo "  PR #$PR_NUMBER already processed, skipping"
+            continue
+          fi
+          PROCESSED_PRS[$PR_NUMBER]=1
 
-          # Build commit entry
-          if [ -n "$ISSUE_NUM" ] && [ "$ISSUE_NUM" != "99999" ]; then
-            ENTRY="- #${ISSUE_NUM} - $SUBJECT ($SHORT_SHA)"
-          else
-            ENTRY="- $SUBJECT ($SHORT_SHA)"
+          echo "  Found PR #$PR_NUMBER: $PR_TITLE"
+
+          # Skip revert PRs
+          if echo "$PR_TITLE" | grep -qE "^revert(\(|:)"; then
+            echo "  Skipping revert PR"
+            continue
           fi
 
-          # Store with issue number prefix for sorting
-          SORTABLE_ENTRY="${ISSUE_NUM}|${ENTRY}"
+          # Check for /release-note in PR comments
+          PR_COMMENTS=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
+          RELEASE_NOTE=$(echo "$PR_COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
+          if [ -n "$RELEASE_NOTE" ]; then
+            echo "  Found /release-note: $RELEASE_NOTE"
+            HIGHLIGHTS+=("$RELEASE_NOTE")
+          fi
 
-          # Categorize by conventional commit prefix
-          if echo "$SUBJECT" | grep -qE "^fix(\(|:)"; then
+          # Build entry using PR number and title
+          ENTRY="- #${PR_NUMBER} - $PR_TITLE"
+
+          # Store with PR number prefix for sorting
+          SORTABLE_ENTRY="${PR_NUMBER}|${ENTRY}"
+
+          # Categorize by conventional commit prefix in PR title
+          if echo "$PR_TITLE" | grep -qE "^fix(\(|:)"; then
             BUGS+=("$SORTABLE_ENTRY")
-          elif echo "$SUBJECT" | grep -qE "^(perf|refactor)(\(|:)"; then
+          elif echo "$PR_TITLE" | grep -qE "^(perf|refactor)(\(|:)"; then
             IMPROVEMENTS+=("$SORTABLE_ENTRY")
-          elif echo "$SUBJECT" | grep -qE "^feat(\(|:)"; then
+          elif echo "$PR_TITLE" | grep -qE "^feat(\(|:)"; then
             FEATURES+=("$SORTABLE_ENTRY")
-          elif echo "$SUBJECT" | grep -qE "^(docs|style|test|build|ci|chore)(\(|:)"; then
+          elif echo "$PR_TITLE" | grep -qE "^(docs|style|test|build|ci|chore)(\(|:)"; then
             MAINTENANCE+=("$SORTABLE_ENTRY")
           else
             OTHER+=("$SORTABLE_ENTRY")
           fi
-        done < <(git log ${COMMIT_RANGE} --pretty=format:"%H|%s|%h|%b---END---" --no-merges | sed 's/---END---/\n/g')
+        done
 
         # Helper function to sort entries by issue number and format output
         sort_entries() {
