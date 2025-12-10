@@ -251,62 +251,115 @@ jobs:
     - name: Generate changelog
       id: changelog
       run: |
-        # Get commits since last release tag
+        # Get previous release tag
         # NOTE: This must run BEFORE creating the new tag, otherwise git describe
         # will find the new tag and the changelog will be empty
         PREVIOUS_TAG=$(git describe --abbrev=0 --tags --match "v*" 2>/dev/null || echo "")
+
+        echo "Previous tag: ${PREVIOUS_TAG:-'(none - first release)'}"
+
+        # Get commit SHAs since last release
         if [ -z "$PREVIOUS_TAG" ]; then
-          # First release - get all commits
-          COMMITS=$(git log --pretty=format:"%s (%h)|%b" --no-merges | tr '\n' ' ')
+          COMMIT_SHAS=$(git log --pretty=format:"%H" --no-merges)
         else
-          # Get commits since previous tag
-          COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h)|%b" --no-merges | tr '\n' ' ')
+          COMMIT_SHAS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%H" --no-merges)
         fi
 
-        # Categorize commits by conventional commit type
-        BUGS=""
-        FEATURES=""
-        CHORES=""
+        echo "Found $(echo "$COMMIT_SHAS" | wc -l) commits since last release"
 
-        # Process each commit
-        while IFS= read -r line; do
-          subject=$(echo "$line" | cut -d'|' -f1)
-          body=$(echo "$line" | cut -d'|' -f2-)
+        # Collect all closed issues by tracing commits -> PRs -> issues
+        declare -A CLOSED_ISSUES  # issue_number -> issue_title
+        declare -A HIGHLIGHTS     # issue_number -> highlight message
 
-          # Extract issue number from body if present
-          issue=$(echo "$body" | grep -oE "Fixes #[0-9]+" | head -1 || echo "")
-          if [ -n "$issue" ]; then
-            entry="- $subject - $issue"
-          else
-            entry="- $subject"
+        for SHA in $COMMIT_SHAS; do
+          echo "Processing commit: $SHA"
+
+          # Find PR associated with this commit (squash merge)
+          PR_DATA=$(gh pr list --search "$SHA" --state merged --json number,body --limit 1 2>/dev/null || echo "[]")
+
+          if [ "$PR_DATA" != "[]" ] && [ -n "$PR_DATA" ]; then
+            PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
+            PR_BODY=$(echo "$PR_DATA" | jq -r '.[0].body // ""')
+
+            if [ -n "$PR_NUMBER" ]; then
+              echo "  Found PR #$PR_NUMBER"
+
+              # Extract issue numbers from PR body (Fixes #XX, Closes #XX, Resolves #XX)
+              ISSUE_NUMBERS=$(echo "$PR_BODY" | grep -oiE "(fixes|closes|resolves)\s*#[0-9]+" | grep -oE "[0-9]+" || echo "")
+
+              for ISSUE_NUM in $ISSUE_NUMBERS; do
+                if [ -z "${CLOSED_ISSUES[$ISSUE_NUM]}" ]; then
+                  echo "  Found linked issue #$ISSUE_NUM"
+
+                  # Get issue title
+                  ISSUE_TITLE=$(gh issue view "$ISSUE_NUM" --json title --jq '.title' 2>/dev/null || echo "")
+
+                  if [ -n "$ISSUE_TITLE" ]; then
+                    CLOSED_ISSUES[$ISSUE_NUM]="$ISSUE_TITLE"
+
+                    # Check for /release-note comment on the issue
+                    COMMENTS=$(gh issue view "$ISSUE_NUM" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
+
+                    RELEASE_NOTE=$(echo "$COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
+
+                    if [ -n "$RELEASE_NOTE" ]; then
+                      echo "  Found /release-note: $RELEASE_NOTE"
+                      HIGHLIGHTS[$ISSUE_NUM]="$RELEASE_NOTE"
+                    fi
+                  fi
+                fi
+              done
+            fi
           fi
+        done
 
-          # Categorize by prefix
-          if echo "$subject" | grep -qE "^fix(\(|:)"; then
-            BUGS="${BUGS}${entry}"$'\n'
-          elif echo "$subject" | grep -qE "^feat(\(|:)"; then
-            FEATURES="${FEATURES}${entry}"$'\n'
-          elif echo "$subject" | grep -qE "^chore(\(|:)"; then
-            CHORES="${CHORES}${entry}"$'\n'
-          else
-            # Default to chores for uncategorized
-            CHORES="${CHORES}${entry}"$'\n'
-          fi
-        done < <(git log ${PREVIOUS_TAG:+$PREVIOUS_TAG..}HEAD --pretty=format:"%s (%h)|%b---END---" --no-merges | sed 's/---END---/\n/g')
+        # Also check for issues closed directly (not via PR) in the commit range
+        # by looking at commit messages for "Fixes #XX" patterns
+        for SHA in $COMMIT_SHAS; do
+          COMMIT_MSG=$(git log -1 --pretty=format:"%B" "$SHA")
+          ISSUE_NUMBERS=$(echo "$COMMIT_MSG" | grep -oiE "(fixes|closes|resolves)\s*#[0-9]+" | grep -oE "[0-9]+" || echo "")
 
-        # Build changelog with categories
+          for ISSUE_NUM in $ISSUE_NUMBERS; do
+            if [ -z "${CLOSED_ISSUES[$ISSUE_NUM]}" ]; then
+              echo "Found issue #$ISSUE_NUM in commit message"
+
+              ISSUE_TITLE=$(gh issue view "$ISSUE_NUM" --json title --jq '.title' 2>/dev/null || echo "")
+
+              if [ -n "$ISSUE_TITLE" ]; then
+                CLOSED_ISSUES[$ISSUE_NUM]="$ISSUE_TITLE"
+
+                # Check for /release-note comment
+                COMMENTS=$(gh issue view "$ISSUE_NUM" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
+                RELEASE_NOTE=$(echo "$COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
+
+                if [ -n "$RELEASE_NOTE" ]; then
+                  echo "  Found /release-note: $RELEASE_NOTE"
+                  HIGHLIGHTS[$ISSUE_NUM]="$RELEASE_NOTE"
+                fi
+              fi
+            fi
+          done
+        done
+
+        # Build changelog
         CHANGELOG=""
 
-        if [ -n "$BUGS" ]; then
-          CHANGELOG="${CHANGELOG}### 🐛 Bugs Squashed"$'\n\n'"${BUGS}"$'\n'
+        # Add Highlights section if any /release-note comments exist
+        if [ ${#HIGHLIGHTS[@]} -gt 0 ]; then
+          CHANGELOG="### ✨ Highlights"$'\n\n'
+          for ISSUE_NUM in "${!HIGHLIGHTS[@]}"; do
+            CHANGELOG="${CHANGELOG}- ${HIGHLIGHTS[$ISSUE_NUM]}"$'\n'
+          done
+          CHANGELOG="${CHANGELOG}"$'\n'
         fi
 
-        if [ -n "$FEATURES" ]; then
-          CHANGELOG="${CHANGELOG}### 🎉 Features Added"$'\n\n'"${FEATURES}"$'\n'
-        fi
-
-        if [ -n "$CHORES" ]; then
-          CHANGELOG="${CHANGELOG}### 🧹 Chores Addressed"$'\n\n'"${CHORES}"$'\n'
+        # Add Closed Issues section (always show if there are any)
+        if [ ${#CLOSED_ISSUES[@]} -gt 0 ]; then
+          CHANGELOG="${CHANGELOG}### 📋 Closed Issues"$'\n\n'
+          # Sort issue numbers for consistent ordering
+          for ISSUE_NUM in $(echo "${!CLOSED_ISSUES[@]}" | tr ' ' '\n' | sort -n); do
+            CHANGELOG="${CHANGELOG}- #${ISSUE_NUM} - ${CLOSED_ISSUES[$ISSUE_NUM]}"$'\n'
+          done
         fi
 
         # If changelog is empty, use a fun message
@@ -314,10 +367,15 @@ jobs:
           CHANGELOG="So much goodness, we lost track! 🎉"
         fi
 
+        echo "Generated changelog:"
+        echo "$CHANGELOG"
+
         echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
         echo "$CHANGELOG" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create and push release tag
       run: |
@@ -348,7 +406,7 @@ jobs:
           install.sh
           install.ps1
         body: |
-          ## Changes in v${{ github.event.inputs.version }}
+          ## What's New in v${{ github.event.inputs.version }}
 
           ${{ steps.changelog.outputs.CHANGELOG }}
 
