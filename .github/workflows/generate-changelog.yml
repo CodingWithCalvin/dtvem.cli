@@ -41,7 +41,7 @@ jobs:
 
         # Collect all closed issues by tracing commits -> PRs -> issues
         declare -A CLOSED_ISSUES  # issue_number -> issue_title
-        declare -A HIGHLIGHTS     # issue_number -> highlight message
+        declare -a HIGHLIGHTS     # array of highlight messages
 
         for SHA in $COMMIT_SHAS; do
           echo "Processing commit: $SHA"
@@ -56,6 +56,14 @@ jobs:
             if [ -n "$PR_NUMBER" ]; then
               echo "  Found PR #$PR_NUMBER"
 
+              # Check for /release-note in PR comments
+              PR_COMMENTS=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
+              RELEASE_NOTE=$(echo "$PR_COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
+              if [ -n "$RELEASE_NOTE" ]; then
+                echo "  Found /release-note: $RELEASE_NOTE"
+                HIGHLIGHTS+=("$RELEASE_NOTE")
+              fi
+
               # Extract issue numbers from PR body (Fixes #XX, Closes #XX, Resolves #XX)
               ISSUE_NUMBERS=$(echo "$PR_BODY" | grep -oiE "(fixes|closes|resolves)\s*#[0-9]+" | grep -oE "[0-9]+" || echo "")
 
@@ -68,16 +76,6 @@ jobs:
 
                   if [ -n "$ISSUE_TITLE" ]; then
                     CLOSED_ISSUES[$ISSUE_NUM]="$ISSUE_TITLE"
-
-                    # Check for /release-note comment on the issue
-                    COMMENTS=$(gh issue view "$ISSUE_NUM" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
-
-                    RELEASE_NOTE=$(echo "$COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
-
-                    if [ -n "$RELEASE_NOTE" ]; then
-                      echo "  Found /release-note: $RELEASE_NOTE"
-                      HIGHLIGHTS[$ISSUE_NUM]="$RELEASE_NOTE"
-                    fi
                   fi
                 fi
               done
@@ -99,15 +97,6 @@ jobs:
 
               if [ -n "$ISSUE_TITLE" ]; then
                 CLOSED_ISSUES[$ISSUE_NUM]="$ISSUE_TITLE"
-
-                # Check for /release-note comment
-                COMMENTS=$(gh issue view "$ISSUE_NUM" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
-                RELEASE_NOTE=$(echo "$COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
-
-                if [ -n "$RELEASE_NOTE" ]; then
-                  echo "  Found /release-note: $RELEASE_NOTE"
-                  HIGHLIGHTS[$ISSUE_NUM]="$RELEASE_NOTE"
-                fi
               fi
             fi
           done
@@ -116,11 +105,11 @@ jobs:
         # Build changelog
         CHANGELOG=""
 
-        # Add Highlights section if any /release-note comments exist
+        # Add Highlights section if any /release-note entries exist
         if [ ${#HIGHLIGHTS[@]} -gt 0 ]; then
           CHANGELOG="### ✨ Highlights"$'\n\n'
-          for ISSUE_NUM in "${!HIGHLIGHTS[@]}"; do
-            CHANGELOG="${CHANGELOG}- ${HIGHLIGHTS[$ISSUE_NUM]}"$'\n'
+          for HIGHLIGHT in "${HIGHLIGHTS[@]}"; do
+            CHANGELOG="${CHANGELOG}- ${HIGHLIGHT}"$'\n'
           done
           CHANGELOG="${CHANGELOG}"$'\n'
         fi
