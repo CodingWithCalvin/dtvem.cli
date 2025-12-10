@@ -87,8 +87,16 @@ jobs:
             continue
           fi
 
-          # Check for /release-note in PR comments
+          # Check PR comments for commands
           PR_COMMENTS=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments[].body' 2>/dev/null || echo "")
+
+          # Check for /skip-changelog command
+          if echo "$PR_COMMENTS" | grep -q "^/skip-changelog"; then
+            echo "  Found /skip-changelog, skipping PR"
+            continue
+          fi
+
+          # Check for /release-note command
           RELEASE_NOTE=$(echo "$PR_COMMENTS" | grep "^/release-note " | sed 's|^/release-note ||' | head -1 || echo "")
           if [ -n "$RELEASE_NOTE" ]; then
             echo "  Found /release-note: $RELEASE_NOTE"
