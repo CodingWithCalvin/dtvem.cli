@@ -226,16 +226,19 @@ jobs:
           install.ps1
         retention-days: 1
 
+  changelog:
+    name: Generate Changelog
+    needs: build
+    uses: ./.github/workflows/generate-changelog.yml
+
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, changelog]
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch all history for changelog generation
 
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
@@ -247,77 +250,6 @@ jobs:
       with:
         name: install-scripts
         path: .
-
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # Get commits since last release tag
-        # NOTE: This must run BEFORE creating the new tag, otherwise git describe
-        # will find the new tag and the changelog will be empty
-        PREVIOUS_TAG=$(git describe --abbrev=0 --tags --match "v*" 2>/dev/null || echo "")
-        if [ -z "$PREVIOUS_TAG" ]; then
-          # First release - get all commits
-          COMMITS=$(git log --pretty=format:"%s (%h)|%b" --no-merges | tr '\n' ' ')
-        else
-          # Get commits since previous tag
-          COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h)|%b" --no-merges | tr '\n' ' ')
-        fi
-
-        # Categorize commits by conventional commit type
-        BUGS=""
-        FEATURES=""
-        CHORES=""
-
-        # Process each commit
-        while IFS= read -r line; do
-          subject=$(echo "$line" | cut -d'|' -f1)
-          body=$(echo "$line" | cut -d'|' -f2-)
-
-          # Extract issue number from body if present
-          issue=$(echo "$body" | grep -oE "Fixes #[0-9]+" | head -1 || echo "")
-          if [ -n "$issue" ]; then
-            entry="- $subject - $issue"
-          else
-            entry="- $subject"
-          fi
-
-          # Categorize by prefix
-          if echo "$subject" | grep -qE "^fix(\(|:)"; then
-            BUGS="${BUGS}${entry}"$'\n'
-          elif echo "$subject" | grep -qE "^feat(\(|:)"; then
-            FEATURES="${FEATURES}${entry}"$'\n'
-          elif echo "$subject" | grep -qE "^chore(\(|:)"; then
-            CHORES="${CHORES}${entry}"$'\n'
-          else
-            # Default to chores for uncategorized
-            CHORES="${CHORES}${entry}"$'\n'
-          fi
-        done < <(git log ${PREVIOUS_TAG:+$PREVIOUS_TAG..}HEAD --pretty=format:"%s (%h)|%b---END---" --no-merges | sed 's/---END---/\n/g')
-
-        # Build changelog with categories
-        CHANGELOG=""
-
-        if [ -n "$BUGS" ]; then
-          CHANGELOG="${CHANGELOG}### 🐛 Bugs Squashed"$'\n\n'"${BUGS}"$'\n'
-        fi
-
-        if [ -n "$FEATURES" ]; then
-          CHANGELOG="${CHANGELOG}### 🎉 Features Added"$'\n\n'"${FEATURES}"$'\n'
-        fi
-
-        if [ -n "$CHORES" ]; then
-          CHANGELOG="${CHANGELOG}### 🧹 Chores Addressed"$'\n\n'"${CHORES}"$'\n'
-        fi
-
-        # If changelog is empty, use a fun message
-        if [ -z "$CHANGELOG" ]; then
-          CHANGELOG="So much goodness, we lost track! 🎉"
-        fi
-
-        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        echo "$CHANGELOG" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-      shell: bash
 
     - name: Create and push release tag
       run: |
@@ -348,9 +280,9 @@ jobs:
           install.sh
           install.ps1
         body: |
-          ## Changes in v${{ github.event.inputs.version }}
+          ## What's New in v${{ github.event.inputs.version }}
 
-          ${{ steps.changelog.outputs.CHANGELOG }}
+          ${{ needs.changelog.outputs.changelog }}
 
           ## Installation
 
