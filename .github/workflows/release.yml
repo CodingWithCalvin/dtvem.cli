@@ -229,7 +229,8 @@ jobs:
   changelog:
     name: Generate Changelog
     needs: build
-    uses: ./.github/workflows/generate-changelog.yml
+    uses: dtvem/.github/.github/workflows/generate-changelog.yml@main
+    secrets: inherit
 
   release:
     name: Create GitHub Release

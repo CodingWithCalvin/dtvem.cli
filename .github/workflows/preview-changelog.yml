@@ -8,7 +8,8 @@ on:
 jobs:
   generate:
     name: Generate
-    uses: ./.github/workflows/generate-changelog.yml
+    uses: dtvem/.github/.github/workflows/generate-changelog.yml@main
+    secrets: inherit
 
   preview:
     name: Display Preview
