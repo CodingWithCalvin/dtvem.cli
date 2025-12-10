@@ -114,8 +114,9 @@ Looking for something to work on? Check out [good first issues](https://github.c
 
 ## 👥 Contributors
 
-<!-- readme: contributors -start -->
-<!-- readme: contributors -end -->
+<a href="https://github.com/dtvem/dtvem/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=dtvem/dtvem" />
+</a>
 
 ## 📄 License
 
