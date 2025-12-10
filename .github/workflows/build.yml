@@ -140,7 +140,7 @@ jobs:
 
     - name: Build main CLI
       run: |
-        go build -v -o dist/dtvem${{ matrix.goos == 'windows' && '.exe' || '' }} ./src
+        go build -v -ldflags="-s -w" -o dist/dtvem${{ matrix.goos == 'windows' && '.exe' || '' }} ./src
       shell: bash
       env:
         GOOS: ${{ matrix.goos }}
@@ -148,7 +148,7 @@ jobs:
 
     - name: Build shim executable
       run: |
-        go build -v -o dist/dtvem-shim${{ matrix.goos == 'windows' && '.exe' || '' }} ./src/cmd/shim
+        go build -v -ldflags="-s -w" -o dist/dtvem-shim${{ matrix.goos == 'windows' && '.exe' || '' }} ./src/cmd/shim
       shell: bash
       env:
         GOOS: ${{ matrix.goos }}
