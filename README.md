@@ -115,6 +115,16 @@ Looking for something to work on? Check out [good first issues](https://github.c
 ## 👥 Contributors
 
 <!-- readme: contributors -start -->
+<table>
+<tr>
+    <td align="center">
+        <a href="https://github.com/CalvinAllen">
+            <img src="https://avatars.githubusercontent.com/u/41448698?v=4" width="64;" alt="CalvinAllen"/>
+            <br />
+            <sub><b>Calvin A. Allen</b></sub>
+        </a>
+    </td></tr>
+</table>
 <!-- readme: contributors -end -->
 
 ## 📄 License
