@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -172,6 +173,13 @@ func TestShimPath(t *testing.T) {
 	}
 }
 
+// resetPathsForTesting resets the paths singleton for testing purposes.
+// This allows tests to verify behavior with different environment configurations.
+func resetPathsForTesting() {
+	defaultPaths = nil
+	pathsOnce = sync.Once{}
+}
+
 func TestGetRootDir_WithEnvironmentVariable(t *testing.T) {
 	// Save original environment
 	originalRoot := os.Getenv("DTVEM_ROOT")
@@ -181,16 +189,16 @@ func TestGetRootDir_WithEnvironmentVariable(t *testing.T) {
 		} else {
 			_ = os.Unsetenv("DTVEM_ROOT")
 		}
-		// Reset defaultPaths so it reinitializes
-		defaultPaths = nil
+		// Reset paths so it reinitializes
+		resetPathsForTesting()
 	}()
 
 	// Set custom DTVEM_ROOT
 	customRoot := "/custom/dtvem/path"
 	_ = os.Setenv("DTVEM_ROOT", customRoot)
 
-	// Reset defaultPaths to force reinitialization
-	defaultPaths = nil
+	// Reset paths to force reinitialization
+	resetPathsForTesting()
 
 	// Test that getRootDir respects DTVEM_ROOT
 	result := getRootDir()
@@ -230,5 +238,50 @@ func TestLocalConfigPath(t *testing.T) {
 	// Should end with runtimes.json
 	if !strings.HasSuffix(result, RuntimesFileName) {
 		t.Errorf("LocalConfigPath() = %q, should end with %q", result, RuntimesFileName)
+	}
+}
+
+func TestDefaultPaths_ConcurrentAccess(t *testing.T) {
+	// Reset to ensure clean state
+	resetPathsForTesting()
+	defer resetPathsForTesting()
+
+	const goroutines = 100
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+
+	// Channel to collect results
+	results := make(chan *Paths, goroutines)
+
+	// Launch multiple goroutines to call DefaultPaths concurrently
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			results <- DefaultPaths()
+		}()
+	}
+
+	wg.Wait()
+	close(results)
+
+	// Collect all results
+	var first *Paths
+	for paths := range results {
+		if first == nil {
+			first = paths
+		} else {
+			// All goroutines should receive the same pointer
+			if paths != first {
+				t.Errorf("DefaultPaths() returned different pointers: %p vs %p", first, paths)
+			}
+		}
+	}
+
+	// Verify the paths are valid
+	if first == nil {
+		t.Fatal("DefaultPaths() returned nil")
+	}
+	if first.Root == "" {
+		t.Error("Root path is empty")
 	}
 }

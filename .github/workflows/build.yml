@@ -96,8 +96,57 @@ jobs:
           fi
           echo "✅ go.mod and go.sum are tidy"
 
+  race-detection:
+    name: Race Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Run tests with race detector
+        run: |
+          echo "Running tests with Go race detector enabled..."
+          echo "This detects data races in concurrent code (requires cgo)"
+          go test -race -v ./src/... 2>&1 | tee race-test-output.log
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          exit $TEST_EXIT_CODE
+
+      - name: Generate race detection summary
+        if: always()
+        run: |
+          echo "## Race Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if grep -q "WARNING: DATA RACE" race-test-output.log 2>/dev/null; then
+            echo "❌ **Data races detected!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Race Details" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -A 50 "WARNING: DATA RACE" race-test-output.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **No data races detected**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>Full Test Output</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat race-test-output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
   build:
-    needs: [golangci-lint, go-mod]
+    needs: [golangci-lint, go-mod, race-detection]
     name: Build ${{ matrix.platform }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:

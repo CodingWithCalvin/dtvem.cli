@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/dtvem/dtvem/src/internal/constants"
 )
@@ -17,13 +18,17 @@ type Paths struct {
 	Config   string // Config directory (~/.dtvem/config)
 }
 
-var defaultPaths *Paths
+var (
+	defaultPaths *Paths
+	pathsOnce    sync.Once
+)
 
-// DefaultPaths returns the default dtvem paths
+// DefaultPaths returns the default dtvem paths.
+// This function is thread-safe and guarantees single initialization.
 func DefaultPaths() *Paths {
-	if defaultPaths == nil {
+	pathsOnce.Do(func() {
 		defaultPaths = initPaths()
-	}
+	})
 	return defaultPaths
 }
 
