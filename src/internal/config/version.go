@@ -151,6 +151,11 @@ func FindLocalRuntimesFile() (string, error) {
 	return "", fmt.Errorf("no .dtvem/runtimes.json file found")
 }
 
+// LocalVersion reads the local version for a runtime by walking up the directory tree
+func LocalVersion(runtimeName string) (string, error) {
+	return findLocalVersion(runtimeName)
+}
+
 // GlobalVersion reads the global version for a runtime
 func GlobalVersion(runtimeName string) (string, error) {
 	configPath := GlobalConfigPath()

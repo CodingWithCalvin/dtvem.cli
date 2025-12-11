@@ -1,9 +1,16 @@
 package cmd
 
 import (
+	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/ui"
 	"github.com/spf13/cobra"
+)
+
+// Version indicator emojis
+const (
+	globalIndicator = "🌐"
+	localIndicator  = "📍"
 )
 
 var listCmd = &cobra.Command{
@@ -49,15 +56,13 @@ func listAllRuntimes() {
 		}
 
 		hasAny = true
+		runtimeName := provider.Name()
 		globalVersion, _ := provider.GlobalVersion()
+		localVersion, _ := config.LocalVersion(runtimeName)
 
 		ui.Printf("  %s:\n", ui.Highlight(provider.DisplayName()))
 		for _, v := range versions {
-			if v.String() == globalVersion {
-				ui.Printf("    %s (global)\n", ui.HighlightVersion(v.String()))
-			} else {
-				ui.Printf("    %s\n", ui.HighlightVersion(v.String()))
-			}
+			printVersionLine(v.String(), globalVersion, localVersion)
 		}
 	}
 
@@ -89,13 +94,37 @@ func listSingleRuntime(runtimeName string) {
 	}
 
 	globalVersion, _ := provider.GlobalVersion()
+	localVersion, _ := config.LocalVersion(runtimeName)
 
 	for _, v := range versions {
-		if v.String() == globalVersion {
-			ui.Printf("  %s (global)\n", ui.HighlightVersion(v.String()))
-		} else {
-			ui.Printf("  %s\n", ui.HighlightVersion(v.String()))
-		}
+		printVersionLine(v.String(), globalVersion, localVersion)
+	}
+}
+
+// printVersionLine prints a single version with appropriate indicators and colors
+// Active version (local > global) is shown in green
+// Indicators: 🌐 for global, 📍 for local
+func printVersionLine(version, globalVersion, localVersion string) {
+	isGlobal := version == globalVersion
+	isLocal := version == localVersion
+
+	// Determine if this is the active version (local takes priority over global)
+	isActive := isLocal || (isGlobal && localVersion == "")
+
+	// Build the indicator string
+	var indicators string
+	if isLocal {
+		indicators += " " + localIndicator
+	}
+	if isGlobal {
+		indicators += " " + globalIndicator
+	}
+
+	// Format and print
+	if isActive {
+		ui.Printf("    %s%s\n", ui.ActiveVersion(version), indicators)
+	} else {
+		ui.Printf("    %s%s\n", version, indicators)
 	}
 }
 
