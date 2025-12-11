@@ -103,7 +103,8 @@ verify_checksum() {
     fi
 
     # Extract expected hash from checksum file (format: "hash  filename")
-    local expected_hash=$(awk '{print $1}' "$checksum_file")
+    local expected_hash
+    expected_hash=$(awk '{print $1}' "$checksum_file")
 
     # Calculate actual hash
     local actual_hash
@@ -172,7 +173,7 @@ main() {
 
     # Create temporary directory
     TMP_DIR=$(mktemp -d)
-    trap "rm -rf $TMP_DIR" EXIT
+    trap 'rm -rf $TMP_DIR' EXIT
 
     # Download archive
     info "Downloading dtvem..."
@@ -265,9 +266,11 @@ main() {
         if [ -n "$SHELL_CONFIG" ]; then
             # Check if already in config
             if ! grep -q "$INSTALL_DIR" "$SHELL_CONFIG" 2>/dev/null; then
-                echo "" >> "$SHELL_CONFIG"
-                echo "# Added by dtvem installer" >> "$SHELL_CONFIG"
-                echo "$EXPORT_CMD" >> "$SHELL_CONFIG"
+                {
+                    echo ""
+                    echo "# Added by dtvem installer"
+                    echo "$EXPORT_CMD"
+                } >> "$SHELL_CONFIG"
                 success "Added to $SHELL_CONFIG"
             else
                 info "Already in $SHELL_CONFIG"
