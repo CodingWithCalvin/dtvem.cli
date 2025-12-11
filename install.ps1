@@ -46,6 +46,34 @@ function Get-LatestVersion {
     }
 }
 
+function Test-Checksum {
+    param(
+        [string]$FilePath,
+        [string]$ChecksumPath
+    )
+
+    if (-not (Test-Path $ChecksumPath)) {
+        Write-Error-Custom "Checksum file not found: $ChecksumPath"
+        return $false
+    }
+
+    # Read expected hash from checksum file (format: "hash  filename")
+    $checksumContent = Get-Content $ChecksumPath -Raw
+    $expectedHash = ($checksumContent -split '\s+')[0].ToLower()
+
+    # Calculate actual hash
+    $actualHash = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
+
+    if ($expectedHash -ne $actualHash) {
+        Write-Error-Custom "Checksum verification failed!"
+        Write-Error-Custom "Expected: $expectedHash"
+        Write-Error-Custom "Actual:   $actualHash"
+        return $false
+    }
+
+    return $true
+}
+
 function Main {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Blue
@@ -104,6 +132,27 @@ function Main {
             Write-Error-Custom "URL: $DOWNLOAD_URL"
             exit 1
         }
+
+        # Download and verify checksum
+        $CHECKSUM_URL = "$DOWNLOAD_URL.sha256"
+        $CHECKSUM_PATH = Join-Path $TMP_DIR "$ARCHIVE_NAME.sha256"
+
+        Write-Info "Downloading checksum..."
+        try {
+            Invoke-WebRequest -Uri $CHECKSUM_URL -OutFile $CHECKSUM_PATH -UseBasicParsing
+        }
+        catch {
+            Write-Error-Custom "Failed to download checksum file: $_"
+            Write-Error-Custom "URL: $CHECKSUM_URL"
+            exit 1
+        }
+
+        Write-Info "Verifying checksum..."
+        if (-not (Test-Checksum -FilePath $ARCHIVE_PATH -ChecksumPath $CHECKSUM_PATH)) {
+            Write-Error-Custom "Archive integrity check failed - aborting installation"
+            exit 1
+        }
+        Write-Success "Checksum verified"
 
         # Extract archive
         Write-Info "Extracting archive..."

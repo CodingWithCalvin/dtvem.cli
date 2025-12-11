@@ -92,6 +92,40 @@ download() {
     fi
 }
 
+# Verify SHA256 checksum
+verify_checksum() {
+    local file=$1
+    local checksum_file=$2
+
+    if [ ! -f "$checksum_file" ]; then
+        error "Checksum file not found: $checksum_file"
+        return 1
+    fi
+
+    # Extract expected hash from checksum file (format: "hash  filename")
+    local expected_hash=$(awk '{print $1}' "$checksum_file")
+
+    # Calculate actual hash
+    local actual_hash
+    if command -v sha256sum &> /dev/null; then
+        actual_hash=$(sha256sum "$file" | awk '{print $1}')
+    elif command -v shasum &> /dev/null; then
+        actual_hash=$(shasum -a 256 "$file" | awk '{print $1}')
+    else
+        warning "Neither sha256sum nor shasum found - skipping checksum verification"
+        return 0
+    fi
+
+    if [ "$expected_hash" != "$actual_hash" ]; then
+        error "Checksum verification failed!"
+        error "Expected: $expected_hash"
+        error "Actual:   $actual_hash"
+        return 1
+    fi
+
+    return 0
+}
+
 main() {
     echo ""
     echo -e "${BLUE}========================================${NC}"
@@ -151,6 +185,24 @@ main() {
     fi
 
     success "Downloaded successfully"
+
+    # Download and verify checksum
+    CHECKSUM_URL="${DOWNLOAD_URL}.sha256"
+    CHECKSUM_PATH="$TMP_DIR/${ARCHIVE_NAME}.sha256"
+
+    info "Downloading checksum..."
+    if ! download "$CHECKSUM_URL" "$CHECKSUM_PATH"; then
+        error "Failed to download checksum file"
+        error "URL: $CHECKSUM_URL"
+        exit 1
+    fi
+
+    info "Verifying checksum..."
+    if ! verify_checksum "$ARCHIVE_PATH" "$CHECKSUM_PATH"; then
+        error "Archive integrity check failed - aborting installation"
+        exit 1
+    fi
+    success "Checksum verified"
 
     # Extract archive
     info "Extracting archive..."

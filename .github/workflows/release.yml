@@ -209,11 +209,38 @@ jobs:
         cd ..
       shell: bash
 
+    - name: Generate SHA256 checksum (Unix)
+      if: matrix.goos != 'windows'
+      run: |
+        cd dist
+        ARCHIVE_NAME="dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }}"
+        if command -v sha256sum &> /dev/null; then
+          sha256sum "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256"
+        else
+          shasum -a 256 "$ARCHIVE_NAME" > "$ARCHIVE_NAME.sha256"
+        fi
+        echo "Generated checksum:"
+        cat "$ARCHIVE_NAME.sha256"
+      shell: bash
+
+    - name: Generate SHA256 checksum (Windows)
+      if: matrix.goos == 'windows'
+      run: |
+        $archiveName = "dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }}"
+        $archivePath = "dist/$archiveName"
+        $hash = (Get-FileHash -Path $archivePath -Algorithm SHA256).Hash.ToLower()
+        "$hash  $archiveName" | Out-File -FilePath "dist/$archiveName.sha256" -Encoding ASCII -NoNewline
+        Write-Host "Generated checksum:"
+        Get-Content "dist/$archiveName.sha256"
+      shell: pwsh
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: build-${{ matrix.asset_name_suffix }}
-        path: dist/dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }}
+        path: |
+          dist/dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }}
+          dist/dtvem-${{ github.event.inputs.version }}-${{ matrix.asset_name_suffix }}.${{ matrix.archive_ext }}.sha256
         retention-days: 1
 
     - name: Upload install scripts (linux-amd64 only)
@@ -274,10 +301,15 @@ jobs:
         tag_name: v${{ github.event.inputs.version }}
         files: |
           artifacts/build-linux-amd64/dtvem-${{ github.event.inputs.version }}-linux-amd64.tar.gz
+          artifacts/build-linux-amd64/dtvem-${{ github.event.inputs.version }}-linux-amd64.tar.gz.sha256
           artifacts/build-macos-amd64/dtvem-${{ github.event.inputs.version }}-macos-amd64.tar.gz
+          artifacts/build-macos-amd64/dtvem-${{ github.event.inputs.version }}-macos-amd64.tar.gz.sha256
           artifacts/build-macos-arm64/dtvem-${{ github.event.inputs.version }}-macos-arm64.tar.gz
+          artifacts/build-macos-arm64/dtvem-${{ github.event.inputs.version }}-macos-arm64.tar.gz.sha256
           artifacts/build-windows-amd64/dtvem-${{ github.event.inputs.version }}-windows-amd64.zip
+          artifacts/build-windows-amd64/dtvem-${{ github.event.inputs.version }}-windows-amd64.zip.sha256
           artifacts/build-windows-arm64/dtvem-${{ github.event.inputs.version }}-windows-arm64.zip
+          artifacts/build-windows-arm64/dtvem-${{ github.event.inputs.version }}-windows-arm64.zip.sha256
           install.sh
           install.ps1
         body: |
@@ -314,7 +346,8 @@ jobs:
 
           ## Checksums
 
-          See the assets below for SHA256 checksums.
+          SHA256 checksums are provided for each archive (`.sha256` files).
+          The installers automatically verify checksums before extraction.
         draft: false
         prerelease: false
         generate_release_notes: true  # GitHub will auto-generate additional notes
