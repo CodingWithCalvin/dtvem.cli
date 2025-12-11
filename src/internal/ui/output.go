@@ -81,6 +81,16 @@ func HighlightVersion(version string) string {
 	return color.New(color.FgMagenta, color.Bold).Sprint(version)
 }
 
+// ActiveVersion prints a version string in green (for currently active version)
+func ActiveVersion(version string) string {
+	return color.New(color.FgGreen, color.Bold).Sprint(version)
+}
+
+// DimText prints text in a dimmed/gray color (for inactive items)
+func DimText(text string) string {
+	return color.New(color.Faint).Sprint(text)
+}
+
 // PromptInstall prompts the user to install a missing version.
 // Returns true if the user wants to install, false otherwise.
 // Respects DTVEM_AUTO_INSTALL environment variable:
