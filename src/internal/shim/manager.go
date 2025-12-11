@@ -144,8 +144,8 @@ func (m *Manager) Rehash() error {
 		return fmt.Errorf("failed to read versions directory: %w", err)
 	}
 
-	// Collect all shims to create (use map to deduplicate)
-	shimsToCreate := make(map[string]bool)
+	// Collect shim-to-runtime mappings (shim name -> runtime name)
+	shimMap := make(ShimMap)
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -172,34 +172,47 @@ func (m *Manager) Rehash() error {
 			// First, add core runtime shims (from provider)
 			coreShims := RuntimeShims(runtimeName)
 			for _, shimName := range coreShims {
-				shimsToCreate[shimName] = true
+				shimMap[shimName] = runtimeName
 			}
 
 			// Then, scan bin directory for globally installed packages
 			binDir := filepath.Join(versionDir, "bin")
 			if execs, err := findExecutables(binDir); err == nil {
 				for _, exec := range execs {
-					shimsToCreate[exec] = true
+					shimMap[exec] = runtimeName
 				}
 			}
 
 			// On Windows, also check the root version directory for .cmd/.bat files
+			// and Scripts directory for Python packages
 			if runtime.GOOS == constants.OSWindows {
 				if execs, err := findExecutables(versionDir); err == nil {
 					for _, exec := range execs {
-						shimsToCreate[exec] = true
+						shimMap[exec] = runtimeName
+					}
+				}
+				// Check Scripts directory for Python pip packages
+				scriptsDir := filepath.Join(versionDir, "Scripts")
+				if execs, err := findExecutables(scriptsDir); err == nil {
+					for _, exec := range execs {
+						shimMap[exec] = runtimeName
 					}
 				}
 			}
 		}
 	}
 
-	if len(shimsToCreate) == 0 {
+	if len(shimMap) == 0 {
 		return fmt.Errorf("no runtimes installed - nothing to reshim")
 	}
 
+	// Save the shim map cache
+	if err := SaveShimMap(shimMap); err != nil {
+		return fmt.Errorf("failed to save shim map cache: %w", err)
+	}
+
 	// Create all shims
-	for shimName := range shimsToCreate {
+	for shimName := range shimMap {
 		if err := m.CreateShim(shimName); err != nil {
 			return err
 		}

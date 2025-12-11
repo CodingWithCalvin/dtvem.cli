@@ -16,6 +16,7 @@ type Paths struct {
 	Shims    string // Shims directory (~/.dtvem/shims)
 	Versions string // Versions directory (~/.dtvem/versions)
 	Config   string // Config directory (~/.dtvem/config)
+	Cache    string // Cache directory (~/.dtvem/cache)
 }
 
 var (
@@ -40,6 +41,7 @@ func initPaths() *Paths {
 		Shims:    filepath.Join(root, "shims"),
 		Versions: filepath.Join(root, "versions"),
 		Config:   filepath.Join(root, "config"),
+		Cache:    filepath.Join(root, "cache"),
 	}
 }
 
@@ -90,6 +92,7 @@ func EnsureDirectories() error {
 		paths.Shims,
 		paths.Versions,
 		paths.Config,
+		paths.Cache,
 	}
 
 	for _, dir := range dirs {
@@ -120,3 +123,19 @@ const LocalConfigDirName = ".dtvem"
 
 // RuntimesFileName is the name of the runtimes configuration file
 const RuntimesFileName = "runtimes.json"
+
+// ShimMapFileName is the name of the shim-to-runtime mapping cache file
+const ShimMapFileName = "shim-map.json"
+
+// ShimMapPath returns the path to the shim-to-runtime mapping cache file
+func ShimMapPath() string {
+	paths := DefaultPaths()
+	return filepath.Join(paths.Cache, ShimMapFileName)
+}
+
+// ResetPathsCache resets the cached paths, forcing reinitialization on next access.
+// This is primarily useful for testing.
+func ResetPathsCache() {
+	pathsOnce = sync.Once{}
+	defaultPaths = nil
+}
