@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/logo.png" alt="dtvem logo" width="200">
 
-  # dtvem - Development Tool Virtual Environment Manager
+  # dtvem - Developer Tools Virtual Environment Manager
 
   A cross-platform virtual environment manager for multiple developer tools, written in Go, with first-class support for Windows, MacOS, and Linux - right out of the box.
 
