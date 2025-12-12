@@ -68,12 +68,13 @@ detect_arch() {
     esac
 }
 
-# Get latest release version from GitHub
-get_latest_version() {
+# Fetch URL content
+fetch() {
+    local url=$1
     if command -v curl &> /dev/null; then
-        curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+        curl -fsSL "$url"
     elif command -v wget &> /dev/null; then
-        wget -qO- "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+        wget -qO- "$url"
     else
         error "Neither curl nor wget found. Please install one of them."
         exit 1
@@ -92,19 +93,59 @@ download() {
     fi
 }
 
-# Verify SHA256 checksum
-verify_checksum() {
-    local file=$1
-    local checksum_file=$2
+# Get release info from GitHub API
+# Sets RELEASE_TAG and populates asset digests
+get_release_info() {
+    local version=$1
+    local api_url
 
-    if [ ! -f "$checksum_file" ]; then
-        error "Checksum file not found: $checksum_file"
+    if [ -z "$version" ]; then
+        api_url="https://api.github.com/repos/${REPO}/releases/latest"
+    else
+        api_url="https://api.github.com/repos/${REPO}/releases/tags/${version}"
+    fi
+
+    RELEASE_JSON=$(fetch "$api_url")
+    if [ -z "$RELEASE_JSON" ]; then
+        error "Failed to fetch release information"
+        exit 1
+    fi
+
+    # Extract tag name
+    RELEASE_TAG=$(echo "$RELEASE_JSON" | grep -o '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+}
+
+# Get SHA256 digest for an asset from the release JSON
+# GitHub API returns digest in format: "sha256:hash"
+get_asset_digest() {
+    local asset_name=$1
+
+    # Extract the digest for the specific asset
+    # The JSON structure has assets array with name and digest fields
+    # We use grep/sed to parse without requiring jq
+    local digest
+    digest=$(echo "$RELEASE_JSON" | \
+        grep -A 5 "\"name\"[[:space:]]*:[[:space:]]*\"${asset_name}\"" | \
+        grep -o '"digest"[[:space:]]*:[[:space:]]*"sha256:[^"]*"' | \
+        head -1 | \
+        sed 's/.*"digest"[[:space:]]*:[[:space:]]*"sha256:\([^"]*\)".*/\1/')
+
+    if [ -z "$digest" ]; then
         return 1
     fi
 
-    # Extract expected hash from checksum file (format: "hash  filename")
-    local expected_hash
-    expected_hash=$(awk '{print $1}' "$checksum_file")
+    echo "$digest"
+}
+
+# Verify SHA256 checksum using GitHub API digest
+verify_checksum() {
+    local file=$1
+    local expected_hash=$2
+
+    if [ -z "$expected_hash" ]; then
+        warning "No checksum available from GitHub API - skipping verification"
+        return 0
+    fi
 
     # Calculate actual hash
     local actual_hash
@@ -139,27 +180,35 @@ main() {
     ARCH=$(detect_arch)
     info "Detected platform: ${OS}-${ARCH}"
 
-    # Get version (priority: DTVEM_VERSION env var > hardcoded > fetch latest)
+    # Determine version to install
+    local requested_version=""
     if [ -n "$DTVEM_VERSION" ]; then
-        VERSION="$DTVEM_VERSION"
-        info "Installing user-specified version: $VERSION"
+        requested_version="$DTVEM_VERSION"
+        info "Installing user-specified version: $requested_version"
     elif [ -n "$DTVEM_RELEASE_VERSION" ]; then
-        VERSION="$DTVEM_RELEASE_VERSION"
-        info "Installing release version: $VERSION"
+        requested_version="$DTVEM_RELEASE_VERSION"
+        info "Installing release version: $requested_version"
     else
         info "Fetching latest release..."
-        VERSION=$(get_latest_version)
-        if [ -z "$VERSION" ]; then
-            error "Failed to fetch latest version"
-            exit 1
-        fi
+    fi
+
+    # Get release info from GitHub API
+    get_release_info "$requested_version"
+    VERSION="$RELEASE_TAG"
+
+    if [ -z "$VERSION" ]; then
+        error "Failed to determine version"
+        exit 1
+    fi
+
+    if [ -z "$requested_version" ]; then
         success "Latest version: $VERSION"
     fi
 
-    # Strip "v" prefix from version for archive name (GitHub releases use v1.0.0 in paths, but archives are named 1.0.0)
+    # Strip "v" prefix from version for archive name
     VERSION_NO_V="${VERSION#v}"
 
-    # Construct download URL
+    # Construct asset name
     if [ "$OS" = "darwin" ]; then
         PLATFORM_NAME="macos"
     else
@@ -170,6 +219,15 @@ main() {
     DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${ARCHIVE_NAME}"
 
     info "Download URL: $DOWNLOAD_URL"
+
+    # Get expected checksum from GitHub API
+    info "Fetching checksum from GitHub API..."
+    EXPECTED_HASH=$(get_asset_digest "$ARCHIVE_NAME")
+    if [ -n "$EXPECTED_HASH" ]; then
+        success "Got checksum: ${EXPECTED_HASH:0:16}..."
+    else
+        warning "Checksum not available from API (may be an older release)"
+    fi
 
     # Create temporary directory
     TMP_DIR=$(mktemp -d)
@@ -187,19 +245,9 @@ main() {
 
     success "Downloaded successfully"
 
-    # Download and verify checksum
-    CHECKSUM_URL="${DOWNLOAD_URL}.sha256"
-    CHECKSUM_PATH="$TMP_DIR/${ARCHIVE_NAME}.sha256"
-
-    info "Downloading checksum..."
-    if ! download "$CHECKSUM_URL" "$CHECKSUM_PATH"; then
-        error "Failed to download checksum file"
-        error "URL: $CHECKSUM_URL"
-        exit 1
-    fi
-
+    # Verify checksum
     info "Verifying checksum..."
-    if ! verify_checksum "$ARCHIVE_PATH" "$CHECKSUM_PATH"; then
+    if ! verify_checksum "$ARCHIVE_PATH" "$EXPECTED_HASH"; then
         error "Archive integrity check failed - aborting installation"
         exit 1
     fi

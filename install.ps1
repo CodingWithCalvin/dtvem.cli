@@ -35,38 +35,68 @@ function Write-Warning-Custom {
     Write-Host $Message
 }
 
-function Get-LatestVersion {
+# Global variable to store release data
+$script:ReleaseData = $null
+
+function Get-ReleaseInfo {
+    param([string]$Version)
+
     try {
-        $response = Invoke-RestMethod -Uri "https://api.github.com/repos/$REPO/releases/latest"
-        return $response.tag_name
+        if ($Version) {
+            $apiUrl = "https://api.github.com/repos/$REPO/releases/tags/$Version"
+        }
+        else {
+            $apiUrl = "https://api.github.com/repos/$REPO/releases/latest"
+        }
+
+        $script:ReleaseData = Invoke-RestMethod -Uri $apiUrl
+        return $script:ReleaseData.tag_name
     }
     catch {
-        Write-Error-Custom "Failed to fetch latest version: $_"
+        Write-Error-Custom "Failed to fetch release information: $_"
         exit 1
     }
+}
+
+function Get-AssetDigest {
+    param([string]$AssetName)
+
+    if (-not $script:ReleaseData) {
+        return $null
+    }
+
+    # Find the asset with matching name
+    $asset = $script:ReleaseData.assets | Where-Object { $_.name -eq $AssetName }
+
+    if (-not $asset) {
+        return $null
+    }
+
+    # GitHub returns digest in format "sha256:hash"
+    if ($asset.digest -and $asset.digest.StartsWith("sha256:")) {
+        return $asset.digest.Substring(7)
+    }
+
+    return $null
 }
 
 function Test-Checksum {
     param(
         [string]$FilePath,
-        [string]$ChecksumPath
+        [string]$ExpectedHash
     )
 
-    if (-not (Test-Path $ChecksumPath)) {
-        Write-Error-Custom "Checksum file not found: $ChecksumPath"
-        return $false
+    if (-not $ExpectedHash) {
+        Write-Warning-Custom "No checksum available from GitHub API - skipping verification"
+        return $true
     }
-
-    # Read expected hash from checksum file (format: "hash  filename")
-    $checksumContent = Get-Content $ChecksumPath -Raw
-    $expectedHash = ($checksumContent -split '\s+')[0].ToLower()
 
     # Calculate actual hash
     $actualHash = (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
 
-    if ($expectedHash -ne $actualHash) {
+    if ($ExpectedHash.ToLower() -ne $actualHash) {
         Write-Error-Custom "Checksum verification failed!"
-        Write-Error-Custom "Expected: $expectedHash"
+        Write-Error-Custom "Expected: $ExpectedHash"
         Write-Error-Custom "Actual:   $actualHash"
         return $false
     }
@@ -90,22 +120,33 @@ function Main {
     }
     Write-Info "Detected platform: windows-$ARCH"
 
-    # Get version (priority: DTVEM_VERSION env var > hardcoded > fetch latest)
+    # Determine version to install
+    $requestedVersion = $null
     if ($env:DTVEM_VERSION) {
-        $VERSION = $env:DTVEM_VERSION
-        Write-Info "Installing user-specified version: $VERSION"
+        $requestedVersion = $env:DTVEM_VERSION
+        Write-Info "Installing user-specified version: $requestedVersion"
     }
     elseif ($DTVEM_RELEASE_VERSION) {
-        $VERSION = $DTVEM_RELEASE_VERSION
-        Write-Info "Installing release version: $VERSION"
+        $requestedVersion = $DTVEM_RELEASE_VERSION
+        Write-Info "Installing release version: $requestedVersion"
     }
     else {
         Write-Info "Fetching latest release..."
-        $VERSION = Get-LatestVersion
+    }
+
+    # Get release info from GitHub API
+    $VERSION = Get-ReleaseInfo -Version $requestedVersion
+
+    if (-not $VERSION) {
+        Write-Error-Custom "Failed to determine version"
+        exit 1
+    }
+
+    if (-not $requestedVersion) {
         Write-Success "Latest version: $VERSION"
     }
 
-    # Strip "v" prefix from version for archive name (GitHub releases use v1.0.0 in paths, but archives are named 1.0.0)
+    # Strip "v" prefix from version for archive name
     $VERSION_NO_V = $VERSION.TrimStart('v')
 
     # Construct download URL
@@ -113,6 +154,16 @@ function Main {
     $DOWNLOAD_URL = "https://github.com/$REPO/releases/download/$VERSION/$ARCHIVE_NAME"
 
     Write-Info "Download URL: $DOWNLOAD_URL"
+
+    # Get expected checksum from GitHub API
+    Write-Info "Fetching checksum from GitHub API..."
+    $EXPECTED_HASH = Get-AssetDigest -AssetName $ARCHIVE_NAME
+    if ($EXPECTED_HASH) {
+        Write-Success "Got checksum: $($EXPECTED_HASH.Substring(0, 16))..."
+    }
+    else {
+        Write-Warning-Custom "Checksum not available from API (may be an older release)"
+    }
 
     # Create temporary directory
     $TMP_DIR = Join-Path $env:TEMP "dtvem-install-$(Get-Random)"
@@ -133,22 +184,9 @@ function Main {
             exit 1
         }
 
-        # Download and verify checksum
-        $CHECKSUM_URL = "$DOWNLOAD_URL.sha256"
-        $CHECKSUM_PATH = Join-Path $TMP_DIR "$ARCHIVE_NAME.sha256"
-
-        Write-Info "Downloading checksum..."
-        try {
-            Invoke-WebRequest -Uri $CHECKSUM_URL -OutFile $CHECKSUM_PATH -UseBasicParsing
-        }
-        catch {
-            Write-Error-Custom "Failed to download checksum file: $_"
-            Write-Error-Custom "URL: $CHECKSUM_URL"
-            exit 1
-        }
-
+        # Verify checksum
         Write-Info "Verifying checksum..."
-        if (-not (Test-Checksum -FilePath $ARCHIVE_PATH -ChecksumPath $CHECKSUM_PATH)) {
+        if (-not (Test-Checksum -FilePath $ARCHIVE_PATH -ExpectedHash $EXPECTED_HASH)) {
             Write-Error-Custom "Archive integrity check failed - aborting installation"
             exit 1
         }
