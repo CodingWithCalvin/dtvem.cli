@@ -117,7 +117,6 @@ Looking for something to work on? Check out [good first issues](https://github.c
 <!-- readme: contributors -start -->
 <p align="left">
 <a href="https://github.com/CalvinAllen"><img src="https://avatars.githubusercontent.com/u/41448698?v=4" width="64" height="64" alt="CalvinAllen"/></a>
-<a href="https://github.com/apps/github-actions"><img src="https://avatars.githubusercontent.com/in/15368?v=4" width="64" height="64" alt="github-actions[bot]"/></a>
 </p>
 <!-- readme: contributors -end -->
 
