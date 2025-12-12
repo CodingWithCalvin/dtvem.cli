@@ -130,8 +130,26 @@ func (m *Manager) ListShims() ([]string, error) {
 	return shims, nil
 }
 
-// Rehash regenerates all shims by scanning installed versions
-func (m *Manager) Rehash() error {
+// RehashResult contains the results of a reshim operation
+type RehashResult struct {
+	// ShimsByRuntime maps runtime names to their shim names
+	ShimsByRuntime map[string][]string
+	// TotalShims is the total number of shims created
+	TotalShims int
+}
+
+// RuntimeShimInfo contains shim information for a single runtime
+type RuntimeShimInfo struct {
+	RuntimeName string
+	Shims       []string
+}
+
+// RehashCallback is called before processing each runtime
+// runtimeName is the internal name, displayName is the user-friendly name
+type RehashCallback func(runtimeName, displayName string)
+
+// RehashWithCallback regenerates all shims, calling the callback before each runtime
+func (m *Manager) RehashWithCallback(callback RehashCallback) (*RehashResult, error) {
 	paths := config.DefaultPaths()
 	versionsDir := paths.Versions
 
@@ -139,13 +157,15 @@ func (m *Manager) Rehash() error {
 	entries, err := os.ReadDir(versionsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return fmt.Errorf("no versions directory found - no runtimes installed yet")
+			return nil, fmt.Errorf("no versions directory found - no runtimes installed yet")
 		}
-		return fmt.Errorf("failed to read versions directory: %w", err)
+		return nil, fmt.Errorf("failed to read versions directory: %w", err)
 	}
 
 	// Collect shim-to-runtime mappings (shim name -> runtime name)
 	shimMap := make(ShimMap)
+	// Also track shims by runtime for reporting
+	shimsByRuntime := make(map[string][]string)
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
@@ -161,6 +181,29 @@ func (m *Manager) Rehash() error {
 			continue
 		}
 
+		// Skip if no versions installed
+		hasVersions := false
+		for _, ve := range versionEntries {
+			if ve.IsDir() {
+				hasVersions = true
+				break
+			}
+		}
+		if !hasVersions {
+			continue
+		}
+
+		// Get display name from provider
+		displayName := runtimeName
+		if provider, err := runtimepkg.Get(runtimeName); err == nil {
+			displayName = provider.DisplayName()
+		}
+
+		// Call the callback before processing this runtime
+		if callback != nil {
+			callback(runtimeName, displayName)
+		}
+
 		// For each installed version, scan for executables
 		for _, versionEntry := range versionEntries {
 			if !versionEntry.IsDir() {
@@ -173,6 +216,7 @@ func (m *Manager) Rehash() error {
 			coreShims := RuntimeShims(runtimeName)
 			for _, shimName := range coreShims {
 				shimMap[shimName] = runtimeName
+				shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], shimName)
 			}
 
 			// Then, scan bin directory for globally installed packages
@@ -180,6 +224,7 @@ func (m *Manager) Rehash() error {
 			if execs, err := findExecutables(binDir); err == nil {
 				for _, exec := range execs {
 					shimMap[exec] = runtimeName
+					shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], exec)
 				}
 			}
 
@@ -189,6 +234,7 @@ func (m *Manager) Rehash() error {
 				if execs, err := findExecutables(versionDir); err == nil {
 					for _, exec := range execs {
 						shimMap[exec] = runtimeName
+						shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], exec)
 					}
 				}
 				// Check Scripts directory for Python pip packages
@@ -196,6 +242,7 @@ func (m *Manager) Rehash() error {
 				if execs, err := findExecutables(scriptsDir); err == nil {
 					for _, exec := range execs {
 						shimMap[exec] = runtimeName
+						shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], exec)
 					}
 				}
 			}
@@ -203,22 +250,40 @@ func (m *Manager) Rehash() error {
 	}
 
 	if len(shimMap) == 0 {
-		return fmt.Errorf("no runtimes installed - nothing to reshim")
+		return nil, fmt.Errorf("no runtimes installed - nothing to reshim")
 	}
 
 	// Save the shim map cache
 	if err := SaveShimMap(shimMap); err != nil {
-		return fmt.Errorf("failed to save shim map cache: %w", err)
+		return nil, fmt.Errorf("failed to save shim map cache: %w", err)
 	}
 
 	// Create all shims
 	for shimName := range shimMap {
 		if err := m.CreateShim(shimName); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return &RehashResult{
+		ShimsByRuntime: shimsByRuntime,
+		TotalShims:     len(shimMap),
+	}, nil
+}
+
+// Rehash regenerates all shims by scanning installed versions (no progress callback)
+func (m *Manager) Rehash() (*RehashResult, error) {
+	return m.RehashWithCallback(nil)
+}
+
+// appendUnique appends a string to a slice only if it's not already present
+func appendUnique(slice []string, s string) []string {
+	for _, existing := range slice {
+		if existing == s {
+			return slice
+		}
+	}
+	return append(slice, s)
 }
 
 // copyFile copies a file from src to dst

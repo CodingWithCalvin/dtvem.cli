@@ -108,7 +108,7 @@ Examples:
 			shimSpinner.Warning("Could not regenerate shims")
 			ui.Warning("You may need to run 'dtvem reshim' manually")
 		} else {
-			if err := manager.Rehash(); err != nil {
+			if _, err := manager.Rehash(); err != nil {
 				shimSpinner.Warning("Could not regenerate shims")
 				ui.Warning("You may need to run 'dtvem reshim' manually")
 			} else {
