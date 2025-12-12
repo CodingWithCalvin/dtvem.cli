@@ -15,6 +15,19 @@ func setRuntimeVersion(runtimeName, version, scope string, setter func(string) e
 		return
 	}
 
+	// Validate that the version is installed
+	installed, err := provider.IsInstalled(version)
+	if err != nil {
+		ui.Error("Failed to check if version is installed: %v", err)
+		return
+	}
+	if !installed {
+		ui.Error("%s %s is not installed", provider.DisplayName(), version)
+		ui.Info("Run 'dtvem list %s' to see installed versions", runtimeName)
+		ui.Info("Run 'dtvem install %s %s' to install it first", runtimeName, version)
+		return
+	}
+
 	ui.Info("Setting %s %s version to %s...", scope, provider.DisplayName(), version)
 
 	if err := setter(version); err != nil {
