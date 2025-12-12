@@ -70,6 +70,28 @@ func installSingle(runtimeName, version string) {
 	}
 
 	ui.Success("Successfully installed %s %s", provider.DisplayName(), version)
+
+	// Auto-set global version if no global version is currently configured
+	autoSetGlobalIfNeeded(provider, version)
+}
+
+// autoSetGlobalIfNeeded sets the installed version as global if no global version exists
+func autoSetGlobalIfNeeded(provider runtime.Provider, version string) {
+	currentGlobal, err := provider.GlobalVersion()
+	if err != nil || currentGlobal != "" {
+		// Either an error occurred or a global version is already set
+		ui.Debug("Global version check: current=%q, err=%v", currentGlobal, err)
+		return
+	}
+
+	// No global version configured, auto-set it
+	if err := provider.SetGlobalVersion(version); err != nil {
+		ui.Debug("Failed to auto-set global version: %v", err)
+		ui.Warning("Could not auto-set global version: %v", err)
+		return
+	}
+
+	ui.Info("Set as global version (first install)")
 }
 
 // installBulk installs all runtimes from .dtvem/runtimes.json
@@ -173,6 +195,8 @@ func executeInstalls(tasks []installTask) (success, failures int, failureList []
 		} else {
 			ui.Success("Installed %s %s", task.provider.DisplayName(), task.version)
 			success++
+			// Auto-set global version if needed
+			autoSetGlobalIfNeeded(task.provider, task.version)
 		}
 	}
 
