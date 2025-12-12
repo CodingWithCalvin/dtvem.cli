@@ -29,5 +29,8 @@ go.work
 .DS_Store
 Thumbs.db
 
-.claude/
 test-output.log
+
+CLAUDE.local.md
+
+.claude/settings.local.json
