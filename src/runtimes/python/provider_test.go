@@ -82,3 +82,64 @@ func TestPythonProvider_InstallPath(t *testing.T) {
 		}
 	}
 }
+
+// TestPythonProvider_GetPipURL tests the version-specific pip URL selection
+func TestPythonProvider_GetPipURL(t *testing.T) {
+	provider := NewProvider()
+
+	tests := []struct {
+		name        string
+		version     string
+		expectedURL string
+	}{
+		{
+			name:        "Python 3.12 uses default URL",
+			version:     "3.12.0",
+			expectedURL: "https://bootstrap.pypa.io/get-pip.py",
+		},
+		{
+			name:        "Python 3.11 uses default URL",
+			version:     "3.11.5",
+			expectedURL: "https://bootstrap.pypa.io/get-pip.py",
+		},
+		{
+			name:        "Python 3.10 uses default URL",
+			version:     "3.10.0",
+			expectedURL: "https://bootstrap.pypa.io/get-pip.py",
+		},
+		{
+			name:        "Python 3.9 uses default URL",
+			version:     "3.9.18",
+			expectedURL: "https://bootstrap.pypa.io/get-pip.py",
+		},
+		{
+			name:        "Python 3.8 uses version-specific URL",
+			version:     "3.8.9",
+			expectedURL: "https://bootstrap.pypa.io/pip/3.8/get-pip.py",
+		},
+		{
+			name:        "Python 3.7 uses version-specific URL",
+			version:     "3.7.12",
+			expectedURL: "https://bootstrap.pypa.io/pip/3.7/get-pip.py",
+		},
+		{
+			name:        "Python 3.6 uses version-specific URL",
+			version:     "3.6.15",
+			expectedURL: "https://bootstrap.pypa.io/pip/3.6/get-pip.py",
+		},
+		{
+			name:        "Python 2.7 uses version-specific URL",
+			version:     "2.7.18",
+			expectedURL: "https://bootstrap.pypa.io/get-pip.py", // 2.x uses default (not 3.x)
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := provider.getPipURL(tt.version)
+			if url != tt.expectedURL {
+				t.Errorf("getPipURL(%q) = %q, want %q", tt.version, url, tt.expectedURL)
+			}
+		})
+	}
+}

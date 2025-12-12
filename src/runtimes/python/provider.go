@@ -12,6 +12,7 @@ import (
 	"regexp"
 	goruntime "runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -117,7 +118,9 @@ func (p *Provider) installPipIfNeeded(version string) {
 		pipSpinner.Start()
 		if err := p.installPip(version); err != nil {
 			pipSpinner.Warning("Failed to install pip")
-			ui.Info("You can install it manually by running: python -m ensurepip")
+			ui.Info("To install pip manually:")
+			ui.Info("  1. Download: %s", p.getPipURL(version))
+			ui.Info("  2. Run: python get-pip.py")
 		} else {
 			pipSpinner.Success("pip installed successfully")
 		}
@@ -306,8 +309,8 @@ func (p *Provider) installPip(version string) error {
 		return fmt.Errorf("failed to enable site-packages: %w", err)
 	}
 
-	// Step 2: Download get-pip.py
-	getPipURL := "https://bootstrap.pypa.io/get-pip.py"
+	// Step 2: Download get-pip.py (use version-specific URL for older Python)
+	getPipURL := p.getPipURL(version)
 	getPipPath := filepath.Join(installPath, "get-pip.py")
 	if err := download.File(getPipURL, getPipPath); err != nil {
 		return fmt.Errorf("failed to download get-pip.py: %w", err)
@@ -323,6 +326,22 @@ func (p *Provider) installPip(version string) error {
 	}
 
 	return nil
+}
+
+// getPipURL returns the appropriate get-pip.py URL for the given Python version.
+// Older Python versions (3.8 and below) require version-specific URLs since the
+// main get-pip.py no longer supports end-of-life Python versions.
+func (p *Provider) getPipURL(version string) string {
+	parts := strings.Split(version, ".")
+	if len(parts) >= 2 && parts[0] == "3" {
+		minor, err := strconv.Atoi(parts[1])
+		if err == nil && minor <= 8 {
+			// Use version-specific URL for Python 3.8 and below
+			return fmt.Sprintf("https://bootstrap.pypa.io/pip/%s.%s/get-pip.py", parts[0], parts[1])
+		}
+	}
+	// Default URL for Python 3.9+
+	return "https://bootstrap.pypa.io/get-pip.py"
 }
 
 // enableSitePackages modifies the ._pth file to enable site-packages
