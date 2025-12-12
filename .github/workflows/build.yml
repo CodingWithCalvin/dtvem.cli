@@ -48,8 +48,11 @@ permissions:
 
 jobs:
   golangci-lint:
-    name: Lint & Format Check
+    name: Lint (${{ matrix.goos }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,12 +69,12 @@ jobs:
           golangci-lint --version
 
       - name: Run golangci-lint
-        run: golangci-lint run --timeout=5m --config=../.golangci.yml
+        run: GOOS=${{ matrix.goos }} golangci-lint run --timeout=5m --config=../.golangci.yml
         working-directory: src
 
       - name: Verify no linting issues
         if: success()
-        run: echo "✅ All linting checks passed (errcheck, govet, ineffassign, unused, misspell, dupl, goconst, gocyclo, errorlint)"
+        run: echo "✅ All linting checks passed for ${{ matrix.goos }} (errcheck, govet, ineffassign, unused, misspell, dupl, goconst, gocyclo, errorlint)"
 
   go-mod:
     name: Dependencies Check

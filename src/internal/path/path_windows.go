@@ -26,6 +26,9 @@ const (
 	HWND_BROADCAST   = 0xffff
 	WM_SETTINGCHANGE = 0x001A
 	SMTO_ABORTIFHUNG = 0x0002
+
+	// pathActionMove is used to indicate the shims directory needs to be moved to the beginning of PATH
+	pathActionMove = "move"
 )
 
 // AddToPath adds the shims directory to the System PATH on Windows.
@@ -80,7 +83,7 @@ func checkSystemPath(shimsDir string) (bool, string, error) {
 	if foundAt == 0 {
 		return false, "", nil // Already at beginning
 	} else if foundAt > 0 {
-		return true, "move", nil // Exists but not at beginning
+		return true, pathActionMove, nil // Exists but not at beginning
 	}
 	return true, "add", nil // Not in PATH
 }
@@ -96,7 +99,7 @@ func isAdmin() bool {
 
 // promptForElevation prompts the user to re-run dtvem init with admin privileges
 func promptForElevation(shimsDir, action string) error {
-	if action == "move" {
+	if action == pathActionMove {
 		ui.Header("PATH Fix Required (Administrator)")
 		ui.Warning("%s is in your System PATH but not at the beginning", shimsDir)
 		ui.Info("It needs to be first to take priority over other installations")
@@ -196,7 +199,7 @@ func modifySystemPath(shimsDir, action string) error {
 	// Broadcast WM_SETTINGCHANGE to notify running processes
 	broadcastSettingChange()
 
-	if action == "move" {
+	if action == pathActionMove {
 		ui.Success("Moved %s to the beginning of your System PATH", shimsDir)
 	} else {
 		ui.Success("Added %s to your System PATH", shimsDir)
