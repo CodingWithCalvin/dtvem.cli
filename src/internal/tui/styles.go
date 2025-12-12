@@ -59,12 +59,12 @@ func initStyles() {
 		lipgloss.SetColorProfile(termenv.TrueColor)
 
 		// Color palette
-		colorPrimary = lipgloss.Color("39")   // Cyan
+		colorPrimary = lipgloss.Color("39")    // Cyan
 		colorSecondary = lipgloss.Color("213") // Magenta/Pink
-		colorSuccess = lipgloss.Color("42")   // Green
-		colorWarning = lipgloss.Color("214")  // Orange/Yellow
-		colorError = lipgloss.Color("196")    // Red
-		colorMuted = lipgloss.Color("245")    // Gray
+		colorSuccess = lipgloss.Color("42")    // Green
+		colorWarning = lipgloss.Color("214")   // Orange/Yellow
+		colorError = lipgloss.Color("196")     // Red
+		colorMuted = lipgloss.Color("245")     // Gray
 
 		// Text styles
 		StyleTitle = lipgloss.NewStyle().

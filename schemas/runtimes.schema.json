@@ -10,10 +10,11 @@
     "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
   },
   "propertyNames": {
-    "description": "Runtime name (e.g., 'python', 'node'). NOTE: When adding a new runtime provider, update this enum list to include the new runtime name.",
+    "description": "Runtime name (e.g., 'python', 'node', 'ruby'). NOTE: When adding a new runtime provider, update this enum list to include the new runtime name.",
     "enum": [
       "python",
-      "node"
+      "node",
+      "ruby"
     ]
   },
   "examples": [

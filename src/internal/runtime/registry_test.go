@@ -10,9 +10,9 @@ type mockProvider struct {
 	displayName string
 }
 
-func (m *mockProvider) Name() string        { return m.name }
-func (m *mockProvider) DisplayName() string { return m.displayName }
-func (m *mockProvider) Shims() []string     { return []string{m.name} }
+func (m *mockProvider) Name() string                                                  { return m.name }
+func (m *mockProvider) DisplayName() string                                           { return m.displayName }
+func (m *mockProvider) Shims() []string                                               { return []string{m.name} }
 func (m *mockProvider) Install(version string) error                                  { return nil }
 func (m *mockProvider) Uninstall(version string) error                                { return nil }
 func (m *mockProvider) ListInstalled() ([]InstalledVersion, error)                    { return nil, nil }
