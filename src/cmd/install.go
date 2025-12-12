@@ -51,14 +51,20 @@ func init() {
 
 // installSingle installs a single runtime/version
 func installSingle(runtimeName, version string) {
+	ui.Debug("Installing single runtime: %s version %s", runtimeName, version)
+
 	provider, err := runtime.Get(runtimeName)
 	if err != nil {
+		ui.Debug("Provider lookup failed: %v", err)
 		ui.Error("%v", err)
 		ui.Info("Available runtimes: %v", runtime.List())
 		return
 	}
 
+	ui.Debug("Using provider: %s (%s)", provider.Name(), provider.DisplayName())
+
 	if err := provider.Install(version); err != nil {
+		ui.Debug("Installation failed: %v", err)
 		ui.Error("%v", err)
 		return
 	}

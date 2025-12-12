@@ -8,11 +8,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dtvem/dtvem/src/internal/ui"
 	"github.com/schollz/progressbar/v3"
 )
 
 // File downloads a file from a URL to a destination path with a progress bar
 func File(url, destPath string) error {
+	ui.Debug("Starting download: %s", url)
+	ui.Debug("Destination: %s", destPath)
+
 	// Create destination directory if it doesn't exist
 	destDir := filepath.Dir(destPath)
 	if err := os.MkdirAll(destDir, 0755); err != nil {
@@ -27,19 +31,24 @@ func File(url, destPath string) error {
 	defer func() { _ = out.Close() }()
 
 	// Make HTTP request
+	ui.Debug("Making HTTP GET request...")
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		ui.Debug("HTTP request failed: %v", err)
+		return fmt.Errorf("failed to connect: %w (URL: %s)", err, url)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	ui.Debug("HTTP response: %s", resp.Status)
+
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return fmt.Errorf("download failed (HTTP %s): %s", resp.Status, url)
 	}
 
 	// Get file size for progress bar
 	size := resp.ContentLength
+	ui.Debug("Content-Length: %d bytes", size)
 
 	// Create progress bar
 	bar := progressbar.DefaultBytes(
@@ -50,10 +59,12 @@ func File(url, destPath string) error {
 	// Copy data with progress bar
 	_, err = io.Copy(io.MultiWriter(out, bar), resp.Body)
 	if err != nil {
+		ui.Debug("Download failed: %v", err)
 		return err
 	}
 
 	fmt.Println() // New line after progress bar
+	ui.Debug("Download complete: %s", destPath)
 	return nil
 }
 
@@ -75,13 +86,13 @@ func FileWithProgress(url, destPath string, progress func(current, total int64))
 	// Make HTTP request
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect: %w (URL: %s)", err, url)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad status: %s", resp.Status)
+		return fmt.Errorf("download failed (HTTP %s): %s", resp.Status, url)
 	}
 
 	// Get total size

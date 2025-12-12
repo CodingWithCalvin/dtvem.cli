@@ -37,7 +37,10 @@ Examples:
 
 // listAllRuntimes lists installed versions for all runtimes
 func listAllRuntimes() {
+	ui.Debug("Listing installed versions for all runtimes")
+
 	providers := runtime.GetAll()
+	ui.Debug("Found %d registered providers", len(providers))
 
 	if len(providers) == 0 {
 		ui.Info("No runtime providers registered")
@@ -46,11 +49,14 @@ func listAllRuntimes() {
 
 	hasAny := false
 	for _, provider := range providers {
+		ui.Debug("Checking provider: %s", provider.Name())
 		versions, err := provider.ListInstalled()
 		if err != nil {
+			ui.Debug("Error listing versions for %s: %v", provider.Name(), err)
 			ui.Error("  %s: %v", provider.DisplayName(), err)
 			continue
 		}
+		ui.Debug("Found %d installed versions for %s", len(versions), provider.Name())
 
 		if len(versions) == 0 {
 			continue

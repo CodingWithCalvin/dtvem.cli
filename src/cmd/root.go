@@ -6,12 +6,18 @@ import (
 	"os"
 
 	"github.com/dtvem/dtvem/src/internal/tui"
+	"github.com/dtvem/dtvem/src/internal/ui"
 	"github.com/spf13/cobra"
 )
+
+var verbose bool
 
 var rootCmd = &cobra.Command{
 	Use:   "dtvem",
 	Short: "Developer Tools Virtual Environment Manager",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		ui.SetVerbose(verbose)
+	},
 }
 
 func Execute() {
@@ -32,6 +38,9 @@ func Execute() {
 func init() {
 	// Hide the completion command until we implement it
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true
+
+	// Add global verbose flag
+	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Enable verbose output for debugging")
 
 	// Set custom usage and help functions with TUI table for commands
 	rootCmd.SetUsageFunc(customUsage)

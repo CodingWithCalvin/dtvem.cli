@@ -22,6 +22,9 @@ import (
 )
 
 func main() {
+	// Check for DTVEM_VERBOSE environment variable
+	ui.CheckVerboseEnv()
+
 	if err := runShim(); err != nil {
 		fmt.Fprintf(os.Stderr, "dtvem shim error: %v\n", err)
 		os.Exit(1)
@@ -31,22 +34,28 @@ func main() {
 func runShim() error {
 	// Get the name of this shim (e.g., "python", "node", "npm")
 	shimName := getShimName()
+	ui.Debug("Shim invoked: %s", shimName)
+	ui.Debug("Arguments: %v", os.Args[1:])
 
 	// Determine which runtime this shim belongs to
 	runtimeName := mapShimToRuntime(shimName)
+	ui.Debug("Mapped to runtime: %s", runtimeName)
 
 	// Get the runtime provider (using ShimProvider interface for minimal dependencies)
 	provider, err := runtime.GetShimProvider(runtimeName)
 	if err != nil {
+		ui.Debug("Provider lookup failed: %v", err)
 		return fmt.Errorf("runtime provider not found: %w", err)
 	}
 
 	// Resolve which version to use
 	version, err := config.ResolveVersion(runtimeName)
 	if err != nil {
+		ui.Debug("Version resolution failed: %v", err)
 		// No dtvem version configured - try to fallback to system PATH
 		return handleNoConfiguredVersion(shimName, runtimeName, provider)
 	}
+	ui.Debug("Resolved version: %s", version)
 
 	// Check if the version is installed
 	installed, err := provider.IsInstalled(version)
@@ -55,6 +64,7 @@ func runShim() error {
 	}
 
 	if !installed {
+		ui.Debug("Version %s is not installed", version)
 		ui.Error("%s %s is configured but not installed", provider.DisplayName(), version)
 		ui.Info("To install, run: dtvem install %s %s", runtimeName, version)
 		return fmt.Errorf("version not installed")
@@ -65,11 +75,13 @@ func runShim() error {
 	if err != nil {
 		return fmt.Errorf("could not find %s %s executable: %w", runtimeName, version, err)
 	}
+	ui.Debug("Base executable path: %s", execPath)
 
 	// If the shim name differs from the base runtime name,
 	// we might need to adjust the executable path
 	// (e.g., python3 -> python3, pip -> pip, npm -> npm)
 	execPath = adjustExecutablePath(execPath, shimName, runtimeName)
+	ui.Debug("Final executable path: %s", execPath)
 
 	// Check if this command should trigger a reshim after execution
 	needsReshim := provider.ShouldReshimAfter(shimName, os.Args[1:])

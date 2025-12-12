@@ -5,8 +5,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
+)
+
+// Environment variable values
+const (
+	envTrue  = "true"
+	envFalse = "false"
 )
 
 var (
@@ -16,12 +23,17 @@ var (
 	warningColor  = color.New(color.FgYellow, color.Bold)
 	infoColor     = color.New(color.FgCyan)
 	progressColor = color.New(color.FgBlue)
+	debugColor    = color.New(color.Faint)
 
 	// Symbols
 	successSymbol = "✓"
 	errorSymbol   = "✗"
 	warningSymbol = "⚠"
 	infoSymbol    = "→"
+	debugSymbol   = "·"
+
+	// Verbose mode flag - controls debug output visibility
+	verboseMode = false
 )
 
 // Success prints a success message in green with a checkmark
@@ -52,6 +64,41 @@ func Info(format string, args ...interface{}) {
 func Progress(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	_, _ = progressColor.Printf("  %s %s\n", infoSymbol, message)
+}
+
+// Debug prints a debug message only when verbose mode is enabled
+// Messages are dimmed and include a timestamp for debugging
+func Debug(format string, args ...interface{}) {
+	if !verboseMode {
+		return
+	}
+	message := fmt.Sprintf(format, args...)
+	timestamp := time.Now().Format("15:04:05.000")
+	_, _ = debugColor.Printf("%s %s %s\n", debugSymbol, timestamp, message)
+}
+
+// Debugf is an alias for Debug (for consistency with fmt.Printf naming)
+func Debugf(format string, args ...interface{}) {
+	Debug(format, args...)
+}
+
+// SetVerbose enables or disables verbose mode
+func SetVerbose(enabled bool) {
+	verboseMode = enabled
+}
+
+// IsVerbose returns whether verbose mode is enabled
+func IsVerbose() bool {
+	return verboseMode
+}
+
+// CheckVerboseEnv checks if DTVEM_VERBOSE environment variable is set
+// This is useful for the shim which doesn't have access to CLI flags
+func CheckVerboseEnv() {
+	val := os.Getenv("DTVEM_VERBOSE")
+	if val == "1" || val == envTrue {
+		verboseMode = true
+	}
 }
 
 // Println prints a regular message without color
@@ -99,12 +146,12 @@ func DimText(text string) string {
 //   - unset: prompt interactively
 func PromptInstall(displayName, version string) bool {
 	// Check if running in non-interactive mode (CI/automation)
-	if os.Getenv("DTVEM_AUTO_INSTALL") == "false" {
+	if os.Getenv("DTVEM_AUTO_INSTALL") == envFalse {
 		return false
 	}
 
 	// If DTVEM_AUTO_INSTALL=true, auto-install without prompting
-	if os.Getenv("DTVEM_AUTO_INSTALL") == "true" {
+	if os.Getenv("DTVEM_AUTO_INSTALL") == envTrue {
 		return true
 	}
 
@@ -134,12 +181,12 @@ func PromptInstallMissing[T any](missing []T) bool {
 	}
 
 	// Check if running in non-interactive mode (CI/automation)
-	if os.Getenv("DTVEM_AUTO_INSTALL") == "false" {
+	if os.Getenv("DTVEM_AUTO_INSTALL") == envFalse {
 		return false
 	}
 
 	// If DTVEM_AUTO_INSTALL=true, auto-install without prompting
-	if os.Getenv("DTVEM_AUTO_INSTALL") == "true" {
+	if os.Getenv("DTVEM_AUTO_INSTALL") == envTrue {
 		return true
 	}
 

@@ -128,6 +128,8 @@ func (p *Provider) installPipIfNeeded(version string) {
 }
 
 func (p *Provider) Install(version string) error {
+	ui.Debug("Starting Python installation for version %s", version)
+
 	// Ensure dtvem directories exist
 	if err := config.EnsureDirectories(); err != nil {
 		return fmt.Errorf("failed to create dtvem directories: %w", err)
@@ -145,6 +147,8 @@ func (p *Provider) Install(version string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get download URL: %w", err)
 	}
+	ui.Debug("Download URL: %s", downloadURL)
+	ui.Debug("Archive name: %s", archiveName)
 
 	// Download and extract
 	extractDir, cleanup, err := p.downloadAndExtract(version, downloadURL, archiveName)
@@ -155,13 +159,17 @@ func (p *Provider) Install(version string) error {
 
 	// Determine source directory
 	sourceDir := determineSourceDir(extractDir)
+	ui.Debug("Source directory: %s", sourceDir)
 
 	// Get install path and move files
 	installPath := config.RuntimeVersionPath("python", version)
+	ui.Debug("Install path: %s", installPath)
+
 	if err := os.MkdirAll(filepath.Dir(installPath), 0755); err != nil {
 		return fmt.Errorf("failed to create install directory: %w", err)
 	}
 
+	ui.Debug("Moving files from %s to %s", sourceDir, installPath)
 	if err := os.Rename(sourceDir, installPath); err != nil {
 		return fmt.Errorf("failed to move to install location: %w", err)
 	}

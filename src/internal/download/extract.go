@@ -9,16 +9,24 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dtvem/dtvem/src/internal/ui"
 )
 
 // ExtractZip extracts a zip archive to a destination directory
 func ExtractZip(zipPath, destDir string) error {
+	ui.Debug("Extracting ZIP: %s", zipPath)
+	ui.Debug("Destination: %s", destDir)
+
 	// Open zip file
 	reader, err := zip.OpenReader(zipPath)
 	if err != nil {
-		return err
+		ui.Debug("Failed to open ZIP: %v", err)
+		return fmt.Errorf("failed to open archive: %w (file: %s)", err, zipPath)
 	}
 	defer func() { _ = reader.Close() }()
+
+	ui.Debug("ZIP contains %d files", len(reader.File))
 
 	// Create destination directory
 	if err := os.MkdirAll(destDir, 0755); err != nil {
@@ -32,6 +40,7 @@ func ExtractZip(zipPath, destDir string) error {
 		}
 	}
 
+	ui.Debug("ZIP extraction complete")
 	return nil
 }
 
@@ -75,17 +84,22 @@ func extractZipFile(file *zip.File, destDir string) error {
 
 // ExtractTarGz extracts a tar.gz archive to a destination directory
 func ExtractTarGz(tarGzPath, destDir string) error {
+	ui.Debug("Extracting tar.gz: %s", tarGzPath)
+	ui.Debug("Destination: %s", destDir)
+
 	// Open tar.gz file
 	file, err := os.Open(tarGzPath)
 	if err != nil {
-		return err
+		ui.Debug("Failed to open tar.gz: %v", err)
+		return fmt.Errorf("failed to open archive: %w (file: %s)", err, tarGzPath)
 	}
 	defer func() { _ = file.Close() }()
 
 	// Create gzip reader
 	gzReader, err := gzip.NewReader(file)
 	if err != nil {
-		return err
+		ui.Debug("Failed to create gzip reader: %v", err)
+		return fmt.Errorf("invalid gzip archive: %w (file: %s)", err, tarGzPath)
 	}
 	defer func() { _ = gzReader.Close() }()
 
@@ -98,6 +112,7 @@ func ExtractTarGz(tarGzPath, destDir string) error {
 	}
 
 	// Extract each file
+	fileCount := 0
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -110,8 +125,10 @@ func ExtractTarGz(tarGzPath, destDir string) error {
 		if err := extractTarFile(header, tarReader, destDir); err != nil {
 			return fmt.Errorf("failed to extract %s: %w", header.Name, err)
 		}
+		fileCount++
 	}
 
+	ui.Debug("tar.gz extraction complete: %d files extracted", fileCount)
 	return nil
 }
 

@@ -138,4 +138,88 @@ func TestHighlight_Symbols(t *testing.T) {
 	if infoSymbol == "" {
 		t.Error("infoSymbol should not be empty")
 	}
+	if debugSymbol == "" {
+		t.Error("debugSymbol should not be empty")
+	}
+}
+
+func TestVerboseMode(t *testing.T) {
+	// Test that verbose mode can be toggled
+	// First ensure verbose mode is off
+	SetVerbose(false)
+	if IsVerbose() {
+		t.Error("Verbose mode should be off after SetVerbose(false)")
+	}
+
+	// Enable verbose mode
+	SetVerbose(true)
+	if !IsVerbose() {
+		t.Error("Verbose mode should be on after SetVerbose(true)")
+	}
+
+	// Disable verbose mode again
+	SetVerbose(false)
+	if IsVerbose() {
+		t.Error("Verbose mode should be off after SetVerbose(false)")
+	}
+}
+
+func TestCheckVerboseEnv(t *testing.T) {
+	// Save original state
+	originalVerbose := verboseMode
+
+	// Test with DTVEM_VERBOSE=1
+	SetVerbose(false)
+	t.Setenv("DTVEM_VERBOSE", "1")
+	CheckVerboseEnv()
+	if !IsVerbose() {
+		t.Error("Verbose mode should be on when DTVEM_VERBOSE=1")
+	}
+
+	// Test with DTVEM_VERBOSE=true
+	SetVerbose(false)
+	t.Setenv("DTVEM_VERBOSE", "true")
+	CheckVerboseEnv()
+	if !IsVerbose() {
+		t.Error("Verbose mode should be on when DTVEM_VERBOSE=true")
+	}
+
+	// Test with DTVEM_VERBOSE=false (should not enable)
+	SetVerbose(false)
+	t.Setenv("DTVEM_VERBOSE", "false")
+	CheckVerboseEnv()
+	if IsVerbose() {
+		t.Error("Verbose mode should remain off when DTVEM_VERBOSE=false")
+	}
+
+	// Test with DTVEM_VERBOSE unset
+	SetVerbose(false)
+	t.Setenv("DTVEM_VERBOSE", "")
+	CheckVerboseEnv()
+	if IsVerbose() {
+		t.Error("Verbose mode should remain off when DTVEM_VERBOSE is empty")
+	}
+
+	// Restore original state
+	verboseMode = originalVerbose
+}
+
+func TestDebugOutput(t *testing.T) {
+	// Save original state
+	originalVerbose := verboseMode
+
+	// Debug should not output anything when verbose is off
+	SetVerbose(false)
+	// We can't easily capture output in this test framework,
+	// but we can at least verify the function doesn't panic
+	Debug("test message %s", "arg")
+	Debugf("test message %s", "arg")
+
+	// Enable verbose and verify Debug runs without panic
+	SetVerbose(true)
+	Debug("test message %s", "arg")
+	Debugf("test message %s", "arg")
+
+	// Restore original state
+	verboseMode = originalVerbose
 }
