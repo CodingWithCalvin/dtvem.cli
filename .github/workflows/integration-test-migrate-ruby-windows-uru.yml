@@ -1,4 +1,4 @@
-name: Integration Tests - Migrate Ruby from System (Windows)
+name: Integration Tests - Migrate Ruby from uru (Windows)
 
 on:
   workflow_call:
@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   migrate:
-    name: Ruby from System (Windows)
+    name: Ruby from uru (Windows)
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -40,22 +40,64 @@ jobs:
       - name: "Install Ruby 3.2 via Chocolatey"
         shell: pwsh
         run: |
-          # Install Ruby via Chocolatey (system-level install)
+          # Install Ruby via Chocolatey (will be registered with uru)
           choco install ruby --version=3.2.6.1 -y
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          Write-Host "System Ruby installed"
-          ruby --version
+          Write-Host "Ruby installed at C:\tools\ruby32"
+          C:\tools\ruby32\bin\ruby.exe --version
 
-      - name: "Add Chocolatey Ruby to PATH"
+      - name: "Install uru"
         shell: pwsh
         run: |
-          # Ruby is typically installed to C:\tools\ruby32\bin
-          $rubyPath = "C:\tools\ruby32\bin"
-          if (Test-Path $rubyPath) {
-            $rubyPath | Out-File -FilePath $env:GITHUB_PATH -Append
+          # Download uru from Bitbucket releases
+          $uruVersion = "0.8.5"
+          $uruUrl = "https://bitbucket.org/jonforums/uru/downloads/uru-$uruVersion-windows-x86.7z"
+          $uruArchive = "$env:TEMP\uru.7z"
+          $uruDir = "C:\tools\uru"
+
+          # Create uru directory
+          New-Item -ItemType Directory -Force -Path $uruDir | Out-Null
+
+          # Download uru
+          Write-Host "Downloading uru $uruVersion..."
+          Invoke-WebRequest -Uri $uruUrl -OutFile $uruArchive
+
+          # Extract using 7z (available on GitHub runners)
+          Write-Host "Extracting uru..."
+          7z x $uruArchive -o"$uruDir" -y
+
+          # Add uru to PATH
+          $uruDir | Out-File -FilePath $env:GITHUB_PATH -Append
+
+          # Initialize uru
+          Write-Host "Installing uru..."
+          & "$uruDir\uru_rt.exe" admin install
+
+          Write-Host "uru installed successfully"
+
+      - name: "Register Ruby with uru"
+        shell: pwsh
+        run: |
+          # Register the Chocolatey Ruby with uru
+          Write-Host "Registering Ruby with uru..."
+          uru_rt.exe admin add C:\tools\ruby32\bin
+          Write-Host ""
+          Write-Host "Registered rubies:"
+          uru_rt.exe ls
+
+      - name: "Verify uru rubies.json exists"
+        shell: pwsh
+        run: |
+          $rubiesJson = "$env:USERPROFILE\.uru\rubies.json"
+          if (Test-Path $rubiesJson) {
+            Write-Host "rubies.json found at: $rubiesJson"
+            Get-Content $rubiesJson
+          } else {
+            Write-Host "ERROR: rubies.json not found!"
+            exit 1
           }
 
-      - name: "Migrate system Ruby to dtvem"
+      - name: "Migrate uru Ruby to dtvem"
         shell: bash
         run: |
           echo "=== Running migrate detection ==="
@@ -68,18 +110,16 @@ jobs:
         shell: bash
         run: |
           ./dist/dtvem.exe list ruby | grep -E "3\.2\." || (echo "ERROR: Expected Ruby 3.2.x to be migrated" && exit 1)
-          echo "SUCCESS: Ruby 3.2.x was migrated from system"
+          echo "SUCCESS: Ruby 3.2.x was migrated from uru"
 
       - name: Generate summary
         if: always()
         shell: bash
         run: |
-          echo "## Ruby Migration from System (Windows)" >> $GITHUB_STEP_SUMMARY
+          echo "## Ruby Migration from uru (Windows)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Source:** Chocolatey" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** uru" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** 3.2.x" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "*Note: For version manager migration on Windows, see the uru integration test.*" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

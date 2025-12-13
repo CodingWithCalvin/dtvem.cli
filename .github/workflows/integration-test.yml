@@ -111,3 +111,7 @@ jobs:
   migrate-ruby-windows-system:
     name: Migrate Ruby from System (Windows)
     uses: ./.github/workflows/integration-test-migrate-ruby-windows-system.yml
+
+  migrate-ruby-windows-uru:
+    name: Migrate Ruby from uru (Windows)
+    uses: ./.github/workflows/integration-test-migrate-ruby-windows-uru.yml

@@ -23,6 +23,7 @@ import (
 	_ "github.com/dtvem/dtvem/src/migrations/ruby/rbenv"
 	_ "github.com/dtvem/dtvem/src/migrations/ruby/rvm"
 	_ "github.com/dtvem/dtvem/src/migrations/ruby/system"
+	_ "github.com/dtvem/dtvem/src/migrations/ruby/uru"
 )
 
 func main() {
