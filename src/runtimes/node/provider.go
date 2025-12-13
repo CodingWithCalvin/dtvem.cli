@@ -8,14 +8,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	goruntime "runtime"
 	"strings"
 
 	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/constants"
 	"github.com/dtvem/dtvem/src/internal/download"
-	"github.com/dtvem/dtvem/src/internal/path"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/shim"
 	"github.com/dtvem/dtvem/src/internal/ui"
@@ -339,165 +337,13 @@ func (p *Provider) CurrentVersion() (string, error) {
 	return config.ResolveVersion("node")
 }
 
-// DetectInstalled scans the system for existing Node.js installations
+// DetectInstalled scans the system for existing Node.js installations.
+// Note: This method is deprecated. Use migration providers instead
+// (nvm, fnm, system) for detecting existing installations.
 func (p *Provider) DetectInstalled() ([]runtime.DetectedVersion, error) {
-	detected := make([]runtime.DetectedVersion, 0)
-	seen := make(map[string]bool) // Track unique paths to avoid duplicates
-
-	// 1. Check node in PATH (excluding dtvem's shims directory)
-	if nodePath := path.LookPathExcludingShims("node"); nodePath != "" {
-		if version, err := getNodeVersion(nodePath); err == nil {
-			if !seen[nodePath] {
-				detected = append(detected, runtime.DetectedVersion{
-					Version:   version,
-					Path:      nodePath,
-					Source:    "system",
-					Validated: true,
-				})
-				seen[nodePath] = true
-			}
-		}
-	}
-
-	// 2. Check nvm installations
-	nvmVersions := findNvmVersions()
-	for _, dv := range nvmVersions {
-		if !seen[dv.Path] {
-			detected = append(detected, dv)
-			seen[dv.Path] = true
-		}
-	}
-
-	// 3. Check fnm installations
-	fnmVersions := findFnmVersions()
-	for _, dv := range fnmVersions {
-		if !seen[dv.Path] {
-			detected = append(detected, dv)
-			seen[dv.Path] = true
-		}
-	}
-
-	return detected, nil
-}
-
-// getNodeVersion runs 'node --version' on the given path and returns the version
-func getNodeVersion(nodePath string) (string, error) {
-	cmd := exec.Command(nodePath, "--version")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	version := strings.TrimSpace(string(output))
-	// Remove 'v' prefix if present (e.g., "v22.0.0" -> "22.0.0")
-	version = strings.TrimPrefix(version, "v")
-
-	return version, nil
-}
-
-// findNvmVersions scans nvm directory for installed versions
-func findNvmVersions() []runtime.DetectedVersion {
-	detected := make([]runtime.DetectedVersion, 0)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return detected
-	}
-
-	// Check Unix-style nvm directory
-	nvmDir := filepath.Join(home, ".nvm", "versions", "node")
-	if entries, err := os.ReadDir(nvmDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() {
-				versionDir := filepath.Join(nvmDir, entry.Name())
-				nodePath := filepath.Join(versionDir, "bin", "node")
-
-				if _, err := os.Stat(nodePath); err == nil {
-					// Extract version from directory name (e.g., "v22.0.0" -> "22.0.0")
-					version := strings.TrimPrefix(entry.Name(), "v")
-
-					detected = append(detected, runtime.DetectedVersion{
-						Version:   version,
-						Path:      nodePath,
-						Source:    "nvm",
-						Validated: false,
-					})
-				}
-			}
-		}
-	}
-
-	// Check Windows nvm directory
-	nvmWinDir := filepath.Join(home, "AppData", "Roaming", "nvm")
-	if entries, err := os.ReadDir(nvmWinDir); err == nil {
-		versionRegex := regexp.MustCompile(`^v?\d+\.\d+\.\d+$`)
-		for _, entry := range entries {
-			if entry.IsDir() && versionRegex.MatchString(entry.Name()) {
-				versionDir := filepath.Join(nvmWinDir, entry.Name())
-				nodePath := filepath.Join(versionDir, "node.exe")
-
-				if _, err := os.Stat(nodePath); err == nil {
-					version := strings.TrimPrefix(entry.Name(), "v")
-
-					detected = append(detected, runtime.DetectedVersion{
-						Version:   version,
-						Path:      nodePath,
-						Source:    "nvm",
-						Validated: false,
-					})
-				}
-			}
-		}
-	}
-
-	return detected
-}
-
-// findFnmVersions scans fnm directory for installed versions
-func findFnmVersions() []runtime.DetectedVersion {
-	detected := make([]runtime.DetectedVersion, 0)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return detected
-	}
-
-	// fnm stores versions in ~/.local/share/fnm/node-versions or similar
-	fnmDirs := []string{
-		filepath.Join(home, ".local", "share", "fnm", "node-versions"),
-		filepath.Join(home, ".fnm", "node-versions"),
-		filepath.Join(home, "Library", "Application Support", "fnm", "node-versions"), // macOS
-	}
-
-	for _, fnmDir := range fnmDirs {
-		if entries, err := os.ReadDir(fnmDir); err == nil {
-			for _, entry := range entries {
-				if entry.IsDir() {
-					versionDir := filepath.Join(fnmDir, entry.Name())
-
-					// Try both Unix and Windows paths
-					nodePaths := []string{
-						filepath.Join(versionDir, "bin", "node"),
-						filepath.Join(versionDir, "node.exe"),
-					}
-
-					for _, nodePath := range nodePaths {
-						if _, err := os.Stat(nodePath); err == nil {
-							version := strings.TrimPrefix(entry.Name(), "v")
-
-							detected = append(detected, runtime.DetectedVersion{
-								Version:   version,
-								Path:      nodePath,
-								Source:    "fnm",
-								Validated: false,
-							})
-							break
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return detected
+	// Detection is now handled by migration providers in src/migrations/
+	// This method returns empty to avoid duplicate code
+	return []runtime.DetectedVersion{}, nil
 }
 
 // GetGlobalPackages detects globally installed npm packages

@@ -19,7 +19,6 @@ import (
 	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/constants"
 	"github.com/dtvem/dtvem/src/internal/download"
-	"github.com/dtvem/dtvem/src/internal/path"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/shim"
 	"github.com/dtvem/dtvem/src/internal/ui"
@@ -553,119 +552,13 @@ func (p *Provider) CurrentVersion() (string, error) {
 	return config.ResolveVersion("python")
 }
 
-// DetectInstalled scans the system for existing Python installations
+// DetectInstalled scans the system for existing Python installations.
+// Note: This method is deprecated. Use migration providers instead
+// (pyenv, system) for detecting existing installations.
 func (p *Provider) DetectInstalled() ([]runtime.DetectedVersion, error) {
-	detected := make([]runtime.DetectedVersion, 0)
-	seen := make(map[string]bool) // Track unique paths to avoid duplicates
-
-	// 1. Check python and python3 in PATH (excluding dtvem's shims directory)
-	for _, cmd := range []string{"python", "python3"} {
-		if pythonPath := path.LookPathExcludingShims(cmd); pythonPath != "" {
-			if version, err := getPythonVersion(pythonPath); err == nil {
-				if !seen[pythonPath] {
-					detected = append(detected, runtime.DetectedVersion{
-						Version:   version,
-						Path:      pythonPath,
-						Source:    "system",
-						Validated: true,
-					})
-					seen[pythonPath] = true
-				}
-			}
-		}
-	}
-
-	// 2. Check pyenv installations
-	pyenvVersions := findPyenvVersions()
-	for _, dv := range pyenvVersions {
-		if !seen[dv.Path] {
-			detected = append(detected, dv)
-			seen[dv.Path] = true
-		}
-	}
-
-	return detected, nil
-}
-
-// getPythonVersion runs 'python --version' and returns the version
-func getPythonVersion(pythonPath string) (string, error) {
-	cmd := exec.Command(pythonPath, "--version")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	version := strings.TrimSpace(string(output))
-	// Output format: "Python 3.11.0" - extract just the version number
-	re := regexp.MustCompile(`Python\s+(\d+\.\d+\.\d+)`)
-	matches := re.FindStringSubmatch(version)
-	if len(matches) >= 2 {
-		return matches[1], nil
-	}
-
-	return "", fmt.Errorf("could not parse Python version from: %s", version)
-}
-
-// findPyenvVersions scans pyenv directory for installed versions
-func findPyenvVersions() []runtime.DetectedVersion {
-	detected := make([]runtime.DetectedVersion, 0)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return detected
-	}
-
-	// Check pyenv directory
-	pyenvDir := filepath.Join(home, ".pyenv", "versions")
-	if entries, err := os.ReadDir(pyenvDir); err == nil {
-		versionRegex := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-		for _, entry := range entries {
-			if entry.IsDir() && versionRegex.MatchString(entry.Name()) {
-				versionDir := filepath.Join(pyenvDir, entry.Name())
-
-				// Try both Unix and Windows paths
-				pythonPaths := []string{
-					filepath.Join(versionDir, "bin", "python"),
-					filepath.Join(versionDir, "bin", "python3"),
-					filepath.Join(versionDir, "python.exe"),
-				}
-
-				for _, pythonPath := range pythonPaths {
-					if _, err := os.Stat(pythonPath); err == nil {
-						detected = append(detected, runtime.DetectedVersion{
-							Version:   entry.Name(),
-							Path:      pythonPath,
-							Source:    "pyenv",
-							Validated: false,
-						})
-						break
-					}
-				}
-			}
-		}
-	}
-
-	// Check Windows pyenv directory
-	pyenvWinDir := filepath.Join(home, ".pyenv", "pyenv-win", "versions")
-	if entries, err := os.ReadDir(pyenvWinDir); err == nil {
-		versionRegex := regexp.MustCompile(`^\d+\.\d+\.\d+`)
-		for _, entry := range entries {
-			if entry.IsDir() && versionRegex.MatchString(entry.Name()) {
-				versionDir := filepath.Join(pyenvWinDir, entry.Name())
-				pythonPath := filepath.Join(versionDir, "python.exe")
-
-				if _, err := os.Stat(pythonPath); err == nil {
-					detected = append(detected, runtime.DetectedVersion{
-						Version:   entry.Name(),
-						Path:      pythonPath,
-						Source:    "pyenv",
-						Validated: false,
-					})
-				}
-			}
-		}
-	}
-
-	return detected
+	// Detection is now handled by migration providers in src/migrations/
+	// This method returns empty to avoid duplicate code
+	return []runtime.DetectedVersion{}, nil
 }
 
 // GetGlobalPackages detects globally installed pip packages

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 
+	"github.com/dtvem/dtvem/src/internal/migration"
 	internalRuntime "github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/ui"
 	"github.com/spf13/cobra"
@@ -41,13 +41,26 @@ Examples:
 		spinner := ui.NewSpinner(fmt.Sprintf("Scanning for %s installations...", provider.DisplayName()))
 		spinner.Start()
 
-		// Detect existing installations
-		detected, err := provider.DetectInstalled()
-		if err != nil {
-			spinner.Error("Scan failed")
-			ui.Error("Error detecting installations: %v", err)
-			return
+		// Get migration providers for this runtime
+		migrationProviders := migration.GetByRuntime(runtimeName)
+
+		// Collect all detected versions from all migration providers
+		detected := make([]detectedVersionWithProvider, 0)
+		for _, mp := range migrationProviders {
+			versions, err := mp.DetectVersions()
+			if err != nil {
+				continue // Skip providers that fail
+			}
+			for _, v := range versions {
+				detected = append(detected, detectedVersionWithProvider{
+					DetectedVersion:   v,
+					MigrationProvider: mp,
+				})
+			}
 		}
+
+		// Deduplicate by path
+		detected = deduplicateByPath(detected)
 
 		if len(detected) == 0 {
 			spinner.Warning("No installations found")
@@ -62,7 +75,7 @@ Examples:
 		for i, dv := range detected {
 			validatedMark := ""
 			if dv.Validated {
-				validatedMark = " " + ui.Highlight("✓")
+				validatedMark = " " + ui.Highlight("\u2713")
 			}
 			fmt.Printf("  [%d] %s  (%s) %s%s\n",
 				i+1,
@@ -97,7 +110,7 @@ Examples:
 		}
 
 		// Get selected versions
-		selectedVersions := make([]internalRuntime.DetectedVersion, 0)
+		selectedVersions := make([]detectedVersionWithProvider, 0)
 		for _, idx := range selectedIndices {
 			selectedVersions = append(selectedVersions, detected[idx])
 		}
@@ -126,11 +139,6 @@ Examples:
 				}
 			}
 
-			// TODO: Detect and preserve configuration files/settings
-			// For Node.js: Check for .npmrc in installation dir or ~/.npmrc
-			// For Python: Check for pip.conf/pip.ini
-			// Handle sensitive data (auth tokens) appropriately
-
 			// Call the provider's Install method
 			if err := provider.Install(dv.Version); err != nil {
 				ui.Error("%v", err)
@@ -150,9 +158,6 @@ Examples:
 						ui.Success("Reinstalled %d global package(s)", len(globalPackages))
 					}
 				}
-
-				// TODO: Copy/merge configuration files to new installation
-				// Ensure settings like registry URLs, proxies, etc. are preserved
 			}
 			fmt.Println()
 		}
@@ -210,6 +215,27 @@ Examples:
 	},
 }
 
+// detectedVersionWithProvider pairs a detected version with its migration provider.
+type detectedVersionWithProvider struct {
+	migration.DetectedVersion
+	MigrationProvider migration.Provider
+}
+
+// deduplicateByPath removes duplicate versions based on their path.
+func deduplicateByPath(versions []detectedVersionWithProvider) []detectedVersionWithProvider {
+	seen := make(map[string]bool)
+	result := make([]detectedVersionWithProvider, 0)
+
+	for _, v := range versions {
+		if !seen[v.Path] {
+			seen[v.Path] = true
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
 // parseSelection parses user selection input like "1,3,5" or "all"
 func parseSelection(input string, maxCount int) []int {
 	indices := make([]int, 0, maxCount)
@@ -237,7 +263,7 @@ func parseSelection(input string, maxCount int) []int {
 }
 
 // promptCleanupOldInstallations prompts the user to clean up old installations after successful migration
-func promptCleanupOldInstallations(versions []internalRuntime.DetectedVersion, runtimeDisplayName string) {
+func promptCleanupOldInstallations(versions []detectedVersionWithProvider, runtimeDisplayName string) {
 	ui.Header("Cleanup Old Installations")
 	ui.Info("You have successfully migrated to dtvem. Would you like to clean up the old installations?")
 	ui.Info("This helps prevent PATH conflicts and version confusion.")
@@ -251,10 +277,12 @@ func promptCleanupOldInstallations(versions []internalRuntime.DetectedVersion, r
 		fmt.Printf("Old installation: %s %s\n", ui.HighlightVersion("v"+dv.Version), ui.Highlight("("+dv.Source+")"))
 		fmt.Printf("  Location: %s\n", dv.Path)
 
-		// Get uninstall instructions/command based on source
-		instructions, command, automatable := getUninstallInstructions(dv, runtimeDisplayName)
+		mp := dv.MigrationProvider
+		canAuto := mp.CanAutoUninstall()
+		command := mp.UninstallCommand(dv.Version)
+		instructions := mp.ManualInstructions()
 
-		if automatable {
+		if canAuto && command != "" {
 			fmt.Printf("\nRemove this installation? [y/N]: ")
 			input, err := reader.ReadString('\n')
 			if err != nil || strings.ToLower(strings.TrimSpace(input)) != "y" {
@@ -277,7 +305,7 @@ func promptCleanupOldInstallations(versions []internalRuntime.DetectedVersion, r
 				removedCount++
 			}
 		} else {
-			// System installs - provide instructions only
+			// System installs or version managers without auto-uninstall - provide instructions only
 			ui.Warning("Manual removal required")
 			ui.Info("%s", instructions)
 			skippedCount++
@@ -294,63 +322,6 @@ func promptCleanupOldInstallations(versions []internalRuntime.DetectedVersion, r
 		ui.Info("You have %d old installation(s) remaining", skippedCount)
 		ui.Info("These may conflict with dtvem-managed versions if they appear earlier in your PATH")
 		ui.Info("Consider removing them manually to avoid confusion")
-	}
-}
-
-// getUninstallInstructions returns instructions, command, and whether it's automatable
-func getUninstallInstructions(dv internalRuntime.DetectedVersion, runtimeDisplayName string) (instructions string, command string, automatable bool) {
-	version := dv.Version
-	source := strings.ToLower(dv.Source)
-
-	switch source {
-	case "nvm":
-		return "",
-			fmt.Sprintf("nvm uninstall %s", version),
-			true
-	case "pyenv":
-		return "",
-			fmt.Sprintf("pyenv uninstall %s", version),
-			true
-	case "fnm":
-		return "",
-			fmt.Sprintf("fnm uninstall %s", version),
-			true
-	case "rbenv":
-		return "",
-			fmt.Sprintf("rbenv uninstall %s", version),
-			true
-	case "system":
-		// OS-specific instructions
-		instructions := getSystemUninstallInstructions(runtimeDisplayName, dv.Path)
-		return instructions, "", false
-	default:
-		// Unknown source - provide generic instructions
-		return fmt.Sprintf("Manually remove the installation directory:\n  %s", dv.Path), "", false
-	}
-}
-
-// getSystemUninstallInstructions provides OS-specific uninstall instructions for system packages
-func getSystemUninstallInstructions(runtimeDisplayName string, path string) string {
-	switch runtime.GOOS {
-	case "windows":
-		return "To uninstall:\n" +
-			"  1. Open Settings → Apps → Installed apps\n" +
-			"  2. Search for " + runtimeDisplayName + "\n" +
-			"  3. Click Uninstall\n" +
-			"  Or use PowerShell to find the uninstaller"
-	case "darwin":
-		return "To uninstall:\n" +
-			"  If installed via Homebrew: brew uninstall " + strings.ToLower(runtimeDisplayName) + "\n" +
-			"  If installed via package: check /Applications or use the installer's uninstaller\n" +
-			"  Manual removal: sudo rm -rf " + path
-	case "linux":
-		return "To uninstall:\n" +
-			"  If installed via apt: sudo apt remove " + strings.ToLower(runtimeDisplayName) + "\n" +
-			"  If installed via yum: sudo yum remove " + strings.ToLower(runtimeDisplayName) + "\n" +
-			"  If installed via dnf: sudo dnf remove " + strings.ToLower(runtimeDisplayName) + "\n" +
-			"  Manual removal: sudo rm -rf " + path
-	default:
-		return "Manually remove the installation directory:\n  " + path
 	}
 }
 

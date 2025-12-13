@@ -17,7 +17,6 @@ import (
 	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/constants"
 	"github.com/dtvem/dtvem/src/internal/download"
-	"github.com/dtvem/dtvem/src/internal/path"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/shim"
 	"github.com/dtvem/dtvem/src/internal/ui"
@@ -552,182 +551,13 @@ func (p *Provider) CurrentVersion() (string, error) {
 	return config.ResolveVersion("ruby")
 }
 
-// DetectInstalled scans the system for existing Ruby installations
+// DetectInstalled scans the system for existing Ruby installations.
+// Note: This method is deprecated. Use migration providers instead
+// (rbenv, rvm, chruby, system) for detecting existing installations.
 func (p *Provider) DetectInstalled() ([]runtime.DetectedVersion, error) {
-	detected := make([]runtime.DetectedVersion, 0)
-	seen := make(map[string]bool) // Track unique paths to avoid duplicates
-
-	// 1. Check ruby in PATH (excluding dtvem's shims directory)
-	if rubyPath := path.LookPathExcludingShims("ruby"); rubyPath != "" {
-		if version, err := getRubyVersion(rubyPath); err == nil {
-			if !seen[rubyPath] {
-				detected = append(detected, runtime.DetectedVersion{
-					Version:   version,
-					Path:      rubyPath,
-					Source:    "system",
-					Validated: true,
-				})
-				seen[rubyPath] = true
-			}
-		}
-	}
-
-	// 2. Check rbenv installations
-	rbenvVersions := findRbenvVersions()
-	for _, dv := range rbenvVersions {
-		if !seen[dv.Path] {
-			detected = append(detected, dv)
-			seen[dv.Path] = true
-		}
-	}
-
-	// 3. Check rvm installations
-	rvmVersions := findRvmVersions()
-	for _, dv := range rvmVersions {
-		if !seen[dv.Path] {
-			detected = append(detected, dv)
-			seen[dv.Path] = true
-		}
-	}
-
-	// 4. Check chruby installations
-	chrubyVersions := findChrubyVersions()
-	for _, dv := range chrubyVersions {
-		if !seen[dv.Path] {
-			detected = append(detected, dv)
-			seen[dv.Path] = true
-		}
-	}
-
-	return detected, nil
-}
-
-// getRubyVersion runs 'ruby --version' and returns the version
-func getRubyVersion(rubyPath string) (string, error) {
-	cmd := exec.Command(rubyPath, "--version")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	version := strings.TrimSpace(string(output))
-	// Output format: "ruby 3.3.0 (2023-12-25 revision 5124f9ac75) [arm64-darwin23]"
-	re := regexp.MustCompile(`ruby\s+(\d+\.\d+\.\d+)`)
-	matches := re.FindStringSubmatch(version)
-	if len(matches) >= 2 {
-		return matches[1], nil
-	}
-
-	return "", fmt.Errorf("could not parse Ruby version from: %s", version)
-}
-
-// findRbenvVersions scans rbenv directory for installed versions
-func findRbenvVersions() []runtime.DetectedVersion {
-	detected := make([]runtime.DetectedVersion, 0)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return detected
-	}
-
-	// Check rbenv directory
-	rbenvDir := filepath.Join(home, ".rbenv", "versions")
-	if entries, err := os.ReadDir(rbenvDir); err == nil {
-		versionRegex := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
-		for _, entry := range entries {
-			if entry.IsDir() && versionRegex.MatchString(entry.Name()) {
-				versionDir := filepath.Join(rbenvDir, entry.Name())
-				rubyPath := filepath.Join(versionDir, "bin", "ruby")
-
-				if _, err := os.Stat(rubyPath); err == nil {
-					detected = append(detected, runtime.DetectedVersion{
-						Version:   entry.Name(),
-						Path:      rubyPath,
-						Source:    "rbenv",
-						Validated: false,
-					})
-				}
-			}
-		}
-	}
-
-	return detected
-}
-
-// findRvmVersions scans rvm directory for installed versions
-func findRvmVersions() []runtime.DetectedVersion {
-	detected := make([]runtime.DetectedVersion, 0)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return detected
-	}
-
-	// Check rvm directory
-	rvmDir := filepath.Join(home, ".rvm", "rubies")
-	if entries, err := os.ReadDir(rvmDir); err == nil {
-		versionRegex := regexp.MustCompile(`^ruby-(\d+\.\d+\.\d+)`)
-		for _, entry := range entries {
-			if entry.IsDir() {
-				matches := versionRegex.FindStringSubmatch(entry.Name())
-				if len(matches) >= 2 {
-					versionDir := filepath.Join(rvmDir, entry.Name())
-					rubyPath := filepath.Join(versionDir, "bin", "ruby")
-
-					if _, err := os.Stat(rubyPath); err == nil {
-						detected = append(detected, runtime.DetectedVersion{
-							Version:   matches[1],
-							Path:      rubyPath,
-							Source:    "rvm",
-							Validated: false,
-						})
-					}
-				}
-			}
-		}
-	}
-
-	return detected
-}
-
-// findChrubyVersions scans chruby directories for installed versions
-func findChrubyVersions() []runtime.DetectedVersion {
-	detected := make([]runtime.DetectedVersion, 0)
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return detected
-	}
-
-	// chruby looks in /opt/rubies and ~/.rubies
-	chrubyDirs := []string{
-		"/opt/rubies",
-		filepath.Join(home, ".rubies"),
-	}
-
-	versionRegex := regexp.MustCompile(`^ruby-(\d+\.\d+\.\d+)`)
-
-	for _, chrubyDir := range chrubyDirs {
-		if entries, err := os.ReadDir(chrubyDir); err == nil {
-			for _, entry := range entries {
-				if entry.IsDir() {
-					matches := versionRegex.FindStringSubmatch(entry.Name())
-					if len(matches) >= 2 {
-						versionDir := filepath.Join(chrubyDir, entry.Name())
-						rubyPath := filepath.Join(versionDir, "bin", "ruby")
-
-						if _, err := os.Stat(rubyPath); err == nil {
-							detected = append(detected, runtime.DetectedVersion{
-								Version:   matches[1],
-								Path:      rubyPath,
-								Source:    "chruby",
-								Validated: false,
-							})
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return detected
+	// Detection is now handled by migration providers in src/migrations/
+	// This method returns empty to avoid duplicate code
+	return []runtime.DetectedVersion{}, nil
 }
 
 // GlobalPackages detects globally installed gems
