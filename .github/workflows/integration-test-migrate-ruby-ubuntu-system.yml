@@ -1,0 +1,69 @@
+name: Integration Tests - Migrate Ruby from System (Ubuntu)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Ruby from System (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim ./src/cmd/shim
+
+      - name: Initialize dtvem
+        run: ./dist/dtvem init --yes
+
+      - name: Add dtvem to PATH
+        run: |
+          echo "$HOME/.dtvem/shims" >> $GITHUB_PATH
+          echo "$HOME/.dtvem/bin" >> $GITHUB_PATH
+
+      - name: "Install Ruby 3.2 via apt"
+        run: |
+          # Install Ruby via apt (system-level install)
+          sudo apt-get update
+          sudo apt-get install -y ruby-full
+          echo "System Ruby installed at: $(which ruby)"
+          ruby --version
+
+      - name: "Migrate system Ruby to dtvem"
+        run: |
+          echo "=== Running migrate detection ==="
+          echo -e "1\n0\n" | ./dist/dtvem migrate ruby || true
+          echo ""
+          echo "=== Verifying migration ==="
+          ./dist/dtvem list ruby
+
+      - name: "Verify migrated version"
+        run: |
+          ./dist/dtvem list ruby | grep -E "3\." || (echo "ERROR: Expected Ruby 3.x to be migrated" && exit 1)
+          echo "SUCCESS: Ruby 3.x was migrated from system"
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Ruby Migration from System (Ubuntu)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** apt" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** 3.x (system default)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem list ruby >> $GITHUB_STEP_SUMMARY 2>&1 || echo "No versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,87 @@
+name: Integration Tests - Migrate Ruby from System (Windows)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Ruby from System (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        shell: bash
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem.exe ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim.exe ./src/cmd/shim
+
+      - name: Initialize dtvem
+        shell: bash
+        run: ./dist/dtvem.exe init --yes
+
+      - name: Add dtvem to PATH
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: "Install Ruby 3.2 via Chocolatey"
+        shell: pwsh
+        run: |
+          # Install Ruby via Chocolatey (system-level install)
+          choco install ruby --version=3.2.6.1 -y
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          Write-Host "System Ruby installed"
+          ruby --version
+
+      - name: "Add Chocolatey Ruby to PATH"
+        shell: pwsh
+        run: |
+          # Ruby is typically installed to C:\tools\ruby32\bin
+          $rubyPath = "C:\tools\ruby32\bin"
+          if (Test-Path $rubyPath) {
+            $rubyPath | Out-File -FilePath $env:GITHUB_PATH -Append
+          }
+
+      - name: "Migrate system Ruby to dtvem"
+        shell: bash
+        run: |
+          echo "=== Running migrate detection ==="
+          echo -e "1\n0\n" | ./dist/dtvem.exe migrate ruby || true
+          echo ""
+          echo "=== Verifying migration ==="
+          ./dist/dtvem.exe list ruby
+
+      - name: "Verify migrated version"
+        shell: bash
+        run: |
+          ./dist/dtvem.exe list ruby | grep -E "3\.2\." || (echo "ERROR: Expected Ruby 3.2.x to be migrated" && exit 1)
+          echo "SUCCESS: Ruby 3.2.x was migrated from system"
+
+      - name: Generate summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Ruby Migration from System (Windows)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** Chocolatey" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** 3.2.x" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*Note: No rbenv equivalent on Windows. See issue #122 for RubyInstaller/uru support.*" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem.exe list ruby >> $GITHUB_STEP_SUMMARY 2>&1 || echo "No versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

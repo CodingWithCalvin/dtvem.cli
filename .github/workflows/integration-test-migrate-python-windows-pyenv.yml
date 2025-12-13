@@ -1,0 +1,87 @@
+name: Integration Tests - Migrate Python from pyenv-win (Windows)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Python from pyenv-win (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        shell: bash
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem.exe ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim.exe ./src/cmd/shim
+
+      - name: Initialize dtvem
+        shell: bash
+        run: ./dist/dtvem.exe init --yes
+
+      - name: Add dtvem to PATH
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: "Install pyenv-win"
+        shell: pwsh
+        run: |
+          pip install pyenv-win --target "$env:USERPROFILE\.pyenv"
+          [System.Environment]::SetEnvironmentVariable('PYENV', "$env:USERPROFILE\.pyenv\pyenv-win\", "User")
+          [System.Environment]::SetEnvironmentVariable('PYENV_ROOT', "$env:USERPROFILE\.pyenv\pyenv-win\", "User")
+          [System.Environment]::SetEnvironmentVariable('PYENV_HOME', "$env:USERPROFILE\.pyenv\pyenv-win\", "User")
+          "$env:USERPROFILE\.pyenv\pyenv-win\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$env:USERPROFILE\.pyenv\pyenv-win\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: "Install Python 3.11.9 via pyenv-win"
+        shell: pwsh
+        run: |
+          $env:Path = "$env:USERPROFILE\.pyenv\pyenv-win\bin;$env:USERPROFILE\.pyenv\pyenv-win\shims;$env:Path"
+          pyenv install 3.11.9
+          pyenv global 3.11.9
+          pyenv rehash
+          Write-Host "pyenv-win Python version:"
+          python --version
+
+      - name: "Migrate pyenv-win Python to dtvem"
+        shell: bash
+        run: |
+          echo "=== Running migrate detection ==="
+          echo -e "1\n0\nn\n" | ./dist/dtvem.exe migrate python || true
+          echo ""
+          echo "=== Verifying migration ==="
+          ./dist/dtvem.exe list python
+
+      - name: "Verify migrated version"
+        shell: bash
+        run: |
+          ./dist/dtvem.exe list python | grep -E "3\.11\.9" || (echo "ERROR: Expected Python 3.11.9 to be migrated" && exit 1)
+          echo "SUCCESS: Python 3.11.9 was migrated from pyenv-win"
+
+      - name: Generate summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Python Migration from pyenv-win (Windows)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** pyenv-win" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** 3.11.9" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem.exe list python >> $GITHUB_STEP_SUMMARY 2>&1 || echo "No versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

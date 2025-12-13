@@ -1,0 +1,69 @@
+name: Integration Tests - Migrate Python from System (Ubuntu)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Python from System (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim ./src/cmd/shim
+
+      - name: Initialize dtvem
+        run: ./dist/dtvem init --yes
+
+      - name: Add dtvem to PATH
+        run: |
+          echo "$HOME/.dtvem/shims" >> $GITHUB_PATH
+          echo "$HOME/.dtvem/bin" >> $GITHUB_PATH
+
+      - name: "Install Python 3.10 via apt (deadsnakes PPA)"
+        run: |
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y python3.10 python3.10-venv python3.10-dev
+          echo "System Python installed at: $(which python3.10)"
+          python3.10 --version
+
+      - name: "Migrate system Python to dtvem"
+        run: |
+          echo "=== Running migrate detection ==="
+          echo -e "1\n0\n" | ./dist/dtvem migrate python || true
+          echo ""
+          echo "=== Verifying migration ==="
+          ./dist/dtvem list python
+
+      - name: "Verify migrated version"
+        run: |
+          ./dist/dtvem list python | grep -E "3\.10\." || (echo "ERROR: Expected Python 3.10.x to be migrated" && exit 1)
+          echo "SUCCESS: Python 3.10.x was migrated from system"
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Python Migration from System (Ubuntu)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** apt (deadsnakes PPA)" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** 3.10.x" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem list python >> $GITHUB_STEP_SUMMARY 2>&1 || echo "No versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

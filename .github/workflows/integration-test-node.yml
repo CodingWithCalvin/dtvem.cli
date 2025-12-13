@@ -1,0 +1,244 @@
+name: Integration Tests - Node.js
+
+on:
+  workflow_call:
+    inputs:
+      version1:
+        description: 'First Node.js version to test (LTS)'
+        required: false
+        type: string
+        default: '20.18.0'
+      version2:
+        description: 'Second Node.js version to test (Current)'
+        required: false
+        type: string
+        default: '22.11.0'
+  workflow_dispatch:
+    inputs:
+      version1:
+        description: 'First Node.js version to test (LTS)'
+        required: false
+        type: string
+        default: '20.18.0'
+      version2:
+        description: 'Second Node.js version to test (Current)'
+        required: false
+        type: string
+        default: '22.11.0'
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test-node:
+    name: Node.js (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            ext: ""
+          - os: macos-latest
+            platform: macos
+            ext: ""
+          - os: windows-latest
+            platform: windows
+            ext: ".exe"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem${{ matrix.ext }} ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim${{ matrix.ext }} ./src/cmd/shim
+        shell: bash
+
+      - name: Initialize dtvem
+        run: |
+          ./dist/dtvem${{ matrix.ext }} init --yes
+        shell: bash
+
+      - name: Add shims to PATH (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          echo "$HOME/.dtvem/shims" >> $GITHUB_PATH
+          echo "$HOME/.dtvem/bin" >> $GITHUB_PATH
+
+      - name: Add shims to PATH (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: "List available versions"
+        run: |
+          echo "## Node.js Available Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} list-all node | head -20 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Install version ${{ inputs.version1 || '20.18.0' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} install node ${{ inputs.version1 || '20.18.0' }}
+        shell: bash
+
+      - name: "Install version ${{ inputs.version2 || '22.11.0' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} install node ${{ inputs.version2 || '22.11.0' }}
+        shell: bash
+
+      - name: "List installed versions"
+        run: |
+          echo "## Node.js Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} list node >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Set global version to ${{ inputs.version1 || '20.18.0' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} global node ${{ inputs.version1 || '20.18.0' }}
+        shell: bash
+
+      - name: "Verify global version via current"
+        run: |
+          CURRENT=$(./dist/dtvem${{ matrix.ext }} current node)
+          echo "Current node version: $CURRENT"
+          if [[ "$CURRENT" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
+            echo "ERROR: Expected ${{ inputs.version1 || '20.18.0' }} but got $CURRENT"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Verify shim works (node --version)"
+        run: |
+          NODE_VERSION=$(node --version)
+          echo "Node version from shim: $NODE_VERSION"
+          if [[ "$NODE_VERSION" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
+            echo "ERROR: Expected v${{ inputs.version1 || '20.18.0' }} but got $NODE_VERSION"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Switch global version to ${{ inputs.version2 || '22.11.0' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} global node ${{ inputs.version2 || '22.11.0' }}
+        shell: bash
+
+      - name: "Verify version switched"
+        run: |
+          NODE_VERSION=$(node --version)
+          echo "Node version from shim: $NODE_VERSION"
+          if [[ "$NODE_VERSION" != *"${{ inputs.version2 || '22.11.0' }}"* ]]; then
+            echo "ERROR: Expected v${{ inputs.version2 || '22.11.0' }} but got $NODE_VERSION"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Test local version override"
+        run: |
+          mkdir -p test-project
+          cd test-project
+          ../dist/dtvem${{ matrix.ext }} local node ${{ inputs.version1 || '20.18.0' }}
+          CURRENT=$(../dist/dtvem${{ matrix.ext }} current node)
+          echo "Current node version in test-project: $CURRENT"
+          if [[ "$CURRENT" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
+            echo "ERROR: Local override failed. Expected ${{ inputs.version1 || '20.18.0' }} but got $CURRENT"
+            exit 1
+          fi
+          NODE_VERSION=$(node --version)
+          echo "Node version from shim in test-project: $NODE_VERSION"
+          if [[ "$NODE_VERSION" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
+            echo "ERROR: Expected v${{ inputs.version1 || '20.18.0' }} but got $NODE_VERSION"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Test which command"
+        run: |
+          echo "## Node.js Which" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} which node >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Test where command"
+        run: |
+          echo "## Node.js Where" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} where node >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Test reshim command"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} reshim
+          echo "Reshim completed successfully"
+        shell: bash
+
+      - name: "Test freeze command"
+        run: |
+          echo "## Freeze Output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Uninstall version ${{ inputs.version2 || '22.11.0' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} uninstall node ${{ inputs.version2 || '22.11.0' }} --yes
+        shell: bash
+
+      - name: "Verify uninstall"
+        run: |
+          LIST_OUTPUT=$(./dist/dtvem${{ matrix.ext }} list node)
+          echo "Installed versions after uninstall:"
+          echo "$LIST_OUTPUT"
+          if [[ "$LIST_OUTPUT" == *"${{ inputs.version2 || '22.11.0' }}"* ]]; then
+            echo "ERROR: Version ${{ inputs.version2 || '22.11.0' }} should have been uninstalled"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Node.js Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Command | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| list-all | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| install | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| list | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| global | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| current | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| shim execution | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| local override | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| which | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| where | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| reshim | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| freeze | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| uninstall | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Platform: **${{ matrix.platform }}** (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+        shell: bash

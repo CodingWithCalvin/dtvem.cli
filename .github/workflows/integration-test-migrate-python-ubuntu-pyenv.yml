@@ -1,0 +1,82 @@
+name: Integration Tests - Migrate Python from pyenv (Ubuntu)
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Python from pyenv (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim ./src/cmd/shim
+
+      - name: Initialize dtvem
+        run: ./dist/dtvem init --yes
+
+      - name: Add dtvem to PATH
+        run: |
+          echo "$HOME/.dtvem/shims" >> $GITHUB_PATH
+          echo "$HOME/.dtvem/bin" >> $GITHUB_PATH
+
+      - name: "Install pyenv and dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
+            libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+            libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+          curl https://pyenv.run | bash
+          echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+          echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+          echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+
+      - name: "Install Python 3.11.9 via pyenv"
+        run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
+          pyenv install 3.11.9
+          pyenv global 3.11.9
+          echo "pyenv Python installed at: $(pyenv which python)"
+          python --version
+
+      - name: "Migrate pyenv Python to dtvem"
+        run: |
+          echo "=== Running migrate detection ==="
+          echo -e "1\n0\nn\n" | ./dist/dtvem migrate python || true
+          echo ""
+          echo "=== Verifying migration ==="
+          ./dist/dtvem list python
+
+      - name: "Verify migrated version"
+        run: |
+          ./dist/dtvem list python | grep -E "3\.11\.9" || (echo "ERROR: Expected Python 3.11.9 to be migrated" && exit 1)
+          echo "SUCCESS: Python 3.11.9 was migrated from pyenv"
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Python Migration from pyenv (Ubuntu)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** pyenv" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** 3.11.9" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem list python >> $GITHUB_STEP_SUMMARY 2>&1 || echo "No versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -21,9 +21,11 @@ Guidance for Claude Code when working with the dtvem codebase.
 2. **Write tests** - All new/refactored code requires comprehensive unit tests
 3. **Cross-platform** - All features must work on Windows, macOS, and Linux
 4. **Conventional commits** - Format: `type(scope): description`
-5. **GitHub Issues for TODOs** - Use `gh` CLI to manage issues, no local TODO files
-6. **Run validation before commits** - Run `npm run check` (format, lint, test) before committing and pushing
-
+5. **GitHub Issues for TODOs** - Use `gh` CLI to manage issues, no local TODO files. Use conventional commit format for issue titles
+6. **Pull Requests** - Use the conventional commit format for PR titles as you do for commits
+7. **Run validation before commits** - Run `npm run check` (format, lint, test) before committing and pushing
+8. **Working an issue** - When working an issue, always create a new branch from an updated main branch
+9. **Branch Names** - Always use the conventional commit `type` from the issue title as the first prefix, and the `scope` as the second, then a very short description, example `feat/ci/integration-tests`
 ---
 
 ## Quick Reference

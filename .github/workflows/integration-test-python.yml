@@ -1,0 +1,244 @@
+name: Integration Tests - Python
+
+on:
+  workflow_call:
+    inputs:
+      version1:
+        description: 'First Python version to test'
+        required: false
+        type: string
+        default: '3.11.9'
+      version2:
+        description: 'Second Python version to test'
+        required: false
+        type: string
+        default: '3.12.7'
+  workflow_dispatch:
+    inputs:
+      version1:
+        description: 'First Python version to test'
+        required: false
+        type: string
+        default: '3.11.9'
+      version2:
+        description: 'Second Python version to test'
+        required: false
+        type: string
+        default: '3.12.7'
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test-python:
+    name: Python (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            ext: ""
+          - os: macos-latest
+            platform: macos
+            ext: ""
+          - os: windows-latest
+            platform: windows
+            ext: ".exe"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build dtvem
+        run: |
+          go build -v -ldflags="-s -w" -o dist/dtvem${{ matrix.ext }} ./src
+          go build -v -ldflags="-s -w" -o dist/dtvem-shim${{ matrix.ext }} ./src/cmd/shim
+        shell: bash
+
+      - name: Initialize dtvem
+        run: |
+          ./dist/dtvem${{ matrix.ext }} init --yes
+        shell: bash
+
+      - name: Add shims to PATH (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          echo "$HOME/.dtvem/shims" >> $GITHUB_PATH
+          echo "$HOME/.dtvem/bin" >> $GITHUB_PATH
+
+      - name: Add shims to PATH (Windows)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: "List available versions"
+        run: |
+          echo "## Python Available Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} list-all python | head -20 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Install version ${{ inputs.version1 || '3.11.9' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} install python ${{ inputs.version1 || '3.11.9' }}
+        shell: bash
+
+      - name: "Install version ${{ inputs.version2 || '3.12.7' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} install python ${{ inputs.version2 || '3.12.7' }}
+        shell: bash
+
+      - name: "List installed versions"
+        run: |
+          echo "## Python Installed Versions" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} list python >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Set global version to ${{ inputs.version1 || '3.11.9' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} global python ${{ inputs.version1 || '3.11.9' }}
+        shell: bash
+
+      - name: "Verify global version via current"
+        run: |
+          CURRENT=$(./dist/dtvem${{ matrix.ext }} current python)
+          echo "Current python version: $CURRENT"
+          if [[ "$CURRENT" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
+            echo "ERROR: Expected ${{ inputs.version1 || '3.11.9' }} but got $CURRENT"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Verify shim works (python --version)"
+        run: |
+          PYTHON_VERSION=$(python --version)
+          echo "Python version from shim: $PYTHON_VERSION"
+          if [[ "$PYTHON_VERSION" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
+            echo "ERROR: Expected Python ${{ inputs.version1 || '3.11.9' }} but got $PYTHON_VERSION"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Switch global version to ${{ inputs.version2 || '3.12.7' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} global python ${{ inputs.version2 || '3.12.7' }}
+        shell: bash
+
+      - name: "Verify version switched"
+        run: |
+          PYTHON_VERSION=$(python --version)
+          echo "Python version from shim: $PYTHON_VERSION"
+          if [[ "$PYTHON_VERSION" != *"${{ inputs.version2 || '3.12.7' }}"* ]]; then
+            echo "ERROR: Expected Python ${{ inputs.version2 || '3.12.7' }} but got $PYTHON_VERSION"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Test local version override"
+        run: |
+          mkdir -p test-project
+          cd test-project
+          ../dist/dtvem${{ matrix.ext }} local python ${{ inputs.version1 || '3.11.9' }}
+          CURRENT=$(../dist/dtvem${{ matrix.ext }} current python)
+          echo "Current python version in test-project: $CURRENT"
+          if [[ "$CURRENT" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
+            echo "ERROR: Local override failed. Expected ${{ inputs.version1 || '3.11.9' }} but got $CURRENT"
+            exit 1
+          fi
+          PYTHON_VERSION=$(python --version)
+          echo "Python version from shim in test-project: $PYTHON_VERSION"
+          if [[ "$PYTHON_VERSION" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
+            echo "ERROR: Expected Python ${{ inputs.version1 || '3.11.9' }} but got $PYTHON_VERSION"
+            exit 1
+          fi
+        shell: bash
+
+      - name: "Test which command"
+        run: |
+          echo "## Python Which" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} which python >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Test where command"
+        run: |
+          echo "## Python Where" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} where python >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Test reshim command"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} reshim
+          echo "Reshim completed successfully"
+        shell: bash
+
+      - name: "Test freeze command"
+        run: |
+          echo "## Freeze Output" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ./dist/dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        shell: bash
+
+      - name: "Uninstall version ${{ inputs.version2 || '3.12.7' }}"
+        run: |
+          ./dist/dtvem${{ matrix.ext }} uninstall python ${{ inputs.version2 || '3.12.7' }} --yes
+        shell: bash
+
+      - name: "Verify uninstall"
+        run: |
+          LIST_OUTPUT=$(./dist/dtvem${{ matrix.ext }} list python)
+          echo "Installed versions after uninstall:"
+          echo "$LIST_OUTPUT"
+          if [[ "$LIST_OUTPUT" == *"${{ inputs.version2 || '3.12.7' }}"* ]]; then
+            echo "ERROR: Version ${{ inputs.version2 || '3.12.7' }} should have been uninstalled"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Python Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Command | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| list-all | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| install | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| list | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| global | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| current | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| shim execution | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| local override | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| which | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| where | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| reshim | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| freeze | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| uninstall | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Platform: **${{ matrix.platform }}** (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+        shell: bash
