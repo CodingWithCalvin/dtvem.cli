@@ -15,6 +15,7 @@ import (
 	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/constants"
 	"github.com/dtvem/dtvem/src/internal/download"
+	"github.com/dtvem/dtvem/src/internal/path"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/shim"
 	"github.com/dtvem/dtvem/src/internal/ui"
@@ -343,8 +344,8 @@ func (p *Provider) DetectInstalled() ([]runtime.DetectedVersion, error) {
 	detected := make([]runtime.DetectedVersion, 0)
 	seen := make(map[string]bool) // Track unique paths to avoid duplicates
 
-	// 1. Check node in PATH
-	if nodePath, err := exec.LookPath("node"); err == nil {
+	// 1. Check node in PATH (excluding dtvem's shims directory)
+	if nodePath := path.LookPathExcludingShims("node"); nodePath != "" {
 		if version, err := getNodeVersion(nodePath); err == nil {
 			if !seen[nodePath] {
 				detected = append(detected, runtime.DetectedVersion{

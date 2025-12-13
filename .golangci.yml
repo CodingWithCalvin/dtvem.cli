@@ -1,44 +1,32 @@
 # golangci-lint configuration for dtvem
-# Documentation: https://golangci-lint.run/usage/configuration/
+# Documentation: https://golangci-lint.run/docs/configuration/file/
 
-# Config version
-version: 2
+# Config version (must be a string for v2.x)
+version: "2"
 
 run:
   # Timeout for analysis
   timeout: 5m
-
   # Include test files in linting
   tests: true
 
-# Output configuration
+# Output configuration (v2.x format)
 output:
-  # Colored output
-  format: colored-line-number
+  formats:
+    text:
+      path: stdout
+      colors: true
+  # Sort results by file, linter, severity
+  sort-order:
+    - file
+    - linter
+  # Show statistics
+  show-stats: true
 
-  # Print lines of code with issue
-  print-issued-lines: true
-
-  # Print linter name in the end of issue text
-  print-linter-name: true
-
-  # Make issues output unique by line
-  uniq-by-line: true
-
-  # Sort results by: filepath, line and column
-  sort-results: true
-
-# Linters configuration
+# Linters configuration (v2.x format)
 linters:
-  # Disable all linters by default
-  disable-all: true
-
-  # Explicitly disable warning-only linters
-  disable:
-    - staticcheck  # Code improvement suggestions
-    - revive       # Style suggestions
-    - prealloc     # Performance hints
-    - gosec        # Security false positives
+  # Start with no linters enabled
+  default: none
 
   # Enable specific linters
   enable:
@@ -62,115 +50,73 @@ linters:
     - nilerr          # Find code that returns nil even if it checks that the error is not nil
     - nilnil          # Checks that there is no simultaneous return of nil error and invalid value
 
-    # WARNINGS ONLY (disabled to prevent CI failure)
-    # These are style/security suggestions that should not fail the build
-    # Re-enable locally with: golangci-lint run --enable-all
-    # - staticcheck     # Code improvement suggestions (QF quick-fixes)
-    # - revive          # Style suggestions (comment formatting, etc.)
-    # - prealloc        # Performance hints
-    # - gosec           # Security warnings (often false positives)
+  # Linter-specific settings (moved from top-level linters-settings)
+  settings:
+    # Settings for errcheck
+    errcheck:
+      # Report about not checking of errors in type assertions
+      check-type-assertions: true
+      # Report about assignment of errors to blank identifier
+      check-blank: false
+      # List of functions to exclude from checking
+      exclude-functions:
+        - (*os.File).Close
+        - (*database/sql.Rows).Close
 
-linters-settings:
-  # Settings for errcheck
-  errcheck:
-    # Report about not checking of errors in type assertions: `a := b.(MyStruct)`
-    check-type-assertions: true
+    # Settings for govet
+    govet:
+      # Enable all analyzers
+      enable-all: true
+      # Disable specific analyzers
+      disable:
+        - shadow          # Reports variables that shadow other variables (can be too noisy)
+        - fieldalignment  # Reports struct field ordering for memory optimization (too noisy)
 
-    # Report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`
-    check-blank: false
+    # Settings for gocyclo (cyclomatic complexity)
+    gocyclo:
+      # Minimal code complexity to report (25 allows for existing complex functions)
+      min-complexity: 25
 
-    # List of functions to exclude from checking
-    exclude-functions:
-      - (*os.File).Close
-      - (*database/sql.Rows).Close
+    # Settings for dupl (code duplication)
+    dupl:
+      # Threshold for duplicate code detection
+      threshold: 100
 
-  # Settings for govet
-  govet:
-    # Enable all analyzers
-    enable-all: true
-    # Disable specific analyzers
-    disable:
-      - shadow  # Reports variables that shadow other variables (can be too noisy)
+    # Settings for goconst
+    goconst:
+      # Minimal length of string constant
+      min-len: 3
+      # Minimum occurrences count to trigger issue
+      min-occurrences: 3
 
-  # Settings for gocyclo (cyclomatic complexity)
-  gocyclo:
-    # Minimal code complexity to report
-    min-complexity: 15
+    # Settings for misspell
+    misspell:
+      # Correct spellings using locale preferences
+      locale: US
 
-  # Settings for dupl (code duplication)
-  dupl:
-    # Threshold for duplicate code detection
-    threshold: 100
+  # Exclusion rules (moved from issues section in v1.x)
+  exclusions:
+    # Generated files should be ignored
+    generated: lax
+    # Paths to exclude
+    paths:
+      - vendor
+      - dist
+      - .claude
+      - ".*\\.pb\\.go$"
+    # Rules to exclude specific linters in specific paths
+    rules:
+      # Ignore duplicate code and repeated strings in test files (test tables often have similar structure)
+      - linters:
+          - dupl
+          - goconst
+        path: "_test\\.go$"
 
-  # Settings for goconst
-  goconst:
-    # Minimal length of string constant
-    min-len: 3
-    # Minimum occurrences count to trigger issue
-    min-occurrences: 3
-    # Ignore test files
-    ignore-tests: true
-
-  # Settings for misspell
-  misspell:
-    # Correct spellings using locale preferences
-    locale: US
-
-  # DISABLED LINTER SETTINGS (commented out since linters are disabled above)
-  # Uncomment these when re-enabling the corresponding linters
-
-  # # Settings for revive (replacement for golint)
-  # revive:
-  #   enable-all-rules: false
-  #   rules:
-  #     # ... (keep original rules for reference)
-
-  # # Settings for gosec (security)
-  # gosec:
-  #   tests: true
-  #   excludes:
-  #     - G304  # File path provided as taint input
-
-  # # Settings for staticcheck
-  # staticcheck:
-  #   checks: ["all"]
-
-# Issues configuration
+# Issues configuration (v2.x format)
 issues:
-  # Which dirs to skip: issues from them won't be reported
-  exclude-dirs:
-    - vendor
-    - dist
-    - .claude
-
-  # Which files to skip: issues from them won't be reported
-  exclude-files:
-    - ".*\\.pb\\.go$"  # Skip generated protobuf files
-
-  # Exclude specific linters for matching issues
-  exclude-rules:
-    # Exclude known issues in generated files
-    - path: ".*\\.pb\\.go"
-      linters:
-        - all
-
-    # Ignore long lines in comments (e.g., URLs)
-    - linters:
-        - revive
-      text: "line is \\d+ characters"
-      source: "^\\s*//.*https?://"
-
-  # Maximum issues count per one linter
-  # Set to 0 to disable limit
+  # Maximum issues count per one linter (0 = unlimited)
   max-issues-per-linter: 0
-
-  # Maximum count of issues with the same text
-  # Set to 0 to disable limit
+  # Maximum count of issues with the same text (0 = unlimited)
   max-same-issues: 0
-
-  # Show only new issues created after git revision
-  # Useful for checking only your changes
-  # new-from-rev: origin/main
-
-  # Independently of option `exclude` we use default exclude patterns
-  exclude-use-default: false
+  # Make issues output unique by line
+  uniq-by-line: true

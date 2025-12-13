@@ -43,3 +43,61 @@ func ShimsDir() string {
 	}
 	return filepath.Join(home, ".dtvem", "shims")
 }
+
+// LookPathExcludingShims searches for an executable in PATH, excluding dtvem's shims directory.
+// This prevents detecting our own shims as "system" installations during migration detection.
+// Returns the full path to the executable, or empty string if not found.
+func LookPathExcludingShims(execName string) string {
+	// Get the shims directory to exclude it from search
+	shimsDir := ShimsDir()
+
+	// Get PATH environment variable
+	pathEnv := os.Getenv("PATH")
+	if pathEnv == "" {
+		return ""
+	}
+
+	// Split PATH into directories
+	pathDirs := filepath.SplitList(pathEnv)
+
+	// Search each directory
+	for _, dir := range pathDirs {
+		// Skip the dtvem shims directory (case-insensitive on Windows)
+		if strings.EqualFold(dir, shimsDir) {
+			continue
+		}
+
+		// Try to find the executable in this directory
+		candidatePath := findExecutableInDir(dir, execName)
+		if candidatePath != "" {
+			return candidatePath
+		}
+	}
+
+	return ""
+}
+
+// findExecutableInDir looks for an executable with the given name in a directory.
+// On Windows, it tries .exe, .cmd, .bat extensions.
+// On Unix, it checks if the file exists and has execute permission.
+func findExecutableInDir(dir, execName string) string {
+	if runtime.GOOS == "windows" {
+		// Windows: try .exe, .cmd, .bat extensions
+		for _, ext := range []string{".exe", ".cmd", ".bat"} {
+			candidate := filepath.Join(dir, execName+ext)
+			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+				return candidate
+			}
+		}
+	} else {
+		// Unix: check if file exists and is executable
+		candidate := filepath.Join(dir, execName)
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			// Check if executable (has execute permission)
+			if info.Mode()&0111 != 0 {
+				return candidate
+			}
+		}
+	}
+	return ""
+}

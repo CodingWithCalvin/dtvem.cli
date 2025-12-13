@@ -64,15 +64,14 @@ jobs:
         with:
           go-version: '1.23'
 
-      - name: Install golangci-lint
-        run: |
-          # Download and install golangci-lint v2.6.2
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
-          golangci-lint --version
-
       - name: Run golangci-lint
-        run: GOOS=${{ matrix.goos }} golangci-lint run --timeout=5m --config=../.golangci.yml
-        working-directory: src
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.6.2
+          working-directory: src
+          args: --timeout=5m --config=../.golangci.yml
+        env:
+          GOOS: ${{ matrix.goos }}
 
       - name: Verify no linting issues
         if: success()

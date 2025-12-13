@@ -19,6 +19,7 @@ import (
 	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/constants"
 	"github.com/dtvem/dtvem/src/internal/download"
+	"github.com/dtvem/dtvem/src/internal/path"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/shim"
 	"github.com/dtvem/dtvem/src/internal/ui"
@@ -557,9 +558,9 @@ func (p *Provider) DetectInstalled() ([]runtime.DetectedVersion, error) {
 	detected := make([]runtime.DetectedVersion, 0)
 	seen := make(map[string]bool) // Track unique paths to avoid duplicates
 
-	// 1. Check python and python3 in PATH
+	// 1. Check python and python3 in PATH (excluding dtvem's shims directory)
 	for _, cmd := range []string{"python", "python3"} {
-		if pythonPath, err := exec.LookPath(cmd); err == nil {
+		if pythonPath := path.LookPathExcludingShims(cmd); pythonPath != "" {
 			if version, err := getPythonVersion(pythonPath); err == nil {
 				if !seen[pythonPath] {
 					detected = append(detected, runtime.DetectedVersion{

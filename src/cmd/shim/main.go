@@ -12,6 +12,7 @@ import (
 
 	"github.com/dtvem/dtvem/src/internal/config"
 	"github.com/dtvem/dtvem/src/internal/constants"
+	"github.com/dtvem/dtvem/src/internal/path"
 	"github.com/dtvem/dtvem/src/internal/runtime"
 	"github.com/dtvem/dtvem/src/internal/shim"
 	"github.com/dtvem/dtvem/src/internal/ui"
@@ -111,7 +112,7 @@ func runShim() error {
 // It attempts to fallback to system PATH or prompts for installation
 func handleNoConfiguredVersion(shimName, runtimeName string, provider runtime.ShimProvider) error {
 	// Try to find the executable deeper in PATH (system installation)
-	systemPath := findInSystemPath(shimName)
+	systemPath := path.LookPathExcludingShims(shimName)
 
 	if systemPath != "" {
 		// Found system installation - use it
@@ -141,57 +142,6 @@ func handleNoConfiguredVersion(shimName, runtimeName string, provider runtime.Sh
 	ui.Info("  dtvem local %s <version>", runtimeName)
 
 	return fmt.Errorf("no version configured")
-}
-
-// findInSystemPath searches for an executable in PATH, excluding dtvem's shims directory
-func findInSystemPath(execName string) string {
-	// Get the shims directory to exclude it from search
-	shimsDir := config.DefaultPaths().Shims
-
-	// Get PATH environment variable
-	pathEnv := os.Getenv("PATH")
-	if pathEnv == "" {
-		return ""
-	}
-
-	// Split PATH into directories
-	pathDirs := filepath.SplitList(pathEnv)
-
-	// Search each directory
-	for _, dir := range pathDirs {
-		// Skip the dtvem shims directory
-		if strings.EqualFold(dir, shimsDir) {
-			continue
-		}
-
-		// Try to find the executable in this directory
-		var candidatePath string
-		if os.PathSeparator == '\\' {
-			// Windows: try .exe, .cmd, .bat extensions
-			for _, ext := range []string{".exe", ".cmd", ".bat"} {
-				candidate := filepath.Join(dir, execName+ext)
-				if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-					candidatePath = candidate
-					break
-				}
-			}
-		} else {
-			// Unix: check if file exists and is executable
-			candidate := filepath.Join(dir, execName)
-			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-				// Check if executable (has execute permission)
-				if info.Mode()&0111 != 0 {
-					candidatePath = candidate
-				}
-			}
-		}
-
-		if candidatePath != "" {
-			return candidatePath
-		}
-	}
-
-	return ""
 }
 
 // getShimName returns the name of this shim binary
