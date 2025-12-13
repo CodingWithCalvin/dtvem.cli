@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var initYes bool
+
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize dtvem (setup directories and PATH)",
@@ -38,7 +40,7 @@ Example:
 		// Setup PATH - AddToPath handles checking position and moving if needed
 		shimsDir := path.ShimsDir()
 
-		if err := path.AddToPath(shimsDir); err != nil {
+		if err := path.AddToPath(shimsDir, initYes); err != nil {
 			ui.Error("Failed to configure PATH: %v", err)
 			ui.Info("You can manually add %s to your PATH", shimsDir)
 			return
@@ -53,5 +55,6 @@ Example:
 }
 
 func init() {
+	initCmd.Flags().BoolVarP(&initYes, "yes", "y", false, "Skip confirmation prompts")
 	rootCmd.AddCommand(initCmd)
 }

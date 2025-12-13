@@ -33,8 +33,8 @@ const (
 
 // AddToPath adds the shims directory to the System PATH on Windows.
 // This requires administrator privileges. If not elevated, it will prompt
-// the user to re-run with elevation.
-func AddToPath(shimsDir string) error {
+// the user to re-run with elevation (unless skipConfirmation is true).
+func AddToPath(shimsDir string, skipConfirmation bool) error {
 	// Check current System PATH status
 	needsUpdate, action, err := checkSystemPath(shimsDir)
 	if err != nil {
@@ -48,7 +48,7 @@ func AddToPath(shimsDir string) error {
 
 	// Check if we have admin privileges
 	if !isAdmin() {
-		return promptForElevation(shimsDir, action)
+		return promptForElevation(shimsDir, action, skipConfirmation)
 	}
 
 	// We have admin privileges - proceed with modification
@@ -97,8 +97,9 @@ func isAdmin() bool {
 	return true
 }
 
-// promptForElevation prompts the user to re-run dtvem init with admin privileges
-func promptForElevation(shimsDir, action string) error {
+// promptForElevation prompts the user to re-run dtvem init with admin privileges.
+// If skipConfirmation is true, it will automatically re-launch with elevation.
+func promptForElevation(shimsDir, action string, skipConfirmation bool) error {
 	if action == pathActionMove {
 		ui.Header("PATH Fix Required (Administrator)")
 		ui.Warning("%s is in your System PATH but not at the beginning", shimsDir)
@@ -113,15 +114,17 @@ func promptForElevation(shimsDir, action string) error {
 	ui.Info("On Windows, System PATH takes priority over User PATH.")
 	ui.Info("Modifying System PATH requires administrator privileges.")
 
-	fmt.Printf("\nRe-run with administrator privileges? [Y/n]: ")
+	if !skipConfirmation {
+		fmt.Printf("\nRe-run with administrator privileges? [Y/n]: ")
 
-	var response string
-	_, _ = fmt.Scanln(&response)
-	response = strings.ToLower(strings.TrimSpace(response))
+		var response string
+		_, _ = fmt.Scanln(&response)
+		response = strings.ToLower(strings.TrimSpace(response))
 
-	if response != "" && response != constants.ResponseY && response != constants.ResponseYes {
-		ui.Warning("PATH not modified. You can run 'dtvem init' again later.")
-		return nil
+		if response != "" && response != constants.ResponseY && response != constants.ResponseYes {
+			ui.Warning("PATH not modified. You can run 'dtvem init' again later.")
+			return nil
+		}
 	}
 
 	// Re-launch with elevation

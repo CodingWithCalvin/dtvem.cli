@@ -52,8 +52,9 @@ func GetShellConfigFile(shell string) string {
 	}
 }
 
-// AddToPath adds the shims directory to the user's PATH by modifying their shell config
-func AddToPath(shimsDir string) error {
+// AddToPath adds the shims directory to the user's PATH by modifying their shell config.
+// If skipConfirmation is true, the function will proceed without prompting the user.
+func AddToPath(shimsDir string, skipConfirmation bool) error {
 	shell := DetectShell()
 	if shell == "unknown" {
 		return fmt.Errorf("could not detect shell - please add %s to your PATH manually", shimsDir)
@@ -85,22 +86,24 @@ func AddToPath(shimsDir string) error {
 		exportLine = fmt.Sprintf("\n# Added by dtvem\nexport PATH=\"%s:$PATH\"\n", shimsDir)
 	}
 
-	// Prompt user for confirmation
-	ui.Header("PATH Setup Required")
-	ui.Info("dtvem needs to add the shims directory to your PATH")
-	ui.Info("Shell: %s", ui.Highlight(shell))
-	ui.Info("Config file: %s", ui.Highlight(configFile))
-	ui.Info("Will append: %s", ui.Highlight(strings.TrimSpace(exportLine)))
-	fmt.Printf("\nProceed? [Y/n]: ")
+	// Prompt user for confirmation (unless skipConfirmation is true)
+	if !skipConfirmation {
+		ui.Header("PATH Setup Required")
+		ui.Info("dtvem needs to add the shims directory to your PATH")
+		ui.Info("Shell: %s", ui.Highlight(shell))
+		ui.Info("Config file: %s", ui.Highlight(configFile))
+		ui.Info("Will append: %s", ui.Highlight(strings.TrimSpace(exportLine)))
+		fmt.Printf("\nProceed? [Y/n]: ")
 
-	var response string
-	_, _ = fmt.Scanln(&response)
-	response = strings.ToLower(strings.TrimSpace(response))
+		var response string
+		_, _ = fmt.Scanln(&response)
+		response = strings.ToLower(strings.TrimSpace(response))
 
-	if response != "" && response != constants.ResponseY && response != constants.ResponseYes {
-		ui.Warning("PATH not modified. Please add this manually to your %s:", configFile)
-		ui.Info("%s", strings.TrimSpace(exportLine))
-		return nil
+		if response != "" && response != constants.ResponseY && response != constants.ResponseYes {
+			ui.Warning("PATH not modified. Please add this manually to your %s:", configFile)
+			ui.Info("%s", strings.TrimSpace(exportLine))
+			return nil
+		}
 	}
 
 	// Ensure the directory exists for fish config
