@@ -46,6 +46,9 @@ jobs:
           - os: windows-latest
             platform: windows
             ext: ".exe"
+    env:
+      # Run tests from a directory outside the repo to avoid picking up .dtvem/runtimes.json
+      TEST_WORKSPACE: ${{ github.workspace }}/../dtvem-test-workspace
 
     steps:
       - name: Checkout code
@@ -81,42 +84,54 @@ jobs:
           "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
           "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
+      - name: Set up test workspace
+        run: |
+          mkdir -p "$TEST_WORKSPACE"
+          cp ./dist/dtvem${{ matrix.ext }} "$TEST_WORKSPACE/"
+        shell: bash
+
       - name: "List available versions"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Ruby Available Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} list-all ruby | head -20 >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} list-all ruby | head -20 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Install version ${{ inputs.version1 || '3.3.6' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} install ruby ${{ inputs.version1 || '3.3.6' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} install ruby ${{ inputs.version1 || '3.3.6' }}
         shell: bash
 
       - name: "Install version ${{ inputs.version2 || '3.4.1' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} install ruby ${{ inputs.version2 || '3.4.1' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} install ruby ${{ inputs.version2 || '3.4.1' }}
         shell: bash
 
       - name: "List installed versions"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Ruby Installed Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} list ruby >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} list ruby >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Set global version to ${{ inputs.version1 || '3.3.6' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} global ruby ${{ inputs.version1 || '3.3.6' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} global ruby ${{ inputs.version1 || '3.3.6' }}
         shell: bash
 
       - name: "Verify global version via current"
         run: |
-          CURRENT=$(./dist/dtvem${{ matrix.ext }} current ruby)
+          cd "$TEST_WORKSPACE"
+          CURRENT=$(./dtvem${{ matrix.ext }} current ruby)
           echo "Current ruby version: $CURRENT"
           if [[ "$CURRENT" != *"${{ inputs.version1 || '3.3.6' }}"* ]]; then
             echo "ERROR: Expected ${{ inputs.version1 || '3.3.6' }} but got $CURRENT"
@@ -126,6 +141,7 @@ jobs:
 
       - name: "Verify shim works (ruby --version)"
         run: |
+          cd "$TEST_WORKSPACE"
           RUBY_VERSION=$(ruby --version)
           echo "Ruby version from shim: $RUBY_VERSION"
           if [[ "$RUBY_VERSION" != *"${{ inputs.version1 || '3.3.6' }}"* ]]; then
@@ -136,11 +152,13 @@ jobs:
 
       - name: "Switch global version to ${{ inputs.version2 || '3.4.1' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} global ruby ${{ inputs.version2 || '3.4.1' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} global ruby ${{ inputs.version2 || '3.4.1' }}
         shell: bash
 
       - name: "Verify version switched"
         run: |
+          cd "$TEST_WORKSPACE"
           RUBY_VERSION=$(ruby --version)
           echo "Ruby version from shim: $RUBY_VERSION"
           if [[ "$RUBY_VERSION" != *"${{ inputs.version2 || '3.4.1' }}"* ]]; then
@@ -151,10 +169,11 @@ jobs:
 
       - name: "Test local version override"
         run: |
+          cd "$TEST_WORKSPACE"
           mkdir -p test-project
           cd test-project
-          ../dist/dtvem${{ matrix.ext }} local ruby ${{ inputs.version1 || '3.3.6' }}
-          CURRENT=$(../dist/dtvem${{ matrix.ext }} current ruby)
+          ../dtvem${{ matrix.ext }} local ruby ${{ inputs.version1 || '3.3.6' }}
+          CURRENT=$(../dtvem${{ matrix.ext }} current ruby)
           echo "Current ruby version in test-project: $CURRENT"
           if [[ "$CURRENT" != *"${{ inputs.version1 || '3.3.6' }}"* ]]; then
             echo "ERROR: Local override failed. Expected ${{ inputs.version1 || '3.3.6' }} but got $CURRENT"
@@ -170,45 +189,51 @@ jobs:
 
       - name: "Test which command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Ruby Which" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} which ruby >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} which ruby >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Test where command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Ruby Where" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} where ruby >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} where ruby >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Test reshim command"
         run: |
-          ./dist/dtvem${{ matrix.ext }} reshim
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} reshim
           echo "Reshim completed successfully"
         shell: bash
 
       - name: "Test freeze command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Freeze Output" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Uninstall version ${{ inputs.version2 || '3.4.1' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} uninstall ruby ${{ inputs.version2 || '3.4.1' }} --yes
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} uninstall ruby ${{ inputs.version2 || '3.4.1' }} --yes
         shell: bash
 
       - name: "Verify uninstall"
         run: |
-          LIST_OUTPUT=$(./dist/dtvem${{ matrix.ext }} list ruby)
+          cd "$TEST_WORKSPACE"
+          LIST_OUTPUT=$(./dtvem${{ matrix.ext }} list ruby)
           echo "Installed versions after uninstall:"
           echo "$LIST_OUTPUT"
           if [[ "$LIST_OUTPUT" == *"${{ inputs.version2 || '3.4.1' }}"* ]]; then
