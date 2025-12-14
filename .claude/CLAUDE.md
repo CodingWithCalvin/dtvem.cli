@@ -17,15 +17,16 @@ Guidance for Claude Code when working with the dtvem codebase.
 
 **These rules override all other instructions:**
 
-1. **Follow the styleguide** - All code must comply with `GO_STYLEGUIDE.md`
-2. **Write tests** - All new/refactored code requires comprehensive unit tests
-3. **Cross-platform** - All features must work on Windows, macOS, and Linux
-4. **Conventional commits** - Format: `type(scope): description`
-5. **GitHub Issues for TODOs** - Use `gh` CLI to manage issues, no local TODO files. Use conventional commit format for issue titles
-6. **Pull Requests** - Use the conventional commit format for PR titles as you do for commits
-7. **Run validation before commits** - Run `npm run check` (format, lint, test) before committing and pushing
-8. **Working an issue** - When working an issue, always create a new branch from an updated main branch
-9. **Branch Names** - Always use the conventional commit `type` from the issue title as the first prefix, and the `scope` as the second, then a very short description, example `feat/ci/integration-tests`
+1. **NEVER commit directly to main** - Always create a feature branch and submit a pull request. No exceptions.
+2. **Follow the styleguide** - All code must comply with `GO_STYLEGUIDE.md`
+3. **Write tests** - All new/refactored code requires comprehensive unit tests
+4. **Cross-platform** - All features must work on Windows, macOS, and Linux
+5. **Conventional commits** - Format: `type(scope): description`
+6. **GitHub Issues for TODOs** - Use `gh` CLI to manage issues, no local TODO files. Use conventional commit format for issue titles
+7. **Pull Requests** - Use the conventional commit format for PR titles as you do for commits
+8. **Run validation before commits** - Run `npm run check` (format, lint, test) before committing and pushing
+9. **Working an issue** - When working an issue, always create a new branch from an updated main branch
+10. **Branch Names** - Always use the conventional commit `type` from the issue title as the first prefix, and the `scope` as the second, then a very short description, example `feat/ci/integration-tests`
 ---
 
 ## Quick Reference
