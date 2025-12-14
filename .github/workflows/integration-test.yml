@@ -36,17 +36,19 @@ jobs:
       version2: '3.4.1'
 
   # ==========================================================================
-  # Migration Tests - DISABLED until installation issues are resolved
-  # See: https://github.com/dtvem/dtvem/issues (create tracking issue)
+  # Migration Tests
   # ==========================================================================
-  # migrate-node-ubuntu-system:
-  #   name: Migrate Node.js from System (Ubuntu)
-  #   uses: ./.github/workflows/integration-test-migrate-node-ubuntu-system.yml
-  #
-  # migrate-node-ubuntu-nvm:
-  #   name: Migrate Node.js from nvm (Ubuntu)
-  #   uses: ./.github/workflows/integration-test-migrate-node-ubuntu-nvm.yml
-  #
+  migrate-node-ubuntu-system:
+    name: Migrate Node.js from System (Ubuntu)
+    uses: ./.github/workflows/integration-test-migrate-node-ubuntu-system.yml
+
+  migrate-node-ubuntu-nvm:
+    name: Migrate Node.js from nvm (Ubuntu)
+    uses: ./.github/workflows/integration-test-migrate-node-ubuntu-nvm.yml
+
+  # --------------------------------------------------------------------------
+  # Remaining migration tests - re-enable incrementally
+  # --------------------------------------------------------------------------
   # migrate-node-macos-system:
   #   name: Migrate Node.js from System (macOS)
   #   uses: ./.github/workflows/integration-test-migrate-node-macos-system.yml
