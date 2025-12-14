@@ -46,6 +46,9 @@ jobs:
           - os: windows-latest
             platform: windows
             ext: ".exe"
+    env:
+      # Run tests from a directory outside the repo to avoid picking up .dtvem/runtimes.json
+      TEST_WORKSPACE: ${{ github.workspace }}/../dtvem-test-workspace
 
     steps:
       - name: Checkout code
@@ -81,42 +84,54 @@ jobs:
           "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
           "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
+      - name: Set up test workspace
+        run: |
+          mkdir -p "$TEST_WORKSPACE"
+          cp ./dist/dtvem${{ matrix.ext }} "$TEST_WORKSPACE/"
+        shell: bash
+
       - name: "List available versions"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Python Available Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} list-all python | head -20 >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} list-all python | head -20 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Install version ${{ inputs.version1 || '3.11.9' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} install python ${{ inputs.version1 || '3.11.9' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} install python ${{ inputs.version1 || '3.11.9' }}
         shell: bash
 
       - name: "Install version ${{ inputs.version2 || '3.12.7' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} install python ${{ inputs.version2 || '3.12.7' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} install python ${{ inputs.version2 || '3.12.7' }}
         shell: bash
 
       - name: "List installed versions"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Python Installed Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} list python >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} list python >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Set global version to ${{ inputs.version1 || '3.11.9' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} global python ${{ inputs.version1 || '3.11.9' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} global python ${{ inputs.version1 || '3.11.9' }}
         shell: bash
 
       - name: "Verify global version via current"
         run: |
-          CURRENT=$(./dist/dtvem${{ matrix.ext }} current python)
+          cd "$TEST_WORKSPACE"
+          CURRENT=$(./dtvem${{ matrix.ext }} current python)
           echo "Current python version: $CURRENT"
           if [[ "$CURRENT" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
             echo "ERROR: Expected ${{ inputs.version1 || '3.11.9' }} but got $CURRENT"
@@ -126,6 +141,7 @@ jobs:
 
       - name: "Verify shim works (python --version)"
         run: |
+          cd "$TEST_WORKSPACE"
           PYTHON_VERSION=$(python --version)
           echo "Python version from shim: $PYTHON_VERSION"
           if [[ "$PYTHON_VERSION" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
@@ -136,11 +152,13 @@ jobs:
 
       - name: "Switch global version to ${{ inputs.version2 || '3.12.7' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} global python ${{ inputs.version2 || '3.12.7' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} global python ${{ inputs.version2 || '3.12.7' }}
         shell: bash
 
       - name: "Verify version switched"
         run: |
+          cd "$TEST_WORKSPACE"
           PYTHON_VERSION=$(python --version)
           echo "Python version from shim: $PYTHON_VERSION"
           if [[ "$PYTHON_VERSION" != *"${{ inputs.version2 || '3.12.7' }}"* ]]; then
@@ -151,10 +169,11 @@ jobs:
 
       - name: "Test local version override"
         run: |
+          cd "$TEST_WORKSPACE"
           mkdir -p test-project
           cd test-project
-          ../dist/dtvem${{ matrix.ext }} local python ${{ inputs.version1 || '3.11.9' }}
-          CURRENT=$(../dist/dtvem${{ matrix.ext }} current python)
+          ../dtvem${{ matrix.ext }} local python ${{ inputs.version1 || '3.11.9' }}
+          CURRENT=$(../dtvem${{ matrix.ext }} current python)
           echo "Current python version in test-project: $CURRENT"
           if [[ "$CURRENT" != *"${{ inputs.version1 || '3.11.9' }}"* ]]; then
             echo "ERROR: Local override failed. Expected ${{ inputs.version1 || '3.11.9' }} but got $CURRENT"
@@ -170,45 +189,51 @@ jobs:
 
       - name: "Test which command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Python Which" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} which python >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} which python >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Test where command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Python Where" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} where python >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} where python >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Test reshim command"
         run: |
-          ./dist/dtvem${{ matrix.ext }} reshim
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} reshim
           echo "Reshim completed successfully"
         shell: bash
 
       - name: "Test freeze command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Freeze Output" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Uninstall version ${{ inputs.version2 || '3.12.7' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} uninstall python ${{ inputs.version2 || '3.12.7' }} --yes
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} uninstall python ${{ inputs.version2 || '3.12.7' }} --yes
         shell: bash
 
       - name: "Verify uninstall"
         run: |
-          LIST_OUTPUT=$(./dist/dtvem${{ matrix.ext }} list python)
+          cd "$TEST_WORKSPACE"
+          LIST_OUTPUT=$(./dtvem${{ matrix.ext }} list python)
           echo "Installed versions after uninstall:"
           echo "$LIST_OUTPUT"
           if [[ "$LIST_OUTPUT" == *"${{ inputs.version2 || '3.12.7' }}"* ]]; then

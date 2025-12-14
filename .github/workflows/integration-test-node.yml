@@ -46,6 +46,9 @@ jobs:
           - os: windows-latest
             platform: windows
             ext: ".exe"
+    env:
+      # Run tests from a directory outside the repo to avoid picking up .dtvem/runtimes.json
+      TEST_WORKSPACE: ${{ github.workspace }}/../dtvem-test-workspace
 
     steps:
       - name: Checkout code
@@ -81,42 +84,54 @@ jobs:
           "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
           "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
+      - name: Set up test workspace
+        run: |
+          mkdir -p "$TEST_WORKSPACE"
+          cp ./dist/dtvem${{ matrix.ext }} "$TEST_WORKSPACE/"
+        shell: bash
+
       - name: "List available versions"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Node.js Available Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} list-all node | head -20 >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} list-all node | head -20 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Install version ${{ inputs.version1 || '20.18.0' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} install node ${{ inputs.version1 || '20.18.0' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} install node ${{ inputs.version1 || '20.18.0' }}
         shell: bash
 
       - name: "Install version ${{ inputs.version2 || '22.11.0' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} install node ${{ inputs.version2 || '22.11.0' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} install node ${{ inputs.version2 || '22.11.0' }}
         shell: bash
 
       - name: "List installed versions"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Node.js Installed Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} list node >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} list node >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Set global version to ${{ inputs.version1 || '20.18.0' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} global node ${{ inputs.version1 || '20.18.0' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} global node ${{ inputs.version1 || '20.18.0' }}
         shell: bash
 
       - name: "Verify global version via current"
         run: |
-          CURRENT=$(./dist/dtvem${{ matrix.ext }} current node)
+          cd "$TEST_WORKSPACE"
+          CURRENT=$(./dtvem${{ matrix.ext }} current node)
           echo "Current node version: $CURRENT"
           if [[ "$CURRENT" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
             echo "ERROR: Expected ${{ inputs.version1 || '20.18.0' }} but got $CURRENT"
@@ -126,6 +141,7 @@ jobs:
 
       - name: "Verify shim works (node --version)"
         run: |
+          cd "$TEST_WORKSPACE"
           NODE_VERSION=$(node --version)
           echo "Node version from shim: $NODE_VERSION"
           if [[ "$NODE_VERSION" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
@@ -136,11 +152,13 @@ jobs:
 
       - name: "Switch global version to ${{ inputs.version2 || '22.11.0' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} global node ${{ inputs.version2 || '22.11.0' }}
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} global node ${{ inputs.version2 || '22.11.0' }}
         shell: bash
 
       - name: "Verify version switched"
         run: |
+          cd "$TEST_WORKSPACE"
           NODE_VERSION=$(node --version)
           echo "Node version from shim: $NODE_VERSION"
           if [[ "$NODE_VERSION" != *"${{ inputs.version2 || '22.11.0' }}"* ]]; then
@@ -151,10 +169,11 @@ jobs:
 
       - name: "Test local version override"
         run: |
+          cd "$TEST_WORKSPACE"
           mkdir -p test-project
           cd test-project
-          ../dist/dtvem${{ matrix.ext }} local node ${{ inputs.version1 || '20.18.0' }}
-          CURRENT=$(../dist/dtvem${{ matrix.ext }} current node)
+          ../dtvem${{ matrix.ext }} local node ${{ inputs.version1 || '20.18.0' }}
+          CURRENT=$(../dtvem${{ matrix.ext }} current node)
           echo "Current node version in test-project: $CURRENT"
           if [[ "$CURRENT" != *"${{ inputs.version1 || '20.18.0' }}"* ]]; then
             echo "ERROR: Local override failed. Expected ${{ inputs.version1 || '20.18.0' }} but got $CURRENT"
@@ -170,45 +189,51 @@ jobs:
 
       - name: "Test which command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Node.js Which" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} which node >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} which node >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Test where command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Node.js Where" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} where node >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} where node >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Test reshim command"
         run: |
-          ./dist/dtvem${{ matrix.ext }} reshim
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} reshim
           echo "Reshim completed successfully"
         shell: bash
 
       - name: "Test freeze command"
         run: |
+          cd "$TEST_WORKSPACE"
           echo "## Freeze Output" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          ./dist/dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
+          ./dtvem${{ matrix.ext }} freeze >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
       - name: "Uninstall version ${{ inputs.version2 || '22.11.0' }}"
         run: |
-          ./dist/dtvem${{ matrix.ext }} uninstall node ${{ inputs.version2 || '22.11.0' }} --yes
+          cd "$TEST_WORKSPACE"
+          ./dtvem${{ matrix.ext }} uninstall node ${{ inputs.version2 || '22.11.0' }} --yes
         shell: bash
 
       - name: "Verify uninstall"
         run: |
-          LIST_OUTPUT=$(./dist/dtvem${{ matrix.ext }} list node)
+          cd "$TEST_WORKSPACE"
+          LIST_OUTPUT=$(./dtvem${{ matrix.ext }} list node)
           echo "Installed versions after uninstall:"
           echo "$LIST_OUTPUT"
           if [[ "$LIST_OUTPUT" == *"${{ inputs.version2 || '22.11.0' }}"* ]]; then
