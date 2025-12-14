@@ -113,19 +113,27 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Verify test versions are available (check full output, not just displayed portion)
+          # Verify test versions are available using --filter and stripping ANSI codes
           echo "Verifying test versions are available..."
-          FULL_LIST=$(./dtvem${{ matrix.ext }} list-all ruby 2>/dev/null || true)
-          if ! echo "$FULL_LIST" | grep -qF "${{ matrix.version1 }}"; then
+
+          # Check version1
+          FILTERED=$(./dtvem${{ matrix.ext }} list-all ruby --filter "${{ matrix.version1 }}" 2>&1 | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
+          if ! echo "$FILTERED" | grep -qF "${{ matrix.version1 }}"; then
             echo "ERROR: Version ${{ matrix.version1 }} not found in available versions"
-            echo "Searched in $(echo "$FULL_LIST" | wc -l) versions"
+            echo "Filtered output: $FILTERED"
             exit 1
           fi
-          if ! echo "$FULL_LIST" | grep -qF "${{ matrix.version2 }}"; then
+          echo "✓ Version ${{ matrix.version1 }} is available"
+
+          # Check version2
+          FILTERED=$(./dtvem${{ matrix.ext }} list-all ruby --filter "${{ matrix.version2 }}" 2>&1 | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
+          if ! echo "$FILTERED" | grep -qF "${{ matrix.version2 }}"; then
             echo "ERROR: Version ${{ matrix.version2 }} not found in available versions"
-            echo "Searched in $(echo "$FULL_LIST" | wc -l) versions"
+            echo "Filtered output: $FILTERED"
             exit 1
           fi
+          echo "✓ Version ${{ matrix.version2 }} is available"
+
           echo "✓ Both versions ${{ matrix.version1 }} and ${{ matrix.version2 }} are available"
         shell: bash
 
