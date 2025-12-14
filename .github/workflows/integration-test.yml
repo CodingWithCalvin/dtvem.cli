@@ -46,20 +46,20 @@ jobs:
     name: Migrate Node.js from nvm (Ubuntu)
     uses: ./.github/workflows/integration-test-migrate-node-ubuntu-nvm.yml
 
+  migrate-node-macos-system:
+    name: Migrate Node.js from System (macOS)
+    uses: ./.github/workflows/integration-test-migrate-node-macos-system.yml
+
+  migrate-node-windows-system:
+    name: Migrate Node.js from System (Windows)
+    uses: ./.github/workflows/integration-test-migrate-node-windows-system.yml
+
   # --------------------------------------------------------------------------
   # Remaining migration tests - re-enable incrementally
   # --------------------------------------------------------------------------
-  # migrate-node-macos-system:
-  #   name: Migrate Node.js from System (macOS)
-  #   uses: ./.github/workflows/integration-test-migrate-node-macos-system.yml
-  #
   # migrate-node-macos-fnm:
   #   name: Migrate Node.js from fnm (macOS)
   #   uses: ./.github/workflows/integration-test-migrate-node-macos-fnm.yml
-  #
-  # migrate-node-windows-system:
-  #   name: Migrate Node.js from System (Windows)
-  #   uses: ./.github/workflows/integration-test-migrate-node-windows-system.yml
   #
   # migrate-node-windows-nvm:
   #   name: Migrate Node.js from nvm-windows (Windows)

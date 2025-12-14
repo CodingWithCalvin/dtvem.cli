@@ -37,21 +37,14 @@ jobs:
           "$env:USERPROFILE\.dtvem\shims" | Out-File -FilePath $env:GITHUB_PATH -Append
           "$env:USERPROFILE\.dtvem\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-      - name: "Install Node.js 18.x via Chocolatey"
+      - name: "Verify pre-installed Node.js"
         shell: pwsh
         run: |
-          choco install nodejs-lts --version=18.20.4 -y
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
           Write-Host "System Node.js installed at: $(where.exe node)"
-          node --version
-
-      - name: "Add Chocolatey Node.js to PATH"
-        shell: pwsh
-        run: |
-          $nodePath = "C:\Program Files\nodejs"
-          if (Test-Path $nodePath) {
-            $nodePath | Out-File -FilePath $env:GITHUB_PATH -Append
-          }
+          $version = (node --version) -replace '^v', ''
+          Write-Host "Node.js version: $version"
+          # Save version for later verification
+          "NODE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: "Migrate system Node.js to dtvem"
         shell: bash
@@ -65,8 +58,9 @@ jobs:
       - name: "Verify migrated version"
         shell: bash
         run: |
-          ./dist/dtvem.exe list node | grep -E "18\." || (echo "ERROR: Expected Node.js 18.x to be migrated" && exit 1)
-          echo "SUCCESS: Node.js 18.x was migrated from system"
+          # Check that we have the same version that was pre-installed
+          ./dist/dtvem.exe list node | grep -F "$NODE_VERSION" || (echo "ERROR: Expected Node.js $NODE_VERSION to be migrated" && exit 1)
+          echo "SUCCESS: Node.js $NODE_VERSION was migrated from system"
 
       - name: Generate summary
         if: always()
@@ -74,8 +68,8 @@ jobs:
         run: |
           echo "## Node.js Migration from System (Windows)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Source:** Chocolatey" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** 18.x" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** Pre-installed system Node.js" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $NODE_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
