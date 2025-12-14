@@ -88,6 +88,7 @@ jobs:
         run: |
           mkdir -p "$TEST_WORKSPACE"
           cp ./dist/dtvem${{ matrix.ext }} "$TEST_WORKSPACE/"
+          cp ./dist/dtvem-shim${{ matrix.ext }} "$TEST_WORKSPACE/"
         shell: bash
 
       - name: "List available versions"
