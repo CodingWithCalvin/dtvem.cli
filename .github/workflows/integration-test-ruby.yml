@@ -116,8 +116,13 @@ jobs:
           # Verify test versions are available using --filter and stripping ANSI codes
           echo "Verifying test versions are available..."
 
-          # Check version1
+          # Check version1 - handle rate limiting gracefully
           FILTERED=$(./dtvem${{ matrix.ext }} list-all ruby --filter "${{ matrix.version1 }}" 2>&1 | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
+          if echo "$FILTERED" | grep -qE "(HTTP 403|HTTP 429|rate limit)"; then
+            echo "⚠ Warning: GitHub API rate limited, skipping version verification"
+            echo "Proceeding with install - it will fail if version doesn't exist"
+            exit 0
+          fi
           if ! echo "$FILTERED" | grep -qF "${{ matrix.version1 }}"; then
             echo "ERROR: Version ${{ matrix.version1 }} not found in available versions"
             echo "Filtered output: $FILTERED"
@@ -125,8 +130,13 @@ jobs:
           fi
           echo "✓ Version ${{ matrix.version1 }} is available"
 
-          # Check version2
+          # Check version2 - handle rate limiting gracefully
           FILTERED=$(./dtvem${{ matrix.ext }} list-all ruby --filter "${{ matrix.version2 }}" 2>&1 | sed 's/\x1B\[[0-9;]*[a-zA-Z]//g')
+          if echo "$FILTERED" | grep -qE "(HTTP 403|HTTP 429|rate limit)"; then
+            echo "⚠ Warning: GitHub API rate limited, skipping version verification"
+            echo "Proceeding with install - it will fail if version doesn't exist"
+            exit 0
+          fi
           if ! echo "$FILTERED" | grep -qF "${{ matrix.version2 }}"; then
             echo "ERROR: Version ${{ matrix.version2 }} not found in available versions"
             echo "Filtered output: $FILTERED"
