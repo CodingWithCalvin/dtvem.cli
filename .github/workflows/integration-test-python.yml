@@ -109,23 +109,21 @@ jobs:
           cd "$TEST_WORKSPACE"
           echo "## Python Available Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          AVAILABLE=$(./dtvem${{ matrix.ext }} list-all python)
-          echo "$AVAILABLE" | head -20 >> $GITHUB_STEP_SUMMARY || true
+          ./dtvem${{ matrix.ext }} list-all python | head -20 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Verify test versions are available
+          # Verify test versions are available (check full output, not just displayed portion)
           echo "Verifying test versions are available..."
-          if ! echo "$AVAILABLE" | grep -q "${{ matrix.version1 }}"; then
+          FULL_LIST=$(./dtvem${{ matrix.ext }} list-all python 2>/dev/null || true)
+          if ! echo "$FULL_LIST" | grep -qF "${{ matrix.version1 }}"; then
             echo "ERROR: Version ${{ matrix.version1 }} not found in available versions"
-            echo "Available versions:"
-            echo "$AVAILABLE"
+            echo "Searched in $(echo "$FULL_LIST" | wc -l) versions"
             exit 1
           fi
-          if ! echo "$AVAILABLE" | grep -q "${{ matrix.version2 }}"; then
+          if ! echo "$FULL_LIST" | grep -qF "${{ matrix.version2 }}"; then
             echo "ERROR: Version ${{ matrix.version2 }} not found in available versions"
-            echo "Available versions:"
-            echo "$AVAILABLE"
+            echo "Searched in $(echo "$FULL_LIST" | wc -l) versions"
             exit 1
           fi
           echo "✓ Both versions ${{ matrix.version1 }} and ${{ matrix.version2 }} are available"
