@@ -66,12 +66,14 @@ jobs:
           Write-Host "Extracting uru..."
           7z x $uruArchive -o"$uruDir" -y
 
-          # Add uru to PATH
+          # Add uru to PATH (for subsequent steps)
           $uruDir | Out-File -FilePath $env:GITHUB_PATH -Append
+          # Also add to current PATH (GITHUB_PATH only affects subsequent steps)
+          $env:Path = "$uruDir;$env:Path"
 
           # Initialize uru
           Write-Host "Installing uru..."
-          & "$uruDir\uru_rt.exe" admin install
+          uru_rt.exe admin install
 
           Write-Host "uru installed successfully"
 
