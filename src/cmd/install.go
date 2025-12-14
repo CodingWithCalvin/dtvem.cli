@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/dtvem/dtvem/src/internal/config"
@@ -58,7 +59,7 @@ func installSingle(runtimeName, version string) {
 		ui.Debug("Provider lookup failed: %v", err)
 		ui.Error("%v", err)
 		ui.Info("Available runtimes: %v", runtime.List())
-		return
+		os.Exit(1)
 	}
 
 	ui.Debug("Using provider: %s (%s)", provider.Name(), provider.DisplayName())
@@ -66,7 +67,7 @@ func installSingle(runtimeName, version string) {
 	if err := provider.Install(version); err != nil {
 		ui.Debug("Installation failed: %v", err)
 		ui.Error("%v", err)
-		return
+		os.Exit(1)
 	}
 
 	ui.Success("Successfully installed %s %s", provider.DisplayName(), version)
@@ -238,7 +239,7 @@ func installBulk() {
     "python": "3.11.0",
     "node": "18.16.0"
   }`)
-		return
+		os.Exit(1)
 	}
 
 	ui.Info("Found config: %s", configPath)
@@ -246,7 +247,7 @@ func installBulk() {
 	runtimes, err := config.ReadAllRuntimes(configPath)
 	if err != nil {
 		ui.Error("Failed to read config file: %v", err)
-		return
+		os.Exit(1)
 	}
 
 	if len(runtimes) == 0 {
@@ -276,4 +277,9 @@ func installBulk() {
 
 	// Show final summary
 	showInstallSummary(successCount, alreadyInstalledCount, failureCount, failures)
+
+	// Exit with error if any installations failed
+	if failureCount > 0 {
+		os.Exit(1)
+	}
 }
