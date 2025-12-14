@@ -49,7 +49,8 @@ jobs:
       - name: "Migrate pyenv Python to dtvem"
         run: |
           echo "=== Running migrate detection ==="
-          echo -e "1\n0\nn\n" | ./dist/dtvem migrate python || true
+          # Select "all" to migrate all detected versions
+          echo -e "all\n0\nn\n" | ./dist/dtvem migrate python || true
           echo ""
           echo "=== Verifying migration ==="
           ./dist/dtvem list python
