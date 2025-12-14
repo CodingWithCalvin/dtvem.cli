@@ -687,6 +687,13 @@ func (p *Provider) ShouldReshimAfter(shimName string, args []string) bool {
 	return cmd == "install" || cmd == "uninstall"
 }
 
+// GetEnvironment returns environment variables needed to run Python binaries.
+// Python binaries from python-build-standalone are relocatable and don't require
+// special environment setup.
+func (p *Provider) GetEnvironment(_ string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
+
 // init registers the Python provider on package load
 func init() {
 	if err := runtime.Register(NewProvider()); err != nil {

@@ -85,13 +85,23 @@ func runShim() error {
 	execPath = adjustExecutablePath(execPath, shimName, runtimeName)
 	ui.Debug("Final executable path: %s", execPath)
 
+	// Get provider-specific environment variables (e.g., LD_LIBRARY_PATH for Ruby)
+	providerEnv, err := provider.GetEnvironment(version)
+	if err != nil {
+		ui.Debug("Failed to get provider environment: %v", err)
+		providerEnv = map[string]string{}
+	}
+	for k, v := range providerEnv {
+		ui.Debug("Provider env: %s=%s", k, v)
+	}
+
 	// Check if this command should trigger a reshim after execution
 	needsReshim := provider.ShouldReshimAfter(shimName, os.Args[1:])
 
 	// Execute the actual binary
 	if needsReshim {
 		// Need to run code after execution, so use exec.Command
-		exitCode := executeCommandWithWait(execPath, os.Args[1:])
+		exitCode := executeCommandWithWait(execPath, os.Args[1:], providerEnv)
 
 		// If command succeeded, prompt for reshim
 		if exitCode == 0 {
@@ -101,7 +111,7 @@ func runShim() error {
 		os.Exit(exitCode)
 	} else {
 		// Normal execution - use syscall.Exec on Unix for efficiency
-		if err := executeCommand(execPath, os.Args[1:]); err != nil {
+		if err := executeCommand(execPath, os.Args[1:], providerEnv); err != nil {
 			return fmt.Errorf("failed to execute %s: %w", execPath, err)
 		}
 	}
@@ -123,8 +133,8 @@ func handleNoConfiguredVersion(shimName, runtimeName string, provider runtime.Sh
 		ui.Info("Or see available versions: dtvem list-all %s", runtimeName)
 		fmt.Fprintln(os.Stderr) // Empty line for spacing
 
-		// Execute the system version
-		if err := executeCommand(systemPath, os.Args[1:]); err != nil {
+		// Execute the system version (no provider env needed for system installations)
+		if err := executeCommand(systemPath, os.Args[1:], nil); err != nil {
 			return fmt.Errorf("failed to execute system %s: %w", shimName, err)
 		}
 		return nil
@@ -243,13 +253,13 @@ func adjustExecutablePath(execPath, shimName, runtimeName string) string {
 	return execPath
 }
 
-// executeCommand executes a command with the given arguments
-func executeCommand(execPath string, args []string) error {
+// executeCommand executes a command with the given arguments and provider environment
+func executeCommand(execPath string, args []string, providerEnv map[string]string) error {
 	// Build full args (executable name + arguments)
 	fullArgs := append([]string{execPath}, args...)
 
-	// Get current environment
-	env := os.Environ()
+	// Get current environment and apply provider overrides
+	env := mergeEnvironment(os.Environ(), providerEnv)
 
 	// On Unix systems, use Exec to replace the current process
 	// On Windows, Exec is not available, so we use StartProcess
@@ -280,12 +290,12 @@ func executeCommand(execPath string, args []string) error {
 }
 
 // executeCommandWithWait executes a command and waits for it to complete, returning the exit code
-func executeCommandWithWait(execPath string, args []string) int {
+func executeCommandWithWait(execPath string, args []string, providerEnv map[string]string) int {
 	// Build full args (executable name + arguments)
 	fullArgs := append([]string{execPath}, args...)
 
-	// Get current environment
-	env := os.Environ()
+	// Get current environment and apply provider overrides
+	env := mergeEnvironment(os.Environ(), providerEnv)
 
 	// Use exec.Command to run the command and wait for completion
 	cmd := &exec.Cmd{
@@ -308,6 +318,43 @@ func executeCommandWithWait(execPath string, args []string) int {
 	}
 
 	return 0
+}
+
+// mergeEnvironment merges provider environment variables into the base environment.
+// Provider variables are prepended to existing values (for PATH-like variables) or set directly.
+func mergeEnvironment(baseEnv []string, providerEnv map[string]string) []string {
+	if len(providerEnv) == 0 {
+		return baseEnv
+	}
+
+	// Build a map of existing environment variables for easy lookup
+	envMap := make(map[string]string)
+	for _, e := range baseEnv {
+		if idx := strings.Index(e, "="); idx != -1 {
+			key := e[:idx]
+			value := e[idx+1:]
+			envMap[key] = value
+		}
+	}
+
+	// Apply provider environment variables
+	// For PATH-like variables (LD_LIBRARY_PATH, DYLD_LIBRARY_PATH), prepend the new value
+	for key, value := range providerEnv {
+		if existing, ok := envMap[key]; ok && existing != "" {
+			// Prepend new value to existing (for PATH-like variables)
+			envMap[key] = value + string(filepath.ListSeparator) + existing
+		} else {
+			envMap[key] = value
+		}
+	}
+
+	// Convert back to slice format
+	result := make([]string, 0, len(envMap))
+	for key, value := range envMap {
+		result = append(result, key+"="+value)
+	}
+
+	return result
 }
 
 // promptReshim prompts the user to run reshim after installing global packages

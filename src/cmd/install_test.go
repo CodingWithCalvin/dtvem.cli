@@ -46,6 +46,10 @@ func (m *mockProvider) ManualPackageInstallCommand(packages []string) string {
 	return ""
 }
 
+func (m *mockProvider) GetEnvironment(_ string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
+
 func (m *mockProvider) GlobalVersion() (string, error) {
 	return m.globalVersion, nil
 }

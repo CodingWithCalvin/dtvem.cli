@@ -792,6 +792,38 @@ func (p *Provider) ShouldReshimAfter(shimName string, args []string) bool {
 	return false
 }
 
+// GetEnvironment returns environment variables needed to run Ruby binaries.
+// On Unix systems, Ruby from ruby-builder needs LD_LIBRARY_PATH (Linux) or
+// DYLD_LIBRARY_PATH (macOS) set to find libruby.so.
+func (p *Provider) GetEnvironment(version string) (map[string]string, error) {
+	// Windows RubyInstaller binaries are self-contained, no special environment needed
+	if goruntime.GOOS == constants.OSWindows {
+		return map[string]string{}, nil
+	}
+
+	// Get the install path for this version
+	installPath, err := p.InstallPath(version)
+	if err != nil {
+		return nil, err
+	}
+
+	// The lib directory contains libruby.so
+	libPath := filepath.Join(installPath, "lib")
+
+	env := make(map[string]string)
+
+	// Set the appropriate library path based on platform
+	if goruntime.GOOS == constants.OSDarwin {
+		// macOS uses DYLD_LIBRARY_PATH
+		env["DYLD_LIBRARY_PATH"] = libPath
+	} else {
+		// Linux uses LD_LIBRARY_PATH
+		env["LD_LIBRARY_PATH"] = libPath
+	}
+
+	return env, nil
+}
+
 // init registers the Ruby provider on package load
 func init() {
 	if err := runtime.Register(NewProvider()); err != nil {

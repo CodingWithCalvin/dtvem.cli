@@ -37,6 +37,9 @@ func (m *mockProvider) GlobalPackages(installPath string) ([]string, error)     
 func (m *mockProvider) InstallGlobalPackages(version string, packages []string) error { return nil }
 func (m *mockProvider) ManualPackageInstallCommand(packages []string) string          { return "" }
 func (m *mockProvider) ShouldReshimAfter(shimName string, args []string) bool         { return false }
+func (m *mockProvider) GetEnvironment(_ string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
 
 func TestRuntimeShims(t *testing.T) {
 	// Register test providers

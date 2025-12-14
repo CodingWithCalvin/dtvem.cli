@@ -490,6 +490,12 @@ func (p *Provider) ShouldReshimAfter(shimName string, args []string) bool {
 	return false
 }
 
+// GetEnvironment returns environment variables needed to run Node.js binaries.
+// Node.js binaries are self-contained and don't require special environment setup.
+func (p *Provider) GetEnvironment(_ string) (map[string]string, error) {
+	return map[string]string{}, nil
+}
+
 // init registers the Node.js provider on package load
 func init() {
 	if err := runtime.Register(NewProvider()); err != nil {

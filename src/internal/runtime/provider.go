@@ -28,6 +28,11 @@ type ShimProvider interface {
 	// The shimName parameter indicates which shim was invoked (e.g., "npm", "pip")
 	// The args parameter contains the command arguments (e.g., ["install", "-g", "typescript"])
 	ShouldReshimAfter(shimName string, args []string) bool
+
+	// GetEnvironment returns environment variables that should be set when executing
+	// this runtime's binaries. For example, Ruby needs LD_LIBRARY_PATH set to find libruby.so.
+	// Returns an empty map if no special environment is needed.
+	GetEnvironment(version string) (map[string]string, error)
 }
 
 // Provider defines the full interface that all runtime providers must implement.
