@@ -54,61 +54,58 @@ jobs:
     name: Migrate Node.js from System (Windows)
     uses: ./.github/workflows/integration-test-migrate-node-windows-system.yml
 
-  # --------------------------------------------------------------------------
-  # Remaining migration tests - re-enable incrementally
-  # --------------------------------------------------------------------------
-  # migrate-node-macos-fnm:
-  #   name: Migrate Node.js from fnm (macOS)
-  #   uses: ./.github/workflows/integration-test-migrate-node-macos-fnm.yml
-  #
-  # migrate-node-windows-nvm:
-  #   name: Migrate Node.js from nvm-windows (Windows)
-  #   uses: ./.github/workflows/integration-test-migrate-node-windows-nvm.yml
-  #
-  # migrate-python-ubuntu-system:
-  #   name: Migrate Python from System (Ubuntu)
-  #   uses: ./.github/workflows/integration-test-migrate-python-ubuntu-system.yml
-  #
-  # migrate-python-ubuntu-pyenv:
-  #   name: Migrate Python from pyenv (Ubuntu)
-  #   uses: ./.github/workflows/integration-test-migrate-python-ubuntu-pyenv.yml
-  #
-  # migrate-python-macos-system:
-  #   name: Migrate Python from System (macOS)
-  #   uses: ./.github/workflows/integration-test-migrate-python-macos-system.yml
-  #
-  # migrate-python-macos-pyenv:
-  #   name: Migrate Python from pyenv (macOS)
-  #   uses: ./.github/workflows/integration-test-migrate-python-macos-pyenv.yml
-  #
-  # migrate-python-windows-system:
-  #   name: Migrate Python from System (Windows)
-  #   uses: ./.github/workflows/integration-test-migrate-python-windows-system.yml
-  #
-  # migrate-python-windows-pyenv:
-  #   name: Migrate Python from pyenv-win (Windows)
-  #   uses: ./.github/workflows/integration-test-migrate-python-windows-pyenv.yml
-  #
-  # migrate-ruby-ubuntu-system:
-  #   name: Migrate Ruby from System (Ubuntu)
-  #   uses: ./.github/workflows/integration-test-migrate-ruby-ubuntu-system.yml
-  #
-  # migrate-ruby-ubuntu-rbenv:
-  #   name: Migrate Ruby from rbenv (Ubuntu)
-  #   uses: ./.github/workflows/integration-test-migrate-ruby-ubuntu-rbenv.yml
-  #
-  # migrate-ruby-macos-system:
-  #   name: Migrate Ruby from System (macOS)
-  #   uses: ./.github/workflows/integration-test-migrate-ruby-macos-system.yml
-  #
-  # migrate-ruby-macos-rbenv:
-  #   name: Migrate Ruby from rbenv (macOS)
-  #   uses: ./.github/workflows/integration-test-migrate-ruby-macos-rbenv.yml
-  #
-  # migrate-ruby-windows-system:
-  #   name: Migrate Ruby from System (Windows)
-  #   uses: ./.github/workflows/integration-test-migrate-ruby-windows-system.yml
-  #
-  # migrate-ruby-windows-uru:
-  #   name: Migrate Ruby from uru (Windows)
-  #   uses: ./.github/workflows/integration-test-migrate-ruby-windows-uru.yml
+  migrate-node-macos-fnm:
+    name: Migrate Node.js from fnm (macOS)
+    uses: ./.github/workflows/integration-test-migrate-node-macos-fnm.yml
+
+  migrate-node-windows-nvm:
+    name: Migrate Node.js from nvm-windows (Windows)
+    uses: ./.github/workflows/integration-test-migrate-node-windows-nvm.yml
+
+  migrate-python-ubuntu-system:
+    name: Migrate Python from System (Ubuntu)
+    uses: ./.github/workflows/integration-test-migrate-python-ubuntu-system.yml
+
+  migrate-python-ubuntu-pyenv:
+    name: Migrate Python from pyenv (Ubuntu)
+    uses: ./.github/workflows/integration-test-migrate-python-ubuntu-pyenv.yml
+
+  migrate-python-macos-system:
+    name: Migrate Python from System (macOS)
+    uses: ./.github/workflows/integration-test-migrate-python-macos-system.yml
+
+  migrate-python-macos-pyenv:
+    name: Migrate Python from pyenv (macOS)
+    uses: ./.github/workflows/integration-test-migrate-python-macos-pyenv.yml
+
+  migrate-python-windows-system:
+    name: Migrate Python from System (Windows)
+    uses: ./.github/workflows/integration-test-migrate-python-windows-system.yml
+
+  migrate-python-windows-pyenv:
+    name: Migrate Python from pyenv-win (Windows)
+    uses: ./.github/workflows/integration-test-migrate-python-windows-pyenv.yml
+
+  migrate-ruby-ubuntu-system:
+    name: Migrate Ruby from System (Ubuntu)
+    uses: ./.github/workflows/integration-test-migrate-ruby-ubuntu-system.yml
+
+  migrate-ruby-ubuntu-rbenv:
+    name: Migrate Ruby from rbenv (Ubuntu)
+    uses: ./.github/workflows/integration-test-migrate-ruby-ubuntu-rbenv.yml
+
+  migrate-ruby-macos-system:
+    name: Migrate Ruby from System (macOS)
+    uses: ./.github/workflows/integration-test-migrate-ruby-macos-system.yml
+
+  migrate-ruby-macos-rbenv:
+    name: Migrate Ruby from rbenv (macOS)
+    uses: ./.github/workflows/integration-test-migrate-ruby-macos-rbenv.yml
+
+  migrate-ruby-windows-system:
+    name: Migrate Ruby from System (Windows)
+    uses: ./.github/workflows/integration-test-migrate-ruby-windows-system.yml
+
+  migrate-ruby-windows-uru:
+    name: Migrate Ruby from uru (Windows)
+    uses: ./.github/workflows/integration-test-migrate-ruby-windows-uru.yml
