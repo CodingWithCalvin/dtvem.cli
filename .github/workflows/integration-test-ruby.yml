@@ -40,9 +40,9 @@ jobs:
           - os: ubuntu-latest
             platform: linux
             ext: ""
-            # Ubuntu uses older Ruby versions available in ruby-builder for ubuntu-22.04
-            version1: "3.2.2"
-            version2: "3.2.3"
+            # Use Ruby versions available in ruby/ruby-builder toolcache release
+            version1: "3.3.6"
+            version2: "3.4.1"
           - os: macos-latest
             platform: macos
             ext: ""

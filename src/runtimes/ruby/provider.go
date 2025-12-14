@@ -255,31 +255,39 @@ func (p *Provider) getRubyInstallerURL(version, arch string) (string, string, er
 func (p *Provider) getRubyBuildURL(version, platform, arch string) (string, string, error) {
 	// Use ruby-builder releases from ruby/ruby-builder (GitHub Actions)
 	// These provide prebuilt Ruby binaries
+	//
+	// Naming patterns:
+	// - Ubuntu x64:    ruby-X.X.X-ubuntu-22.04.tar.gz (no arch suffix)
+	// - Ubuntu arm64:  ruby-X.X.X-ubuntu-22.04-arm64.tar.gz
+	// - macOS x64:     ruby-X.X.X-macos-latest.tar.gz (no arch suffix)
+	// - macOS arm64:   ruby-X.X.X-macos-13-arm64.tar.gz
 
-	var rbsArch string
-	switch arch {
-	case constants.ArchAMD64:
-		rbsArch = "x64"
-	case constants.ArchARM64:
-		rbsArch = "arm64"
-	default:
-		return "", "", fmt.Errorf("unsupported architecture for %s: %s", platform, arch)
-	}
+	var archiveName string
 
-	var rbsPlatform string
 	switch platform {
 	case constants.OSDarwin:
-		// Format: ruby-3.4.7-macos-arm64.tar.gz or ruby-3.4.7-macos-13-arm64.tar.gz
-		rbsPlatform = "macos"
+		if arch == constants.ArchARM64 {
+			// macOS arm64: ruby-3.3.6-macos-13-arm64.tar.gz
+			archiveName = fmt.Sprintf("ruby-%s-macos-13-arm64.tar.gz", version)
+		} else if arch == constants.ArchAMD64 {
+			// macOS x64: ruby-3.3.6-macos-latest.tar.gz
+			archiveName = fmt.Sprintf("ruby-%s-macos-latest.tar.gz", version)
+		} else {
+			return "", "", fmt.Errorf("unsupported architecture for %s: %s", platform, arch)
+		}
 	case constants.OSLinux:
-		// Format: ruby-3.4.7-ubuntu-22.04-x64.tar.gz
-		rbsPlatform = "ubuntu-22.04"
+		if arch == constants.ArchARM64 {
+			// Ubuntu arm64: ruby-3.3.6-ubuntu-22.04-arm64.tar.gz
+			archiveName = fmt.Sprintf("ruby-%s-ubuntu-22.04-arm64.tar.gz", version)
+		} else if arch == constants.ArchAMD64 {
+			// Ubuntu x64: ruby-3.3.6-ubuntu-22.04.tar.gz (no arch suffix)
+			archiveName = fmt.Sprintf("ruby-%s-ubuntu-22.04.tar.gz", version)
+		} else {
+			return "", "", fmt.Errorf("unsupported architecture for %s: %s", platform, arch)
+		}
 	default:
 		return "", "", fmt.Errorf("unsupported platform: %s", platform)
 	}
-
-	// Format: ruby-3.4.7-macos-arm64.tar.gz or ruby-3.4.7-ubuntu-22.04-x64.tar.gz
-	archiveName := fmt.Sprintf("ruby-%s-%s-%s.tar.gz", version, rbsPlatform, rbsArch)
 
 	// Download from ruby-builder releases using toolcache tag
 	downloadURL := fmt.Sprintf("https://github.com/ruby/ruby-builder/releases/download/toolcache/%s", archiveName)
