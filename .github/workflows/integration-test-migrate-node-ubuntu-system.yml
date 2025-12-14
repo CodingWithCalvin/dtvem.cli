@@ -34,12 +34,13 @@ jobs:
           echo "$HOME/.dtvem/shims" >> $GITHUB_PATH
           echo "$HOME/.dtvem/bin" >> $GITHUB_PATH
 
-      - name: "Install Node.js 18.x via apt (NodeSource)"
+      - name: "Verify pre-installed Node.js"
         run: |
-          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-          sudo apt-get install -y nodejs
           echo "System Node.js installed at: $(which node)"
           node --version
+          # Capture the version for later verification
+          NODE_VERSION=$(node --version | sed 's/v//')
+          echo "NODE_VERSION=$NODE_VERSION" >> $GITHUB_ENV
 
       - name: "Migrate system Node.js to dtvem"
         run: |
@@ -51,17 +52,17 @@ jobs:
 
       - name: "Verify migrated version"
         run: |
-          # Check that we have a version starting with 18
-          ./dist/dtvem list node | grep -E "18\." || (echo "ERROR: Expected Node.js 18.x to be migrated" && exit 1)
-          echo "SUCCESS: Node.js 18.x was migrated from system"
+          # Check that we have the same version that was pre-installed
+          ./dist/dtvem list node | grep -F "$NODE_VERSION" || (echo "ERROR: Expected Node.js $NODE_VERSION to be migrated" && exit 1)
+          echo "SUCCESS: Node.js $NODE_VERSION was migrated from system"
 
       - name: Generate summary
         if: always()
         run: |
           echo "## Node.js Migration from System (Ubuntu)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Source:** apt (NodeSource)" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** 18.x" >> $GITHUB_STEP_SUMMARY
+          echo "**Source:** Pre-installed system Node.js" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $NODE_VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Installed Versions" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
