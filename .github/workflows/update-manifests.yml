@@ -1,0 +1,64 @@
+name: Update Manifests
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: 'Runtime to update (node, python, ruby, all)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - node
+          - python
+          - ruby
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'src/go.mod'
+
+      - name: Generate manifests
+        run: |
+          RUNTIME="${{ github.event.inputs.runtime || 'all' }}"
+          echo "Generating manifests for: $RUNTIME"
+          go run ./scripts/generate-manifests "$RUNTIME"
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          git diff --quiet src/internal/manifest/data/ || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check-changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(manifest): update runtime manifests'
+          title: 'chore(manifest): update runtime manifests'
+          body: |
+            Automated manifest update from upstream sources.
+
+            This PR was created by the [Update Manifests workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
+            Please review the changes to ensure the URLs and checksums are correct.
+          branch: chore/update-manifests
+          delete-branch: true
+          labels: |
+            automated
+            manifest
