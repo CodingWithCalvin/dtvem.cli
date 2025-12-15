@@ -98,11 +98,8 @@ func generateNodeManifest(outputDir string) error {
 				filename = fmt.Sprintf("node-%s-%s.%s", release.Version, nodeFile, mapping.archive)
 			}
 
-			// Look up checksum
-			sha256, ok := checksums[filename]
-			if !ok {
-				continue
-			}
+			// Look up checksum (may not exist for all files)
+			sha256 := checksums[filename]
 
 			platforms[mapping.platform] = &Download{
 				URL:    fmt.Sprintf("%s/%s/%s", nodeDistURL, release.Version, filename),

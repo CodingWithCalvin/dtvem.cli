@@ -602,6 +602,16 @@
         "sha256": "50535f04bf36da6efa52ae57d29354f6e0ffd8dc773c08ec655f44314e6f47d3"
       }
     },
+    "0.11.4": {
+      "darwin-amd64": {
+        "url": "https://nodejs.org/dist/v0.11.4/node-v0.11.4-darwin-x64.tar.gz",
+        "sha256": ""
+      },
+      "linux-amd64": {
+        "url": "https://nodejs.org/dist/v0.11.4/node-v0.11.4-linux-x64.tar.gz",
+        "sha256": ""
+      }
+    },
     "0.11.5": {
       "darwin-amd64": {
         "url": "https://nodejs.org/dist/v0.11.5/node-v0.11.5-darwin-x64.tar.gz",
@@ -610,6 +620,16 @@
       "linux-amd64": {
         "url": "https://nodejs.org/dist/v0.11.5/node-v0.11.5-linux-x64.tar.gz",
         "sha256": "c45cfeedbe7149e315f58243ec05dc6575ca2fdd16d4cf0f76853a178eaebf41"
+      }
+    },
+    "0.11.6": {
+      "darwin-amd64": {
+        "url": "https://nodejs.org/dist/v0.11.6/node-v0.11.6-darwin-x64.tar.gz",
+        "sha256": ""
+      },
+      "linux-amd64": {
+        "url": "https://nodejs.org/dist/v0.11.6/node-v0.11.6-linux-x64.tar.gz",
+        "sha256": ""
       }
     },
     "0.11.7": {
