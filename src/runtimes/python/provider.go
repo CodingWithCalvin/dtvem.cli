@@ -193,9 +193,8 @@ func (p *Provider) Install(version string) error {
 
 // getDownloadURL returns the download URL and archive name for a given version
 func (p *Provider) getDownloadURL(version string) (string, string, error) {
-	// Get the manifest
-	source := manifest.NewEmbeddedSource()
-	m, err := source.GetManifest("python")
+	// Get the manifest (uses cached remote with embedded fallback)
+	m, err := manifest.DefaultSource().GetManifest("python")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to load manifest: %w", err)
 	}
@@ -350,9 +349,8 @@ func (p *Provider) ListInstalled() ([]runtime.InstalledVersion, error) {
 
 // ListAvailable returns all available Python versions
 func (p *Provider) ListAvailable() ([]runtime.AvailableVersion, error) {
-	// Get the manifest
-	source := manifest.NewEmbeddedSource()
-	m, err := source.GetManifest("python")
+	// Get the manifest (uses cached remote with embedded fallback)
+	m, err := manifest.DefaultSource().GetManifest("python")
 	if err != nil {
 		return nil, fmt.Errorf("failed to load manifest: %w", err)
 	}
