@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "versions": {
     "0.10.0": {
       "darwin-amd64": {
