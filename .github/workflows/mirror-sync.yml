@@ -1,11 +1,9 @@
 name: Mirror Sync
 
 on:
-  # Run after manifest updates are deployed
-  workflow_run:
-    workflows: ["Deploy Manifests"]
-    types:
-      - completed
+  # Run weekly to catch new upstream versions
+  schedule:
+    - cron: '0 4 * * 0'  # Every Sunday at 4 AM UTC
   # Manual trigger
   workflow_dispatch:
     inputs:
@@ -24,12 +22,11 @@ jobs:
   sync:
     name: Sync ${{ matrix.runtime }}
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    timeout-minutes: 120  # 2 hours max for sync
+    timeout-minutes: 180  # 3 hours max for sync
     strategy:
       fail-fast: false
       matrix:
-        runtime: ${{ (github.event_name == 'workflow_dispatch' && inputs.runtime == 'all') && fromJson('["node", "python", "ruby"]') || (github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', inputs.runtime))) || fromJson('["node", "python", "ruby"]') }}
+        runtime: ${{ (github.event_name == 'workflow_dispatch' && inputs.runtime != 'all') && fromJson(format('["{0}"]', inputs.runtime)) || fromJson('["node", "python", "ruby"]') }}
 
     steps:
       - name: Checkout
@@ -45,7 +42,7 @@ jobs:
           cd scripts/mirror-binaries
           go build -o mirror-binaries .
 
-      - name: Sync new binaries
+      - name: Sync new binaries to R2
         env:
           R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
           R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
@@ -67,4 +64,6 @@ jobs:
         run: |
           echo "## Sync Results for ${{ matrix.runtime }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Synced new binaries not already present in R2." >> $GITHUB_STEP_SUMMARY
+          echo "Synced new binaries from upstream that were not already in R2." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To generate updated manifests, run the 'Generate Manifests from R2' workflow." >> $GITHUB_STEP_SUMMARY

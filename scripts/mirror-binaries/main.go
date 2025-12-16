@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -33,27 +34,39 @@ type Download struct {
 	SHA256 string `json:"sha256,omitempty"`
 }
 
+// BinaryMeta represents metadata stored alongside each binary
+type BinaryMeta struct {
+	SHA256       string `json:"sha256"`
+	SHA256Source string `json:"sha256_source"` // "upstream" or "dtvem"
+	SourceURL    string `json:"source_url"`
+	MirroredAt   string `json:"mirrored_at"`
+	Size         int64  `json:"size"`
+}
+
 // MirrorJob represents a single file to mirror
 type MirrorJob struct {
-	Runtime  string
-	Version  string
-	Platform string
-	URL      string
-	SHA256   string
-	R2Key    string
+	Runtime        string
+	Version        string
+	Platform       string
+	URL            string
+	UpstreamSHA256 string // Checksum from upstream manifest (may be empty)
+	R2Key          string
+	MetaKey        string
 }
 
 // Stats tracks mirroring statistics
 type Stats struct {
-	Total     int64
-	Skipped   int64
-	Mirrored  int64
-	Failed    int64
-	BytesDown int64
+	Total            int64
+	Skipped          int64
+	Mirrored         int64
+	Failed           int64
+	BytesDown        int64
+	UpstreamChecksum int64
+	GeneratedChecksum int64
 }
 
 var (
-	runtime      = flag.String("runtime", "", "Runtime to mirror (node, python, ruby, or all)")
+	runtimeFlag  = flag.String("runtime", "", "Runtime to mirror (node, python, ruby, or all)")
 	dryRun       = flag.Bool("dry-run", false, "Report what would be done without doing it")
 	syncOnly     = flag.Bool("sync-only", false, "Only mirror files not already in R2")
 	manifestDir  = flag.String("manifest-dir", "src/internal/manifest/data", "Directory containing manifest files")
@@ -68,7 +81,7 @@ var (
 func main() {
 	flag.Parse()
 
-	if *runtime == "" {
+	if *runtimeFlag == "" {
 		fmt.Fprintln(os.Stderr, "Error: --runtime is required (node, python, ruby, or all)")
 		os.Exit(1)
 	}
@@ -80,8 +93,8 @@ func main() {
 		}
 	}
 
-	runtimes := []string{*runtime}
-	if *runtime == "all" {
+	runtimes := []string{*runtimeFlag}
+	if *runtimeFlag == "all" {
 		runtimes = []string{"node", "python", "ruby"}
 	}
 
@@ -124,18 +137,29 @@ func main() {
 
 	if *dryRun {
 		fmt.Println("\n[DRY RUN] Would mirror the following files:")
+		withChecksum := 0
+		withoutChecksum := 0
 		for _, job := range jobs {
-			fmt.Printf("  %s -> %s\n", job.URL, job.R2Key)
+			checksumStatus := "(will generate checksum)"
+			if job.UpstreamSHA256 != "" {
+				checksumStatus = "(has upstream checksum)"
+				withChecksum++
+			} else {
+				withoutChecksum++
+			}
+			fmt.Printf("  %s -> %s %s\n", job.URL, job.R2Key, checksumStatus)
 		}
-		fmt.Printf("\nTotal: %d files\n", len(jobs))
+		fmt.Printf("\nTotal: %d files (%d with upstream checksum, %d will generate)\n",
+			len(jobs), withChecksum, withoutChecksum)
 		return
 	}
 
-	// Filter jobs if sync-only
+	// Filter jobs if sync-only (check for .meta.json to determine if mirrored)
 	if *syncOnly && existingKeys != nil {
 		var filtered []MirrorJob
 		for _, job := range jobs {
-			if !existingKeys[job.R2Key] {
+			// Check for metadata file existence (indicates successful mirror)
+			if !existingKeys[job.MetaKey] {
 				filtered = append(filtered, job)
 			}
 		}
@@ -154,11 +178,13 @@ func main() {
 
 	// Print summary
 	fmt.Println("\n=== Mirror Summary ===")
-	fmt.Printf("Total:    %d\n", stats.Total)
-	fmt.Printf("Mirrored: %d\n", stats.Mirrored)
-	fmt.Printf("Skipped:  %d\n", stats.Skipped)
-	fmt.Printf("Failed:   %d\n", stats.Failed)
-	fmt.Printf("Bytes:    %d MB\n", stats.BytesDown/(1024*1024))
+	fmt.Printf("Total:              %d\n", stats.Total)
+	fmt.Printf("Mirrored:           %d\n", stats.Mirrored)
+	fmt.Printf("Skipped:            %d\n", stats.Skipped)
+	fmt.Printf("Failed:             %d\n", stats.Failed)
+	fmt.Printf("Bytes downloaded:   %d MB\n", stats.BytesDown/(1024*1024))
+	fmt.Printf("Upstream checksums: %d\n", stats.UpstreamChecksum)
+	fmt.Printf("Generated checksums: %d\n", stats.GeneratedChecksum)
 
 	if stats.Failed > 0 {
 		os.Exit(1)
@@ -225,14 +251,16 @@ func loadJobs(runtime, manifestPath string) ([]MirrorJob, error) {
 			// Determine file extension from URL
 			ext := getExtension(dl.URL)
 			r2Key := fmt.Sprintf("%s/%s/%s%s", runtime, version, platform, ext)
+			metaKey := fmt.Sprintf("%s/%s/%s.meta.json", runtime, version, platform)
 
 			jobs = append(jobs, MirrorJob{
-				Runtime:  runtime,
-				Version:  version,
-				Platform: platform,
-				URL:      dl.URL,
-				SHA256:   dl.SHA256,
-				R2Key:    r2Key,
+				Runtime:        runtime,
+				Version:        version,
+				Platform:       platform,
+				URL:            dl.URL,
+				UpstreamSHA256: dl.SHA256,
+				R2Key:          r2Key,
+				MetaKey:        metaKey,
 			})
 		}
 	}
@@ -336,13 +364,21 @@ func doMirror(client *s3.Client, job MirrorJob, stats *Stats) error {
 
 	atomic.AddInt64(&stats.BytesDown, int64(len(body)))
 
-	// Verify checksum if provided
-	if job.SHA256 != "" {
-		hash := sha256.Sum256(body)
-		actual := hex.EncodeToString(hash[:])
-		if actual != job.SHA256 {
-			return fmt.Errorf("checksum mismatch: expected %s, got %s", job.SHA256, actual)
+	// Calculate actual checksum
+	hash := sha256.Sum256(body)
+	actualChecksum := hex.EncodeToString(hash[:])
+
+	// Determine checksum source and verify if upstream provided one
+	var checksumSource string
+	if job.UpstreamSHA256 != "" {
+		if actualChecksum != job.UpstreamSHA256 {
+			return fmt.Errorf("checksum mismatch: expected %s, got %s", job.UpstreamSHA256, actualChecksum)
 		}
+		checksumSource = "upstream"
+		atomic.AddInt64(&stats.UpstreamChecksum, 1)
+	} else {
+		checksumSource = "dtvem"
+		atomic.AddInt64(&stats.GeneratedChecksum, 1)
 	}
 
 	// Determine content type
@@ -355,18 +391,43 @@ func doMirror(client *s3.Client, job MirrorJob, stats *Stats) error {
 		contentType = "application/x-xz"
 	}
 
-	// Upload to R2
+	// Upload binary to R2
 	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:       r2Bucket,
 		Key:          aws.String(job.R2Key),
-		Body:         strings.NewReader(string(body)),
+		Body:         bytes.NewReader(body),
 		ContentType:  aws.String(contentType),
 		CacheControl: aws.String("public, max-age=31536000, immutable"),
 	})
 	if err != nil {
-		return fmt.Errorf("upload failed: %w", err)
+		return fmt.Errorf("upload binary failed: %w", err)
 	}
 
-	fmt.Printf("Mirrored: %s (%d bytes)\n", job.R2Key, len(body))
+	// Create and upload metadata
+	meta := BinaryMeta{
+		SHA256:       actualChecksum,
+		SHA256Source: checksumSource,
+		SourceURL:    job.URL,
+		MirroredAt:   time.Now().UTC().Format(time.RFC3339),
+		Size:         int64(len(body)),
+	}
+
+	metaJSON, err := json.MarshalIndent(meta, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal metadata failed: %w", err)
+	}
+
+	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:       r2Bucket,
+		Key:          aws.String(job.MetaKey),
+		Body:         bytes.NewReader(metaJSON),
+		ContentType:  aws.String("application/json"),
+		CacheControl: aws.String("public, max-age=300"), // Short cache for metadata
+	})
+	if err != nil {
+		return fmt.Errorf("upload metadata failed: %w", err)
+	}
+
+	fmt.Printf("Mirrored: %s (%d bytes, checksum: %s)\n", job.R2Key, len(body), checksumSource)
 	return nil
 }

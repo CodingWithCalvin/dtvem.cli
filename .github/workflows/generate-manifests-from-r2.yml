@@ -1,0 +1,125 @@
+name: Generate Manifests from R2
+
+on:
+  # Trigger after mirror sync completes
+  workflow_run:
+    workflows: ["Mirror Sync"]
+    types:
+      - completed
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: 'Runtime to generate (node, python, ruby, or all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - node
+          - python
+          - ruby
+      dry_run:
+        description: 'Dry run (report only, no file changes)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  generate:
+    name: Generate Manifests
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build manifest generator
+        run: |
+          cd scripts/generate-manifests-from-r2
+          go build -o generate-manifests .
+
+      - name: Generate manifests (dry run)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        env:
+          R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
+          R2_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          R2_SECRET_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+        run: |
+          RUNTIME="${{ inputs.runtime || 'all' }}"
+          ./scripts/generate-manifests-from-r2/generate-manifests \
+            --runtime="$RUNTIME" \
+            --output-dir=src/internal/manifest/data \
+            --base-url="https://builds.dtvem.io" \
+            --r2-endpoint="$R2_ENDPOINT" \
+            --r2-bucket="$R2_BUCKET" \
+            --r2-access-key="$R2_ACCESS_KEY" \
+            --r2-secret-key="$R2_SECRET_KEY" \
+            --dry-run
+
+      - name: Generate manifests
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        env:
+          R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
+          R2_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          R2_SECRET_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+        run: |
+          RUNTIME="${{ inputs.runtime || 'all' }}"
+          ./scripts/generate-manifests-from-r2/generate-manifests \
+            --runtime="$RUNTIME" \
+            --output-dir=src/internal/manifest/data \
+            --base-url="https://builds.dtvem.io" \
+            --r2-endpoint="$R2_ENDPOINT" \
+            --r2-bucket="$R2_BUCKET" \
+            --r2-access-key="$R2_ACCESS_KEY" \
+            --r2-secret-key="$R2_SECRET_KEY"
+
+      - name: Check for changes
+        id: check-changes
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        run: |
+          git diff --quiet src/internal/manifest/data/ || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: ${{ steps.check-changes.outputs.changed == 'true' }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(manifest): regenerate manifests from R2'
+          title: 'chore(manifest): regenerate manifests from R2'
+          body: |
+            Regenerated manifests from binaries hosted on `builds.dtvem.io`.
+
+            This PR was created by the [Generate Manifests from R2 workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+
+            ## Changes
+            - URLs now point to `builds.dtvem.io` (our hosted binaries)
+            - Includes `sha256_source` field indicating checksum origin ("upstream" or "dtvem")
+
+            Please review the changes before merging.
+          branch: chore/regenerate-manifests-from-r2
+          delete-branch: true
+          labels: |
+            automated
+            manifest
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Manifest Generation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "**Mode:** Dry run (no changes made)" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.check-changes.outputs.changed }}" = "true" ]; then
+            echo "**Result:** Changes detected, PR created" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Result:** No changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
