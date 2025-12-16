@@ -91,18 +91,14 @@ func (p *Provider) downloadAndExtract(version, downloadURL, archiveName string) 
 
 // determineSourceDir determines the source directory from extracted archive
 func determineSourceDir(extractDir string) string {
-	if goruntime.GOOS == constants.OSWindows {
-		// Windows embeddable: files are in extractDir root
-		return extractDir
-	}
-
-	// Unix python-build-standalone: files are in python/ subdirectory
+	// python-build-standalone: files are in python/ subdirectory (all platforms)
 	pythonSubdir := filepath.Join(extractDir, "python")
 	if _, err := os.Stat(pythonSubdir); err == nil {
 		return pythonSubdir
 	}
 
 	// Fallback: use extractDir if python/ doesn't exist
+	// (e.g., Windows embeddable packages from python.org have files in root)
 	return extractDir
 }
 
@@ -384,10 +380,10 @@ func (p *Provider) ExecutablePath(version string) (string, error) {
 	// Determine executable name and path based on platform
 	var pythonPath string
 	if goruntime.GOOS == constants.OSWindows {
-		// Windows embeddable package has python.exe in root
+		// Windows: python.exe is in the installation root
 		pythonPath = filepath.Join(installPath, "python.exe")
 	} else {
-		// Unix has python in bin/
+		// Unix: python is in bin/ subdirectory
 		pythonPath = filepath.Join(installPath, "bin", "python")
 	}
 
