@@ -2,6 +2,32 @@
   "$schema": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/manifest.schema.json",
   "version": 1,
   "versions": {
+    "3.10.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.0/python-3.10.0-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.10.0/python-3.10.0-embed-arm64.zip",
+        "sha256": ""
+      }
+    },
+    "3.10.1": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.1/python-3.10.1-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.10.1/python-3.10.1-embed-arm64.zip",
+        "sha256": ""
+      }
+    },
+    "3.10.10": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.10/python-3.10.10-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
     "3.10.11": {
       "darwin-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230507/cpython-3.10.11%2B20230507-x86_64-apple-darwin-install_only.tar.gz",
@@ -17,6 +43,10 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230507/cpython-3.10.11%2B20230507-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip",
         "sha256": ""
       }
     },
@@ -204,6 +234,14 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220227/cpython-3.10.2%2B20220227-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.2/python-3.10.2-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.10.2/python-3.10.2-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.10.3": {
@@ -221,6 +259,10 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220318/cpython-3.10.3%2B20220318-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.3/python-3.10.3-embed-amd64.zip",
         "sha256": ""
       }
     },
@@ -240,6 +282,10 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220528/cpython-3.10.4%2B20220528-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.4/python-3.10.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.5": {
@@ -257,6 +303,10 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220630/cpython-3.10.5%2B20220630-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.5/python-3.10.5-embed-amd64.zip",
         "sha256": ""
       }
     },
@@ -276,6 +326,10 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220802/cpython-3.10.6%2B20220802-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.6/python-3.10.6-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.7": {
@@ -293,6 +347,10 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20221002/cpython-3.10.7%2B20221002-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.7/python-3.10.7-embed-amd64.zip",
         "sha256": ""
       }
     },
@@ -312,6 +370,10 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20221106/cpython-3.10.8%2B20221106-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.8/python-3.10.8-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.9": {
@@ -330,6 +392,20 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230116/cpython-3.10.9%2B20230116-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.11.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.1": {
@@ -347,6 +423,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230116/cpython-3.11.1%2B20230116-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.1/python-3.11.1-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.1/python-3.11.1-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -468,6 +552,16 @@
         "sha256": "6d607c1041d0a6c6e162cf789f79854d662b255b5bcd3781f7805dc91505f67b"
       }
     },
+    "3.11.2": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.2/python-3.11.2-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.2/python-3.11.2-embed-arm64.zip",
+        "sha256": ""
+      }
+    },
     "3.11.3": {
       "darwin-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230507/cpython-3.11.3%2B20230507-x86_64-apple-darwin-install_only.tar.gz",
@@ -483,6 +577,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230507/cpython-3.11.3%2B20230507-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.3/python-3.11.3-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.3/python-3.11.3-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -502,6 +604,14 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230726/cpython-3.11.4%2B20230726-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.4/python-3.11.4-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.4/python-3.11.4-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.5": {
@@ -519,6 +629,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20230826/cpython-3.11.5%2B20230826-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.5/python-3.11.5-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.5/python-3.11.5-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -538,6 +656,14 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20231002/cpython-3.11.6%2B20231002-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.6/python-3.11.6-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.6/python-3.11.6-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.7": {
@@ -556,6 +682,14 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20240107/cpython-3.11.7%2B20240107-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.7/python-3.11.7-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.7/python-3.11.7-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.8": {
@@ -573,6 +707,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20240224/cpython-3.11.8%2B20240224-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -614,6 +756,14 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20231002/cpython-3.12.0%2B20231002-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.12.0/python-3.12.0-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.0/python-3.12.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.1": {
@@ -631,6 +781,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20240107/cpython-3.12.1%2B20240107-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -723,6 +881,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20240224/cpython-3.12.2%2B20240224-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -1250,6 +1416,162 @@
         "sha256": "0be0d2557d73efa7f6f3f99679f05252d57fe2aad2d81cac3cad410a9b1eacbd"
       }
     },
+    "3.5.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.5.0/python-3.5.0-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.5.1": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.5.1/python-3.5.1-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.5.2": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.5.2/python-3.5.2-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.5.3": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.5.3/python-3.5.3-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.5.4": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.5.4/python-3.5.4-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.0/python-3.6.0-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.1": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.1/python-3.6.1-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.2": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.2/python-3.6.2-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.3": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.4": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.5": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.6": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.6/python-3.6.6-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.7": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.7/python-3.6.7-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.6.8": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.6.8/python-3.6.8-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.1": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.1/python-3.7.1-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.3": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.4": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.4/python-3.7.4-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.5": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.5/python-3.7.5-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.6": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.6/python-3.7.6-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.7": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.7/python-3.7.7-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.8": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.8/python-3.7.8-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.7.9": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.7.9/python-3.7.9-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.0/python-3.8.0-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.1": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.1/python-3.8.1-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.10": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.10/python-3.8.10-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
     "3.8.12": {
       "darwin-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220227/cpython-3.8.12%2B20220227-x86_64-apple-darwin-install_only.tar.gz",
@@ -1394,6 +1716,12 @@
         "sha256": ""
       }
     },
+    "3.8.2": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.2/python-3.8.2-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
     "3.8.20": {
       "darwin-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20241002/cpython-3.8.20%2B20241002-x86_64-apple-darwin-install_only.tar.gz",
@@ -1416,6 +1744,60 @@
         "sha256": ""
       }
     },
+    "3.8.3": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.3/python-3.8.3-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.4": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.4/python-3.8.4-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.5": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.5/python-3.8.5-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.6": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.6/python-3.8.6-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.7": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.7/python-3.8.7-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.8": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.8/python-3.8.8-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.8.9": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.8.9/python-3.8.9-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.0": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.0/python-3.9.0-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.1": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.1/python-3.9.1-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
     "3.9.10": {
       "darwin-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220227/cpython-3.9.10%2B20220227-x86_64-apple-darwin-install_only.tar.gz",
@@ -1431,6 +1813,14 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220227/cpython-3.9.10%2B20220227-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.10/python-3.9.10-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.9.10/python-3.9.10-embed-arm64.zip",
         "sha256": ""
       }
     },
@@ -1450,6 +1840,10 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220318/cpython-3.9.11%2B20220318-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.11/python-3.9.11-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.12": {
@@ -1468,6 +1862,10 @@
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220502/cpython-3.9.12%2B20220502-aarch64-unknown-linux-gnu-install_only.tar.gz",
         "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.12/python-3.9.12-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.13": {
@@ -1485,6 +1883,10 @@
       },
       "linux-arm64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20220802/cpython-3.9.13%2B20220802-aarch64-unknown-linux-gnu-install_only.tar.gz",
+        "sha256": ""
+      },
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.13/python-3.9.13-embed-amd64.zip",
         "sha256": ""
       }
     },
@@ -1597,6 +1999,12 @@
       },
       "windows-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20240814/cpython-3.9.19%2B20240814-x86_64-pc-windows-msvc-install_only.tar.gz",
+        "sha256": ""
+      }
+    },
+    "3.9.2": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.2/python-3.9.2-embed-amd64.zip",
         "sha256": ""
       }
     },
@@ -1730,6 +2138,60 @@
       "windows-amd64": {
         "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20251031/cpython-3.9.25%2B20251031-x86_64-pc-windows-msvc-install_only.tar.gz",
         "sha256": "4fb1b416482ce94d73cfa140317a670c596c830671d137b07c26afe8c461768a"
+      }
+    },
+    "3.9.3": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.3/python-3.9.3-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.4": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.4/python-3.9.4-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.5": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.5/python-3.9.5-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.6": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.6/python-3.9.6-embed-amd64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.7": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.7/python-3.9.7-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.9.7/python-3.9.7-embed-arm64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.8": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.8/python-3.9.8-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.9.8/python-3.9.8-embed-arm64.zip",
+        "sha256": ""
+      }
+    },
+    "3.9.9": {
+      "windows-amd64": {
+        "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-arm64.zip",
+        "sha256": ""
       }
     }
   }

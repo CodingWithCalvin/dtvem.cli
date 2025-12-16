@@ -141,6 +141,8 @@ func (p *Provider) downloadAndExtract(version, downloadURL, archiveName string) 
 		extractErr = download.ExtractZip(archivePath, extractDir)
 	} else if strings.HasSuffix(archiveName, ".tar.gz") || strings.HasSuffix(archiveName, ".tar.xz") {
 		extractErr = download.ExtractTarGz(archivePath, extractDir)
+	} else if strings.HasSuffix(archiveName, ".7z") {
+		extractErr = download.Extract7z(archivePath, extractDir)
 	} else {
 		extractErr = fmt.Errorf("unsupported archive format: %s", archiveName)
 	}
