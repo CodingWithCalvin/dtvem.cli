@@ -82,6 +82,27 @@ jobs:
             --r2-access-key="$R2_ACCESS_KEY" \
             --r2-secret-key="$R2_SECRET_KEY"
 
+      - name: Deploy manifests to R2
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
+        env:
+          R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_MANIFESTS_BUCKET }}
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          aws configure set default.region auto
+
+          echo "Deploying manifests to R2..."
+          for file in src/internal/manifest/data/*.json; do
+            filename=$(basename "$file")
+            echo "Uploading $filename..."
+            aws s3 cp "$file" "s3://${R2_BUCKET}/${filename}" \
+              --endpoint-url "${R2_ENDPOINT}" \
+              --content-type "application/json" \
+              --cache-control "public, max-age=300"
+          done
+          echo "Manifests deployed to R2!"
+
       - name: Check for changes
         id: check-changes
         if: ${{ github.event_name != 'workflow_dispatch' || !inputs.dry_run }}
@@ -119,7 +140,9 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "**Mode:** Dry run (no changes made)" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ steps.check-changes.outputs.changed }}" = "true" ]; then
-            echo "**Result:** Changes detected, PR created" >> $GITHUB_STEP_SUMMARY
+            echo "**Result:** Changes detected" >> $GITHUB_STEP_SUMMARY
+            echo "- Manifests deployed to R2 (live immediately)" >> $GITHUB_STEP_SUMMARY
+            echo "- PR created for embedded manifests" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Result:** No changes detected" >> $GITHUB_STEP_SUMMARY
           fi
