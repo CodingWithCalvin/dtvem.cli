@@ -1,2678 +1,753 @@
 {
+  "$schema": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/manifest.schema.json",
   "version": 1,
   "versions": {
     "3.10.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.0/windows-amd64.zip",
-        "sha256": "7509ff71fae8e96eb26631dbae3eff88e47b65e3dca399140c74efbc678ba339",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.0/python-3.10.0-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.0/windows-arm64.zip",
-        "sha256": "f623142f25272c5d9a5eac9f69d526772bc02b02b4f6e6a7ac04f398a096b36c",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.0/python-3.10.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.10.1": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.1/windows-amd64.zip",
-        "sha256": "502670dcdff0083847abf6a33f30be666594e7e5201cd6fccd4a523b577403de",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.1/python-3.10.1-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.1/windows-arm64.zip",
-        "sha256": "1f9e215fe4e8f22a8e8fba1859efb1426437044fb3103ce85794630e3b511bc2",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.1/python-3.10.1-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.10.10": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.10/windows-amd64.zip",
-        "sha256": "b8c99a1bce379287eae580e7ecd0d8f4afdce0a27268d7f26db205f3362d7bab",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.10/python-3.10.10-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.11": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.11/darwin-amd64.tar.gz",
-        "sha256": "bd3fc6e4da6f4033ebf19d66704e73b0804c22641ddae10bbe347c48f82374ad",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.11/darwin-arm64.tar.gz",
-        "sha256": "8348bc3c2311f94ec63751fb71bd0108174be1c4def002773cf519ee1506f96f",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.11/linux-amd64.tar.gz",
-        "sha256": "c5bcaac91bc80bfc29cf510669ecad12d506035ecb3ad85ef213416d54aecd79",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.11/linux-arm64.tar.gz",
-        "sha256": "c7573fdb00239f86b22ea0e8e926ca881d24fde5e5890851339911d76110bc35",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.11/windows-amd64.zip",
-        "sha256": "608619f8619075629c9c69f361352a0da6ed7e62f83a0e19c63e0ea32eb7629d",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.12": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.12/darwin-amd64.tar.gz",
-        "sha256": "8a6e3ed973a671de468d9c691ed9cb2c3a4858c5defffcf0b08969fba9c1dd04",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.12/darwin-arm64.tar.gz",
-        "sha256": "bc66c706ea8c5fc891635fda8f9da971a1a901d41342f6798c20ad0b2a25d1d6",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.12/linux-amd64.tar.gz",
-        "sha256": "a476dbca9184df9fc69fe6309cda5ebaf031d27ca9e529852437c94ec1bc43d3",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.12/linux-arm64.tar.gz",
-        "sha256": "fee80e221663eca5174bd794cb5047e40d3910dbeadcdf1f09d405a4c1c15fe4",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.13": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.13/darwin-amd64.tar.gz",
-        "sha256": "6378dfd22f58bb553ddb02be28304d739cd730c1f95c15c74955c923a1bc3d6a",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.13/darwin-arm64.tar.gz",
-        "sha256": "5fdc0f6a5b5a90fd3c528e8b1da8e3aac931ea8690126c2fdb4254c84a3ff04a",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.13/linux-amd64.tar.gz",
-        "sha256": "d995d032ca702afd2fc3a689c1f84a6c64972ecd82bba76a61d525f08eb0e195",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.13/linux-arm64.tar.gz",
-        "sha256": "a898a88705611b372297bb8fe4d23cc16b8603ce5f24494c3a8cfa65d83787f9",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.14": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.14/darwin-amd64.tar.gz",
-        "sha256": "9e3df0cd6624f7943e1c4b72527356e1ad6edb59b3cf36562e0d380eb3e2b424",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.14/darwin-arm64.tar.gz",
-        "sha256": "c9fbd43c47ebc15f3b326d518e3f4df2fed98db226cd16f97ecbcc496c099d5d",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.14/linux-amd64.tar.gz",
-        "sha256": "88dee5e48def031cdaebdedeae13865f086b532161315dda7f39c1428dfef64f",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.14/linux-arm64.tar.gz",
-        "sha256": "232921e70965f78dc32e2ed4d15f97b45d24ac68dbc5d6f4ff402f81bad11eda",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.14/windows-amd64.tar.gz",
-        "sha256": "e5982ec53bed31a3f9c1f063cb5fb031089ae436a8541cd471fe660836dddbbb",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.15": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.15/darwin-amd64.tar.gz",
-        "sha256": "90b46dfb1abd98d45663c7a2a8c45d3047a59391d8586d71b459cec7b75f662b",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.15/darwin-arm64.tar.gz",
-        "sha256": "f64776f455a44c24d50f947c813738cfb7b9ac43732c44891bc831fa7940a33c",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.15/linux-amd64.tar.gz",
-        "sha256": "3db2171e03c1a7acdc599fba583c1b92306d3788b375c9323077367af1e9d9de",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.15/linux-arm64.tar.gz",
-        "sha256": "eb58581f85fde83d1f3e8e1f8c6f5a15c7ae4fdbe3b1d1083931f9167fdd8dbc",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.15/windows-amd64.tar.gz",
-        "sha256": "e48952619796c66ec9719867b87be97edca791c2ef7fbf87d42c417c3331609e",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.16": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.16/darwin-amd64.tar.gz",
-        "sha256": "e03e62dbe95afa2f56b7344ff3bd061b180a0b690ff77f9a1d7e6601935e05ca",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.16/darwin-arm64.tar.gz",
-        "sha256": "e99f8457d9c79592c036489c5cfa78df76e4762d170665e499833e045d82608f",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.16/linux-amd64.tar.gz",
-        "sha256": "b350c7e63956ca8edb856b91316328e0fd003a840cbd63d08253af43b2c63643",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.16/linux-arm64.tar.gz",
-        "sha256": "76d0f04d2444e77200fdc70d1c57480e29cca78cb7420d713bc1c523709c198d",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.16/windows-amd64.tar.gz",
-        "sha256": "c7e0eb0ff5b36758b7a8cacd42eb223c056b9c4d36eded9bf5b9fe0c0b9aeb08",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.17": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.17/darwin-amd64.tar.gz",
-        "sha256": "22f43d26ec2bbf1a2bc21d80710031aa30fbadef6ec5b2b6fbde3375bde1fea8",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.17/darwin-arm64.tar.gz",
-        "sha256": "4811ea0a7c192cb11745de29025a64efbae801c4f84a74c31fc2e8d3fdd69c07",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.17/linux-amd64.tar.gz",
-        "sha256": "6634b2d2504fa07ec62655dc8a0266c2705a3920a1e08519e5c6730a79f8a2c1",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.17/linux-arm64.tar.gz",
-        "sha256": "3021c4306e90eb30bce8868bb87ff4fdce73d442e4bb4b799532368572e56f2a",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.17/windows-amd64.tar.gz",
-        "sha256": "4d2eb31500ec365520a899a040172c678b4ae9cfbbcb71075bc095a151809d10",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.10.18": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.18/darwin-amd64.tar.gz",
-        "sha256": "d4c8a43048ca557e4c956a6372922ae30af54cfad142ebb1f8b5a0d3d841fcae",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.18/darwin-arm64.tar.gz",
-        "sha256": "a8e406f87baeb122149212267061941f84b7279c127f1a4c2c8972166b157491",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.18/linux-amd64.tar.gz",
-        "sha256": "033fab7c275e2f3c2cfaac5971c3f8e1ac318832661d651e125b0ffb0ee6f950",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.18/linux-arm64.tar.gz",
-        "sha256": "5503fc72bcb8590a2822fc75deb9a1fd165f3f4c8f2584b56fb6fbaf2dbb0296",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.18/windows-amd64.tar.gz",
-        "sha256": "aedc79c0472c7c1f25b546bc84821616d607a8ab875f0bb7a42abbbb81b7b778",
-        "sha256_source": "upstream"
-      }
-    },
-    "3.10.19": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.19/darwin-amd64.tar.gz",
-        "sha256": "fac6a81b9407c2d209b3b0a030aec55d4ebe2f6966ae112b810526c06475cc31",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.19/darwin-arm64.tar.gz",
-        "sha256": "a3ae176dca00c14fbae2a17b142b3cab6390a9269095a34a772fb1d649af8152",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.19/linux-amd64.tar.gz",
-        "sha256": "2480a12d18d1fec1d52474099fbf853803c85d22ef247b07bd2814596702c0a9",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.19/linux-arm64.tar.gz",
-        "sha256": "f641c7d77f416858fec50e5701bda5e6733f4315ae8906dc662ab3de11eab5ff",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.19/windows-amd64.tar.gz",
-        "sha256": "80e281ab6607e7daabf91ac8a0127ddcd72bb7706bab6c8a67c5146f13dbb2a6",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.10.11/python-3.10.11-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.2": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.2/darwin-amd64.tar.gz",
-        "sha256": "8146ad4390710ec69b316a5649912df0247d35f4a42e2aa9615bffd87b3e235a",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.2/darwin-arm64.tar.gz",
-        "sha256": "1409acd9a506e2d1d3b65c1488db4e40d8f19d09a7df099667c87a506f71c0ef",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.2/linux-amd64.tar.gz",
-        "sha256": "9b64eca2a94f7aff9409ad70bdaa7fbbf8148692662e764401883957943620dd",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.2/linux-arm64.tar.gz",
-        "sha256": "8f351a8cc348bb45c0f95b8634c8345ec6e749e483384188ad865b7428342703",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.2/windows-amd64.zip",
-        "sha256": "13870c11100e9cb6fd8abd771330c76aea1cdbce31b2e6ecc98363db42bd1a66",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.2/python-3.10.2-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.2/windows-arm64.zip",
-        "sha256": "2879e846f71a64c8dcc53d87b6a95660c54b75a41b9e12c76d02b5224085b781",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.2/python-3.10.2-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.10.3": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.3/darwin-amd64.tar.gz",
-        "sha256": "ec2e90b6a589db7ef9f74358b1436558167629f9e4d725c8150496f9cb08a9d4",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.3/darwin-arm64.tar.gz",
-        "sha256": "db46dadfccc407aa1f66ed607eefbf12f781e343adcb1edee0a3883d081292ce",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.3/linux-amd64.tar.gz",
-        "sha256": "b9989411bed71ba4867538c991f20b55f549dd9131905733f0df9f3fde81ad1d",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.3/linux-arm64.tar.gz",
-        "sha256": "f52ee68c13c4f9356eb78a5305d3178af2cb90c38a8ce8ce9990a7cf6ff06144",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.3/windows-amd64.zip",
-        "sha256": "7bfc1f9d1aaa03e16007509b81f8d0c55331c10f078c8c2f1d4160fd441124c2",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.3/python-3.10.3-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.4": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.4/darwin-amd64.tar.gz",
-        "sha256": "c4a57a13b084d49ce8c2eb5b2662ee45b0c55b08ddd696f473233b0787f03988",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.4/darwin-arm64.tar.gz",
-        "sha256": "6d2e4e6b1c403bce84cfb846400754017f525fe8017f186e8e7072fcaaf3aa71",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.4/linux-amd64.tar.gz",
-        "sha256": "1f8423808ad84c0e56c8e14c32685cbfbc1159e0d9f943ac946f29e84cf1b5ee",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.4/linux-arm64.tar.gz",
-        "sha256": "7a8989392dc9b41d85959a752448c60852cf0061de565e98445c27f6bbdf63be",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.4/windows-amd64.zip",
-        "sha256": "8b9f20bc55968d5b6c09d55afc3383a9deea81baf7a63b5e430bf809cfd5a082",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.4/python-3.10.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.5": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.5/darwin-amd64.tar.gz",
-        "sha256": "eca0584397d9a3ef6f7bb32b0476318b01c89b7b0a031ef97a0dcaa5ba5127a8",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.5/darwin-arm64.tar.gz",
-        "sha256": "19d1aa4a6d9ddb0094fc36961b129de9abe1673bce66c86cd97b582795c496a8",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.5/linux-amd64.tar.gz",
-        "sha256": "460f87a389be28c953c24c6f942f172f9ce7f331367b4daf89cb450baedd51d7",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.5/linux-arm64.tar.gz",
-        "sha256": "012fa37c12d2647d76d004dc003302563864d2f1cd0731b71eeafad63d28b3f0",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.5/windows-amd64.zip",
-        "sha256": "a58959ac2b636105fa7c2308508c281f578a70fda15249a04d04b4d26b5ea2cf",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.5/python-3.10.5-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.6": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.6/darwin-amd64.tar.gz",
-        "sha256": "7718411adf3ea1480f3f018a643eb0550282aefe39e5ecb3f363a4a566a9398c",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.6/darwin-arm64.tar.gz",
-        "sha256": "efaf66acdb9a4eb33d57702607d2e667b1a319d58c167a43c96896b97419b8b7",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.6/linux-amd64.tar.gz",
-        "sha256": "55aa2190d28dcfdf414d96dc5dcea9fe048fadcd583dc3981fec020869826111",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.6/linux-arm64.tar.gz",
-        "sha256": "81625f5c97f61e2e3d7e9f62c484b1aa5311f21bd6545451714b949a29da5435",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.6/windows-amd64.zip",
-        "sha256": "c5e3af5d40944d1dbb03740564378f168235e316a2b47c99dcfe46ac837db3d2",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.6/python-3.10.6-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.7": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.7/darwin-amd64.tar.gz",
-        "sha256": "6101f580434544d28d5590543029a7c6bdf07efa4bcdb5e4cbedb3cd83241922",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.7/darwin-arm64.tar.gz",
-        "sha256": "70f6ca1da8e6fce832ad0b7f9fdaba0b84ba0ac0a4c626127acb6d49df4b8f91",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.7/linux-amd64.tar.gz",
-        "sha256": "c12c9ad2b2c75464541d897c0528013adecd8be5b30acf4411f7759729841711",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.7/linux-arm64.tar.gz",
-        "sha256": "dfeec186a62a6068259d90e8d77e7d30eaf9c2b4ae7b205ff8caab7cb21f277c",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.7/windows-amd64.zip",
-        "sha256": "b885cbc7cc354afa31ac01d804c552ec9a91de855f46e44a805fc7e74a6bf089",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.7/python-3.10.7-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.8": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.8/darwin-amd64.tar.gz",
-        "sha256": "525b79c7ce5de90ab66bd07b0ac1008bafa147ddc8a41bef15ffb7c9c1e9e7c5",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.8/darwin-arm64.tar.gz",
-        "sha256": "d52b03817bd245d28e0a8b2f715716cd0fcd112820ccff745636932c76afa20a",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.8/linux-amd64.tar.gz",
-        "sha256": "6c8db44ae0e18e320320bbaaafd2d69cde8bfea171ae2d651b7993d1396260b7",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.8/linux-arm64.tar.gz",
-        "sha256": "33170bef18c811906b738be530f934640491b065bf16c4d276c6515321918132",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.8/windows-amd64.zip",
-        "sha256": "ae2d864483d94be3c54125ac30a2d73d55a4f73816712911fdee4d4235db0ccc",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.8/python-3.10.8-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.10.9": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.9/darwin-amd64.tar.gz",
-        "sha256": "0e685f98dce0e5bc8da93c7081f4e6c10219792e223e4b5886730fd73a7ba4c6",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.9/darwin-arm64.tar.gz",
-        "sha256": "018d05a779b2de7a476f3b3ff2d10f503d69d14efcedd0774e6dab8c22ef84ff",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.9/linux-amd64.tar.gz",
-        "sha256": "d196347aeb701a53fe2bb2b095abec38d27d0fa0443f8a1c2023a1bed6e18cdf",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.10.9/linux-arm64.tar.gz",
-        "sha256": "2003750f40cd09d4bf7a850342613992f8d9454f03b3c067989911fb37e7a4d1",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.10.9/windows-amd64.zip",
-        "sha256": "8712433e84811fb8fcf877beabe12f86cb843c94bb1cac62c43e2d717a87b2ad",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.10.9/python-3.10.9-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.11.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.0/windows-amd64.zip",
-        "sha256": "68fb03784e8545c35bcb5f240b696e6e676ca3e5fb90926ed0673d564299fb94",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.0/windows-arm64.zip",
-        "sha256": "bae016bac5d96b980b2e75cbcb175e166ab08c23c24cca26b596cfe4fcb81aa6",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.1": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.1/darwin-amd64.tar.gz",
-        "sha256": "20a4203d069dc9b710f70b09e7da2ce6f473d6b1110f9535fb6f4c469ed54733",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.1/darwin-arm64.tar.gz",
-        "sha256": "4918cdf1cab742a90f85318f88b8122aeaa2d04705803c7b6e78e81a3dd40f80",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.1/linux-amd64.tar.gz",
-        "sha256": "02a551fefab3750effd0e156c25446547c238688a32fabde2995c941c03a6423",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.1/linux-arm64.tar.gz",
-        "sha256": "debf15783bdcb5530504f533d33fda75a7b905cec5361ae8f33da5ba6599f8b4",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.1/windows-amd64.zip",
-        "sha256": "3a6269cf0c0f8440a333998059e5e7ed8eaa1de576695d535224d87123f2adb0",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.1/python-3.11.1-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.1/windows-arm64.zip",
-        "sha256": "a2cd6214592603c5e1ec8453bcd54320e35cf1dd4ff7ad2bd9ace8f57f9ccd78",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.11.10": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.10/darwin-amd64.tar.gz",
-        "sha256": "1e23ffe5bc473e1323ab8f51464da62d77399afb423babf67f8e13c82b69c674",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.10/darwin-arm64.tar.gz",
-        "sha256": "5a69382da99c4620690643517ca1f1f53772331b347e75f536088c42a4cf6620",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.10/linux-amd64.tar.gz",
-        "sha256": "8b50a442b04724a24c1eebb65a36a0c0e833d35374dbdf9c9470d8a97b164cd9",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.10/linux-arm64.tar.gz",
-        "sha256": "803e49259280af0f5466d32829cd9d65a302b0226e424b3f0b261f9daf6aee8f",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.10/windows-amd64.tar.gz",
-        "sha256": "647b66ff4552e70aec3bf634dd470891b4a2b291e8e8715b3bdb162f577d4c55",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.11.11": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.11/darwin-amd64.tar.gz",
-        "sha256": "a870cd965e7dded5100d13b1d34cab1c32a92811e000d10fbfe9bbdb36cdaa0e",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.11/darwin-arm64.tar.gz",
-        "sha256": "19b147c7e4b742656da4cb6ba35bc3ea2f15aa5f4d1bbbc38d09e2e85551e927",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.11/linux-amd64.tar.gz",
-        "sha256": "51e47bc0d1b9f4bf68dd395f7a39f60c58a87cde854cab47264a859eb666bb69",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.11/linux-arm64.tar.gz",
-        "sha256": "7d52b5206afe617de2899af477f5a1d275ecbce80fb8300301b254ebf1da5a90",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.11/windows-amd64.tar.gz",
-        "sha256": "1cf5760eea0a9df3308ca2c4111b5cc18fd638b2a912dbe07606193e3f9aa123",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.11.12": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.12/darwin-amd64.tar.gz",
-        "sha256": "1fc7ee75b37a309443d5a214b83733cfda5ae7597559fb39ab8906f09c997c93",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.12/darwin-arm64.tar.gz",
-        "sha256": "77d16e24444fa12096818064fcc3c12b041b0746f4481e3652fc60ee027a7fb5",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.12/linux-amd64.tar.gz",
-        "sha256": "0c05bfc1e1f0f0b084af9e8b19f778cad6b431201a3169587291a6c19264eb81",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.12/linux-arm64.tar.gz",
-        "sha256": "099085938a916e36c830ad2d74c78d760757d7f3218906394d49fff20c34b4d0",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.12/windows-amd64.tar.gz",
-        "sha256": "3258b902130179f72a3086ad87deccfa2f111faff54de444535d7b72d99f2b20",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.11.13": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.13/darwin-amd64.tar.gz",
-        "sha256": "82e3529dcd2b9bdc50bfaf7fe620fb23ccd1855c883246c40c3542ae6453ad78",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.13/darwin-arm64.tar.gz",
-        "sha256": "33aba1fa339241457329b7bf99fe63b1a6856dadf0705c1c786182cbcee91b01",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.13/linux-amd64.tar.gz",
-        "sha256": "c102eddacd398aeebb7c17664cf47c46c1b82402a5a63f1503c454b7d3d3471c",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.13/linux-arm64.tar.gz",
-        "sha256": "9e399423248aeae4f4355ea3f5f6d75585bcdd4bee7254c0d29e3db91eb98580",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.13/windows-amd64.tar.gz",
-        "sha256": "716b6c2a7fc0dbf92f2c417435d1a119d6d0b577125096d8d204a24aa181c89a",
-        "sha256_source": "upstream"
-      },
-      "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.13/windows-arm64.tar.gz",
-        "sha256": "672168d9e767010985a006907cfce5b90e3b87e67aae39e3ff520ed951695c96",
-        "sha256_source": "upstream"
-      }
-    },
-    "3.11.14": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.14/darwin-amd64.tar.gz",
-        "sha256": "349e3dd390ec8fb6e17240e8959e9acd6ccd70b4f94ab09a1b8351813639f521",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.14/darwin-arm64.tar.gz",
-        "sha256": "b666eb9720087fad7ec6f63e4a6f024f3e70ce7344a5861f40fa134bc65268a8",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.14/linux-amd64.tar.gz",
-        "sha256": "388773329ffa3f13e063fe9795d551422264fef17a7964d71d40817360836d12",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.14/linux-arm64.tar.gz",
-        "sha256": "6c633271a0029986b188fb3d6a4b62cfefb90625fa58bc4a2df3386dad51d61f",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.14/windows-amd64.tar.gz",
-        "sha256": "9c2e7adacde8c6c642ac458fc329336dda7e1401e00af46452e5955c26ffc188",
-        "sha256_source": "upstream"
-      },
-      "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.14/windows-arm64.tar.gz",
-        "sha256": "6d607c1041d0a6c6e162cf789f79854d662b255b5bcd3781f7805dc91505f67b",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.11.1/python-3.11.1-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.2": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.2/windows-amd64.zip",
-        "sha256": "8d7c49fff390e626038458dad32faf2ad5f762d9966fb0b2383dcfc44dc6e403",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.2/python-3.11.2-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.2/windows-arm64.zip",
-        "sha256": "25885e4881796d669392a8b7cdbf67f241f2738792c7359cb00d3efd49616930",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.2/python-3.11.2-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.3": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.3/darwin-amd64.tar.gz",
-        "sha256": "f710b8d60621308149c100d5175fec39274ed0b9c99645484fd93d1716ef4310",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.3/darwin-arm64.tar.gz",
-        "sha256": "09e412506a8d63edbb6901742b54da9aa7faf120b8dbdce56c57b303fc892c86",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.3/linux-amd64.tar.gz",
-        "sha256": "da50b87d1ec42b3cb577dfd22a3655e43a53150f4f98a4bfb40757c9d7839ab5",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.3/linux-arm64.tar.gz",
-        "sha256": "8190accbbbbcf7620f1ff6d668e4dd090c639665d11188ce864b62554d40e5ab",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.3/windows-amd64.zip",
-        "sha256": "7419b2e98516fbd0b66a1237b80187ffb21d32e47b4a4235c2d9d6379597070f",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.3/python-3.11.3-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.3/windows-arm64.zip",
-        "sha256": "03bad6a7c898fc8f693982437aab6db698107b82ea93f76424195ae2c161246c",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.3/python-3.11.3-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.4": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.4/darwin-amd64.tar.gz",
-        "sha256": "47e1557d93a42585972772e82661047ca5f608293158acb2778dccf120eabb00",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.4/darwin-arm64.tar.gz",
-        "sha256": "cb6d2948384a857321f2aa40fa67744cd9676a330f08b6dad7070bda0b6120a4",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.4/linux-amd64.tar.gz",
-        "sha256": "e26247302bc8e9083a43ce9e8dd94905b40d464745b1603041f7bc9a93c65d05",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.4/linux-arm64.tar.gz",
-        "sha256": "2e84fc53f4e90e11963281c5c871f593abcb24fc796a50337fa516be99af02fb",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.4/windows-amd64.zip",
-        "sha256": "126802ff9fe787b961ae4d877262e6d6ce807d636295ef429c02e4dfd3e48041",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.4/python-3.11.4-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.4/windows-arm64.zip",
-        "sha256": "ec921f6fe9bc438396229a1cc61ec8d8b0b4481ba2515d0544872bb205baf610",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.4/python-3.11.4-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.5": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.5/darwin-amd64.tar.gz",
-        "sha256": "4a4efa7378c72f1dd8ebcce1afb99b24c01b07023aa6b8fea50eaedb50bf2bfc",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.5/darwin-arm64.tar.gz",
-        "sha256": "dab64b3580118ad2073babd7c29fd2053b616479df5c107d31fe2af1f45e948b",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.5/linux-amd64.tar.gz",
-        "sha256": "fbed6f7694b2faae5d7c401a856219c945397f772eea5ca50c6eb825cbc9d1e1",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.5/linux-arm64.tar.gz",
-        "sha256": "bb5c5d1ea0f199fe2d3f0996fff4b48ca6ddc415a3dbd98f50bff7fce48aac80",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.5/windows-amd64.zip",
-        "sha256": "d82391a2e51c3684987c61f6b7cedbff3ce9fbe2e39cd948d32b0da866544b17",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.5/python-3.11.5-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.5/windows-arm64.zip",
-        "sha256": "9bd02acac9bd52c5d02486f088504ce2c822446253c5d34a350c97cde918e6bb",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.5/python-3.11.5-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.6": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.6/darwin-amd64.tar.gz",
-        "sha256": "178cb1716c2abc25cb56ae915096c1a083e60abeba57af001996e8bc6ce1a371",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.6/darwin-arm64.tar.gz",
-        "sha256": "916c35125b5d8323a21526d7a9154ca626453f63d0878e95b9f613a95006c990",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.6/linux-amd64.tar.gz",
-        "sha256": "ee37a7eae6e80148c7e3abc56e48a397c1664f044920463ad0df0fc706eacea8",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.6/linux-arm64.tar.gz",
-        "sha256": "3e26a672df17708c4dc928475a5974c3fb3a34a9b45c65fb4bd1e50504cc84ec",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.6/windows-amd64.zip",
-        "sha256": "26d93c29cd627e7fc2085a7f08a88684c2831c3eed361d2be606ad89a023f194",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.6/python-3.11.6-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.6/windows-arm64.zip",
-        "sha256": "c862c2657822563f2813f8589864e609a73417c1e83ad4a955d2106ae8645d60",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.6/python-3.11.6-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.7": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.7/darwin-amd64.tar.gz",
-        "sha256": "a0e615eef1fafdc742da0008425a9030b7ea68a4ae4e73ac557ef27b112836d4",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.7/darwin-arm64.tar.gz",
-        "sha256": "b042c966920cf8465385ca3522986b12d745151a72c060991088977ca36d3883",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.7/linux-amd64.tar.gz",
-        "sha256": "4a51ce60007a6facf64e5495f4cf322e311ba9f39a8cd3f3e4c026eae488e140",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.7/linux-arm64.tar.gz",
-        "sha256": "b102eaf865eb715aa98a8a2ef19037b6cc3ae7dfd4a632802650f29de635aa13",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.7/windows-amd64.zip",
-        "sha256": "a5288b63b6218902e9184d75b5ab2aaa1d37b8aa57098193464d6a48aba01496",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.7/python-3.11.7-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.7/windows-arm64.zip",
-        "sha256": "c77f38129a18b508829942544b29e8b0dac4c085b685d579d4b5af4618cd5712",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.7/python-3.11.7-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.8": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.8/darwin-amd64.tar.gz",
-        "sha256": "097f467b0c36706bfec13f199a2eaf924e668f70c6e2bd1f1366806962f7e86e",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.8/darwin-arm64.tar.gz",
-        "sha256": "389a51139f5abe071a0d70091ca5df3e7a3dfcfcbe3e0ba6ad85fb4c5638421e",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.8/linux-amd64.tar.gz",
-        "sha256": "94e13d0e5ad417035b80580f3e893a72e094b0900d5d64e7e34ab08e95439987",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.8/linux-arm64.tar.gz",
-        "sha256": "389b9005fb78dd5a6f68df5ea45ab7b30d9a4b3222af96999e94fd20d4ad0c6a",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.8/windows-amd64.zip",
-        "sha256": "6347068ca56bf4dd6319f7ef5695f5a03f1ade3e9aa2d6a095ab27faa77a1290",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.8/windows-arm64.zip",
-        "sha256": "c84a1f008c352042a6ea2c9f741f6d9e49f74fe945c389b5d2ff43236f417b92",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.11.9": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.9/darwin-amd64.tar.gz",
-        "sha256": "76073305812c093ce840df9c4c17068aa69da8d951e7376ef48f43376986a13e",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.9/darwin-arm64.tar.gz",
-        "sha256": "8760e908f25fdc8a01f4d1b101854ac047b4eacb723fb2593a168fb989c86eef",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.9/linux-amd64.tar.gz",
-        "sha256": "9a332ba354f3b4e8a96a15db6b2805a7a31dcc1b6b9c1b7b93e5246949fbb50f",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.11.9/linux-arm64.tar.gz",
-        "sha256": "c74a3313e081dda8360d1824baa4eae5303333555bf8440ec2de521731e39165",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.11.9/windows-amd64.tar.gz",
-        "sha256": "4c71d25731214b8a960d1d87510f24179d819249c5b434aaf7135818421b6215",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.0": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.0/darwin-amd64.tar.gz",
-        "sha256": "5a9e88c8aa52b609d556777b52ebde464ae4b4f77e4aac4eb693af57395c9abf",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.0/darwin-arm64.tar.gz",
-        "sha256": "4734a2be2becb813830112c780c9879ac3aff111a0b0cd590e65ec7465774d02",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.0/linux-amd64.tar.gz",
-        "sha256": "e51a5293f214053ddb4645b2c9f84542e2ef86870b8655704367bd4b29d39fe9",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.0/linux-arm64.tar.gz",
-        "sha256": "bccfe67cf5465a3dfb0336f053966e2613a9bc85a6588c2fcf1366ef930c4f88",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.0/windows-amd64.zip",
-        "sha256": "c87f000e3dae1a572e98e81daeb622f8bc6f22664093fc9c70989b5f0018d49b",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.0/python-3.12.0-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.0/windows-arm64.zip",
-        "sha256": "d499369a8b29d13c7166a8bbc34d0ff48c6550ddfbb0d36763a572d474eada12",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.0/python-3.12.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.1": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.1/darwin-amd64.tar.gz",
-        "sha256": "eca96158c1568dedd9a0b3425375637a83764d1fa74446438293089a8bfac1f8",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.1/darwin-arm64.tar.gz",
-        "sha256": "f93f8375ca6ac0a35d58ff007043cbd3a88d9609113f1cb59cf7c8d215f064af",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.1/linux-amd64.tar.gz",
-        "sha256": "74e330b8212ca22fd4d9a2003b9eec14892155566738febc8e5e572f267b9472",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.1/linux-arm64.tar.gz",
-        "sha256": "236533ef20e665007a111c2f36efb59c87ae195ad7dca223b6dc03fb07064f0b",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.1/windows-amd64.zip",
-        "sha256": "7a77c7471f5ceee88831a29b9460eddd784adf31b0230f188149ef0c588642d1",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.1/windows-arm64.zip",
-        "sha256": "7d03628712262a768b1211c4438b6e40e030380937b459495db3ea7a9da6e255",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.1/python-3.12.1-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.10": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.10/darwin-amd64.tar.gz",
-        "sha256": "736bd4f3a422564c32ecc1a4999ef83ea7635a255318c0f9029bc9b0e258035f",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.10/darwin-arm64.tar.gz",
-        "sha256": "896af337e29993b52fecea36e5db371e6569affb7ef5de9ebb166045a0b158eb",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.10/linux-amd64.tar.gz",
-        "sha256": "3b7de567f4a8a1c3e5be2d51af3023dd3c1075cfacb6cd8efb511e0ef4b31fa8",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.10/linux-arm64.tar.gz",
-        "sha256": "3a3b056810dfeab40e2b9ec91db1b928707e2a6ac4457a8be8a8b82eccb49070",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.10/windows-amd64.tar.gz",
-        "sha256": "3e0fd10e4bd60e66baad8be2a0e60775bb389e97e4f4a07138c34599c356aaed",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.12.11": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.11/darwin-amd64.tar.gz",
-        "sha256": "f66c1a051514a10f694ff4e1d0d5faca01bf74bbb40e7ef4c10207a119e63e24",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.11/darwin-arm64.tar.gz",
-        "sha256": "bcc44db7dce409d082d3a0a7032cd90d57f7c7b59fec868d36bf1fb28bf63989",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.11/linux-amd64.tar.gz",
-        "sha256": "e91f024fd30007a7e25f4e151ec65e19600f915fd5ed36eafe30c56c4056c323",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.11/linux-arm64.tar.gz",
-        "sha256": "acb7db76d010d3430695f8c6618088c3ba3cffdf78aa30a6fb26900b499244dc",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.11/windows-amd64.tar.gz",
-        "sha256": "ada8701d4771525fcaccd41922e58f821c01e6cb40d53e7f21cb0c5e1ede156c",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.11/windows-arm64.tar.gz",
-        "sha256": "c45c6918bc7573874fa1f1ce03839bd1352e0afef027b5d01299b463a4ca108a",
-        "sha256_source": "upstream"
-      }
-    },
-    "3.12.12": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.12/darwin-amd64.tar.gz",
-        "sha256": "8ca4e4634aa171f2b64a64da65f9c3faa9bbb276962f8a793f418ec7df0d6460",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.12/darwin-arm64.tar.gz",
-        "sha256": "c53781d2dc3bf2fd8a4dcc21843ce11f3ec5b1993442f4f78ee01bec73da0997",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.12/linux-amd64.tar.gz",
-        "sha256": "16cb15287688b0f19f9980399b3af31c6e3044a9ba8b1e5fb04c65381d3e8dce",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.12/linux-arm64.tar.gz",
-        "sha256": "63f92fe9dede7bf781516810ed89cb4381fc2113fc2e8f4e0689a71abc7fb65b",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.12/windows-amd64.tar.gz",
-        "sha256": "33a611265c1abfd245ea1fd23273f8535857883552be1bd8b62dfe7db9ef0694",
-        "sha256_source": "upstream"
-      },
-      "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.12/windows-arm64.tar.gz",
-        "sha256": "604678ff8dbb59dd4442593ea57593170de160ccfe7f075e5e378330a27c9f93",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.2": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.2/darwin-amd64.tar.gz",
-        "sha256": "a53a6670a202c96fec0b8c55ccc780ea3af5307eb89268d5b41a9775b109c094",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.2/darwin-arm64.tar.gz",
-        "sha256": "01c064c00013b0175c7858b159989819ead53f4746d40580b5b0b35b6e80fba6",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.2/linux-amd64.tar.gz",
-        "sha256": "57a37b57f8243caa4cdac016176189573ad7620f0b6da5941c5e40660f9468ab",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.2/linux-arm64.tar.gz",
-        "sha256": "e52550379e7c4ac27a87de832d172658bc04150e4e27d4e858e6d8cbb96fd709",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.2/windows-amd64.zip",
-        "sha256": "144ee3fa0c4171f98ec554ac01bb44ee1e895d154609f143b1d20b52c3fe383e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.2/windows-arm64.zip",
-        "sha256": "27eb49582dec56f6926bb6c416ee61bf33b67a8ab19fbf04ed53888df62d4fe4",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.2/python-3.12.2-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.3": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.3/darwin-amd64.tar.gz",
-        "sha256": "c37a22fca8f57d4471e3708de6d13097668c5f160067f264bb2b18f524c890c8",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.3/darwin-arm64.tar.gz",
-        "sha256": "ccc40e5af329ef2af81350db2a88bbd6c17b56676e82d62048c15d548401519e",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.3/linux-amd64.tar.gz",
-        "sha256": "a73ba777b5d55ca89edef709e6b8521e3f3d4289581f174c8699adfb608d09d6",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.3/linux-arm64.tar.gz",
-        "sha256": "ec8126de97945e629cca9aedc80a29c4ae2992c9d69f2655e27ae73906ba187d",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.3/windows-amd64.tar.gz",
-        "sha256": "f7cfa4ad072feb4578c8afca5ba9a54ad591d665a441dd0d63aa366edbe19279",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.3/python-3.12.3-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.3/python-3.12.3-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.4": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.4/darwin-amd64.tar.gz",
-        "sha256": "4c325838c1b0ed13698506fcd515be25c73dcbe195f8522cf98f9148a97601ed",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.4/darwin-arm64.tar.gz",
-        "sha256": "1801025e825c04b3907e4ef6220a13607bc0397628c9485897073110ef7fde15",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.4/linux-amd64.tar.gz",
-        "sha256": "e133dd6fc6a2d0033e2658637cc22e9c95f9d7073b80115037ee1f16417a54ac",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.4/linux-arm64.tar.gz",
-        "sha256": "a098b18b7e9fea0c66867b76c0124fce9465765017572b2e7b522154c87c78d7",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.4/windows-amd64.tar.gz",
-        "sha256": "74309b0f322716409883d38c621743ea7fa0376eb00927b8ee1e1671d3aff450",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.4/python-3.12.4-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.4/python-3.12.4-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.5": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.5/darwin-amd64.tar.gz",
-        "sha256": "4c7619c25c037d377eebe8c7b98e6c818276b55714536ea82be2325d5e8ad572",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.5/darwin-arm64.tar.gz",
-        "sha256": "6943873ffcede238280a8fc0dbd4916c9bff54cf6a759352f86077c556c0c3a5",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.5/linux-amd64.tar.gz",
-        "sha256": "3be3bd9b7bd11f4a71bcaf16813fe61f93812cdb814da3fb0d7298f1086752ef",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.5/linux-arm64.tar.gz",
-        "sha256": "36181612a3467f5e7c322c69fa85e12baf8370ae33456fca7cc821cfbe4df5f7",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.5/windows-amd64.tar.gz",
-        "sha256": "ba89687d1a1b68e662ca40bdbcbfb2457903553329ba3020f4c96365fda4a254",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.5/python-3.12.5-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.5/python-3.12.5-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.6": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.6/darwin-amd64.tar.gz",
-        "sha256": "8c56da91436bee158b0d592aed3393c1fe3da3694ca35950ee1c52935ba8bfd5",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.6/darwin-arm64.tar.gz",
-        "sha256": "899f46eb592fcac4e834c064e4c901e8a4a6b5864e80b18efd2f0b7c3c050584",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.6/linux-amd64.tar.gz",
-        "sha256": "68ff386c923c59a33a272bd984b8a33fe8117c56ad7f7552e0c2b21937ee3c0b",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.6/linux-arm64.tar.gz",
-        "sha256": "caac1033f68f69d8978dc8c6b6964cfb9d8a111abc55c03403bd4ece63f331f3",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.6/windows-amd64.tar.gz",
-        "sha256": "6280ce84c87ebaca2c4b42040bad48e7efbfd1b3f323579378ecf043e9fb023d",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.6/python-3.12.6-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.6/python-3.12.6-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.7": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.7/darwin-amd64.tar.gz",
-        "sha256": "60c5271e7edc3c2ab47440b7abf4ed50fbc693880b474f74f05768f5b657045a",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.7/darwin-arm64.tar.gz",
-        "sha256": "4c18852bf9c1a11b56f21bcf0df1946f7e98ee43e9e4c0c5374b2b3765cf9508",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.7/linux-amd64.tar.gz",
-        "sha256": "43576f7db1033dd57b900307f09c2e86f371152ac8a2607133afa51cbfc36064",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.7/linux-arm64.tar.gz",
-        "sha256": "bba3c6be6153f715f2941da34f3a6a69c2d0035c9c5396bc5bb68c6d2bd1065a",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.7/windows-amd64.tar.gz",
-        "sha256": "f05531bff16fa77b53be0776587b97b466070e768e6d5920894de988bdcd547a",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.8": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.8/darwin-amd64.tar.gz",
-        "sha256": "b81ae8ea17fce6e173649120fcc4eda123bb8df54890894bbec432f527fbe75c",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.8/darwin-arm64.tar.gz",
-        "sha256": "e29003b69465c33692830032d9d237d84ea43a2e8461db9134641640fb49f040",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.8/linux-amd64.tar.gz",
-        "sha256": "e5435e717c934ed30d4066f64e858497c27f37c1ba547f403b050d9221e50ea4",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.8/linux-arm64.tar.gz",
-        "sha256": "2e08c1d4de239290b9fc3bef90f121349819b473149083470d16081dd293050c",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.8/windows-amd64.tar.gz",
-        "sha256": "86ee8267900240c96369adb2cbc1af8f543f860d2e22be5adb7362f3cbe61059",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.8/python-3.12.8-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.12.9": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.9/darwin-amd64.tar.gz",
-        "sha256": "1ee1b1bb9fbce5c145c4bec9a3c98d7a4fa22543e09a7c1d932bc8599283c2dc",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.9/darwin-arm64.tar.gz",
-        "sha256": "7c7fd9809da0382a601a79287b5d62d61ce0b15f5a5ee836233727a516e85381",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.9/linux-amd64.tar.gz",
-        "sha256": "ef382fb88cbb41a3b0801690bd716b8a1aec07a6c6471010bcc6bd14cd575226",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.12.9/linux-arm64.tar.gz",
-        "sha256": "00c6bf9acef21ac741fea24dc449d0149834d30e9113429e50a95cce4b00bb80",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.12.9/windows-amd64.tar.gz",
-        "sha256": "d15361fd202dd74ae9c3eece1abdab7655f1eba90bf6255cad1d7c53d463ed4d",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.12.9/python-3.12.9-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.12.9/python-3.12.9-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.0": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.0/darwin-amd64.tar.gz",
-        "sha256": "cff1b7e7cd26f2d47acac1ad6590e27d29829776f77e8afa067e9419f2f6ce77",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.0/darwin-arm64.tar.gz",
-        "sha256": "31397953849d275aa2506580f3fa1cb5a85b6a3d392e495f8030e8b6412f5556",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.0/linux-amd64.tar.gz",
-        "sha256": "2c8cb15c6a2caadaa98af51df6fe78a8155b8471cb3dd7b9836038e0d3657fb4",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.0/linux-arm64.tar.gz",
-        "sha256": "e8378c0162b2e0e4cc1f62b29443a3305d116d09583304dbb0149fecaff6347b",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.0/windows-amd64.tar.gz",
-        "sha256": "b25926e8ce4164cf103bacc4f4d154894ea53e07dd3fdd5ebb16fb1a82a7b1a0",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.13.0/python-3.13.0-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.13.0/python-3.13.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.1": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.1/darwin-amd64.tar.gz",
-        "sha256": "994c233cf86487b61283db63363ee969cf69dc551fba389c6d6d4e8534d4735f",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.1/darwin-arm64.tar.gz",
-        "sha256": "d00ac75b15a05da2f6bc0057fe36f6944f9d513239f1c7af12766e03f288fe65",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.1/linux-amd64.tar.gz",
-        "sha256": "5e7d73b3144d51f15fca492c0f8afd9f690fd3e7bfa61e259beb3650d0336e1b",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.1/linux-arm64.tar.gz",
-        "sha256": "df7f2a1ff4af907c16349b2a1554becfd3675b94289c7f978fd6e10faa6af4ab",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.1/windows-amd64.tar.gz",
-        "sha256": "92021e1151d118db94689a38407248de96d8a2b8ffa9c4ae31b990441fda0aa0",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.13.1/python-3.13.1-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.13.1/python-3.13.1-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.10": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.10/darwin-amd64.tar.gz",
-        "sha256": "a02761a4f189f71c0512e88df7ca2843696d61da659e47f8a5c8a9bd2c0d16f4",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.10/darwin-arm64.tar.gz",
-        "sha256": "37afe4e77ab62ac50f197b1cb1f3bc02c82735c6be893da0996afcde5dc41048",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.10/linux-amd64.tar.gz",
-        "sha256": "0cac1495fff920219904b1d573aaec0df54d549c226cb45f5c60cb6d2c72727a",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.10/linux-arm64.tar.gz",
-        "sha256": "c68280591cda1c9515a04809fa6926020177e8e5892300206e0496ea1d10290e",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.10/windows-amd64.tar.gz",
-        "sha256": "8b00014c7c35f9ad4cb1c565f067500bacc4125c8bc30e4389ee0be9fd6ffa3d",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.10/python-3.13.10-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.10/windows-arm64.tar.gz",
-        "sha256": "9060d644bd32ac0e0af970d0b21e207e6ff416b7c4dc26ffc4f9b043fb45b463",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.10/python-3.13.10-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.11": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.11/darwin-amd64.tar.gz",
-        "sha256": "dac4a0a0a9b71f6b02a8b0886547fa22814474239bffb948e3e77185406ea136",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.11/darwin-arm64.tar.gz",
-        "sha256": "295a9f7bc899ea1cc08baf60bbf511bdd1e4a29b2dd7e5f59b48f18bfa6bf585",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.11/linux-amd64.tar.gz",
-        "sha256": "1ffa06d714a44aea14c0c54c30656413e5955a6c92074b4b3cb4351dcc28b63b",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.11/linux-arm64.tar.gz",
-        "sha256": "ea1e678e6e82301bb32bf3917732125949b6e46d541504465972024a3f165343",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.11/windows-amd64.tar.gz",
-        "sha256": "87822417007045a28a7eccc47fe67b8c61265b99b10dbbfa24d231a3622b1c27",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.11/python-3.13.11-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.11/windows-arm64.tar.gz",
-        "sha256": "ba646d0c3b7dd7bdfb770d9b2ebd6cd2df02a37fda90c9c79a7cf59c7df6f165",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.11/python-3.13.11-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.2": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.2/darwin-amd64.tar.gz",
-        "sha256": "ee4526e84b5ce5b11141c50060b385320f2773616249a741f90c96d460ce8e8f",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.2/darwin-arm64.tar.gz",
-        "sha256": "faa44274a331eb39786362818b21b3a4e74514e8805000b20b0e55c590cecb94",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.2/linux-amd64.tar.gz",
-        "sha256": "db011f0cd29cab2291584958f4e2eb001b0e6051848d89b38a2dc23c5c54e512",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.2/linux-arm64.tar.gz",
-        "sha256": "9c67260446fee6ea706dad577a0b32936c63f449c25d66e4383d5846b2ab2e36",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.2/windows-amd64.tar.gz",
-        "sha256": "84d7b52f3558c8e35c670a4fa14080c75e3ec584adfae49fec8b51008b75b21e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.13.2/python-3.13.2-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.13.2/python-3.13.2-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.3": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.3/darwin-amd64.tar.gz",
-        "sha256": "155ae058c171f2080fd0a17e66d01f2ce4a146e112a44f9b39dc497d88ec2909",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.3/darwin-arm64.tar.gz",
-        "sha256": "f6a8b64ded398d60b2a10dcef8d81df6d53a87baf24bee79d413cc6f35d3874d",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.3/linux-amd64.tar.gz",
-        "sha256": "2a9fec6a0100d440c23c9d78f6d89a1a5b2a01e780abd7f5ec25ceb6ea0af985",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.3/linux-arm64.tar.gz",
-        "sha256": "ee001fa47bf5e2405713ba663ae681078394ae64ab04e1981acb927570a36b58",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.3/windows-amd64.tar.gz",
-        "sha256": "a5513362690343663aeb51ae0c3989eb4e187ecdba0497aea6b72931472e245d",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.13.3/python-3.13.3-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.13.3/python-3.13.3-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.4": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.4/darwin-amd64.tar.gz",
-        "sha256": "79feb6ca68f3921d07af52d9db06cf134e6f36916941ea850ab0bc20f5ff638b",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.4/darwin-arm64.tar.gz",
-        "sha256": "c2ce6601b2668c7bd1f799986af5ddfbff36e88795741864aba6e578cb02ed7f",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.4/linux-amd64.tar.gz",
-        "sha256": "44e5477333ebca298a7a0a316985c6c3533b8645f92a83f7f73c44033832bf32",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.4/linux-arm64.tar.gz",
-        "sha256": "3c2596ece08ffe17e11bc1f27aeb4ce1195d2490a83d695d36ef4933d5c5ca53",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.4/windows-amd64.tar.gz",
-        "sha256": "29ac3585cc2dcfd79e3fe380c272d00e9d34351fc456e149403c86d3fea34057",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.4/python-3.13.4-embed-amd64.zip",
+        "sha256": ""
+      },
+      "windows-arm64": {
+        "url": "https://www.python.org/ftp/python/3.13.4/python-3.13.4-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.5": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.5/darwin-amd64.tar.gz",
-        "sha256": "6b508822f5238451a5dcc52f07310b74aaa701ed963bba923cc7f4d24010cc21",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.5/darwin-arm64.tar.gz",
-        "sha256": "734c2f197cf2464d18308458c32679f38f22f31a911f86193e0f04dd56400f33",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.5/linux-amd64.tar.gz",
-        "sha256": "56bf8099cfcc3aac8dadcf2be53c48e5998d74cf5da600691dbf16be3f0b8f76",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.5/linux-arm64.tar.gz",
-        "sha256": "a6f558daf7d4e0e7017ad827a4f6bcc9e8fc4be0e42ddbbb3d13540c7a58d829",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.5/windows-amd64.tar.gz",
-        "sha256": "191aaa9c725afad7570d24940268038823df7d14e0afbd25d1e23af0b99190a7",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.5/python-3.13.5-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.5/windows-arm64.tar.gz",
-        "sha256": "4c2a578f472ec4bb34289b4afc5b930f97224b8cb351c9fa3722b8d736895ca3",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.5/python-3.13.5-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.6": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.6/darwin-amd64.tar.gz",
-        "sha256": "84552fc6e372022c5c92f2931fda0d53a70f6a9203e2db94cb40961fa9e01d68",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.6/darwin-arm64.tar.gz",
-        "sha256": "88c9c0c7ec29c93493084f25d78a4b4595f7b662578904c3b26e8c7f70a35e9b",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.6/linux-amd64.tar.gz",
-        "sha256": "3b31f0c51bfdcde4cb597f1d0d3a523c0eeb4640a5ed0b5fcc114bab34a893ad",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.6/linux-arm64.tar.gz",
-        "sha256": "e4ac95cb074ba70115f180fd9bea720534af0cd479ee22522ba9cfe304ab522c",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.6/windows-amd64.tar.gz",
-        "sha256": "f15b01f8956f65f3d4682221e8539a61159b6ce4117133c28e9252d0796565ce",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.6/python-3.13.6-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.6/windows-arm64.tar.gz",
-        "sha256": "21f256b31e0eabedc817f25af0051424152906b0a04663154b9a1f6bd9965b46",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.6/python-3.13.6-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.7": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.7/darwin-amd64.tar.gz",
-        "sha256": "4fb42ffc8aad2a42ca7646715b8926bc6b2e0d31f13d2fec25943dc236a6fd60",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.7/darwin-arm64.tar.gz",
-        "sha256": "7f5ec658219bdb1d1142c6abab89680322166c78350a017fb0af3c869dceee41",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.7/linux-amd64.tar.gz",
-        "sha256": "0a01bad99fd4a165a11335c29eb43015dfdb8bd5ba8e305538ebb54f3bf3146d",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.7/linux-arm64.tar.gz",
-        "sha256": "7d4448fe9b6fa37d8d16635d52d1d8ffb42576d85e23331ae345a07cfa60bc61",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.7/windows-amd64.tar.gz",
-        "sha256": "005cb2abf4cfa4aaa48fb10ce4e33fe4335ea4d1f55202dbe4e20c852e45e0f9",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.7/python-3.13.7-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.7/windows-arm64.tar.gz",
-        "sha256": "1f1f9941838bb294b3cfb6462b25506e60c5ed4f30a45d40a55d98f69e49d6ee",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.7/python-3.13.7-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.8": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.8/darwin-amd64.tar.gz",
-        "sha256": "e3b692599bb3c247a2f95c21577f8b85b70924a5f2d672c9e0005608d7b9c907",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.8/darwin-arm64.tar.gz",
-        "sha256": "0dc9061b9d8e02a9344aa569eecb795f41f16ac8bb215f973d8db9179700e296",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.8/linux-amd64.tar.gz",
-        "sha256": "12dd8995e8ec2df68cd1301b053f415c7884b8aae9d3459a2ac1448f781dbbbc",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.8/linux-arm64.tar.gz",
-        "sha256": "1b9af3c628cdbef3b9eb4c61df628bbc54f4684ace147f3dc9850c336c44c125",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.8/windows-amd64.tar.gz",
-        "sha256": "1dde7aab47a52e81b6bd3f7d1bc5fa2f3c9e428eb5f54f51e8b92ae0a3e2409f",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.8/python-3.13.8-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.8/windows-arm64.tar.gz",
-        "sha256": "430d9073f22c744d6ea8c224d7b458a6be3620f9bd2389068908c214ea4423f8",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.8/python-3.13.8-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.13.9": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.9/darwin-amd64.tar.gz",
-        "sha256": "3140da5a59668581b889e28e666a5f1eabe773c7ebd92509aeb5549a79d0fc01",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.9/darwin-arm64.tar.gz",
-        "sha256": "f8a42a4e68357f06c2890778c5b6540cafba432072dd1f5954b8ef621e85ca5f",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.9/linux-amd64.tar.gz",
-        "sha256": "d0917c3a3270e6bde46852dbdc6af1f9245dd528bd7c255981d8f49ffdc913dc",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.9/linux-arm64.tar.gz",
-        "sha256": "62a0fe87a2996f13631dad8a7e2b93998d3507e30a2b5e56901d3b3f3eafb25f",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.13.9/windows-amd64.tar.gz",
-        "sha256": "b722ffec99bb16db6e4d4a54f0bbc81b6bd6f31c966a18a96bada15057471880",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.9/python-3.13.9-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.13.9/windows-arm64.tar.gz",
-        "sha256": "ece65df55f0b850229e8b0ee6928f14418b37b662421665263b87c14291c8926",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.13.9/python-3.13.9-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.14.0": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.0/darwin-amd64.tar.gz",
-        "sha256": "29abec6d22562b9e0fcadc987ef178f72ae092aea79bc252f400dbff03de0257",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.0/darwin-arm64.tar.gz",
-        "sha256": "0c508b08257a31d047d36ea75e9af53acce2b17e225c3c35c168781041073643",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.0/linux-amd64.tar.gz",
-        "sha256": "4c4eb8334f3dc0199459dbaf84edf888f166b21ae96ed5d75aeb662a6decb51f",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.0/linux-arm64.tar.gz",
-        "sha256": "415d2ad7590b50b7c83927d5dde984bc76818ba5d876a274fe5a83a5001b45ad",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.0/windows-amd64.tar.gz",
-        "sha256": "e0d21d27d6ba3260876e1d267501e4520b0869ad24ba8e0afdb7dfb7294224fc",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.14.0/python-3.14.0-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.0/windows-arm64.tar.gz",
-        "sha256": "a45b06b0ff76b505da8acd6995696ebf4bcf67e742a62a02eb6be136690ce8af",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.14.0/python-3.14.0-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.14.1": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.1/darwin-amd64.tar.gz",
-        "sha256": "f25ce050e1d370f9c05c9623b769ffa4b269a6ae17e611b435fd2b8b09972a88",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.1/darwin-arm64.tar.gz",
-        "sha256": "cdf1ba0789f529fa34bb5b5619c5da9757ac1067d6b8dd0ee8b78e50078fc561",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.1/linux-amd64.tar.gz",
-        "sha256": "a72f313bad49846e5e9671af2be7476033a877c80831cf47f431400ccb520090",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.1/linux-arm64.tar.gz",
-        "sha256": "5dde7dba0b8ef34c0d5cb8a721254b1e11028bfc09ff06664879c245fe8df73f",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.1/windows-amd64.tar.gz",
-        "sha256": "cb478a5a37eb93ce4d3c27ae64d211d6a5a42475ae53f666a8d1570e71fcf409",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.14.1/python-3.14.1-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.1/windows-arm64.tar.gz",
-        "sha256": "19129cf8b4d68c4e64c25bae43bca139d871267b59cf7f02b9dcf25f0bf59497",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.14.1/python-3.14.1-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.14.2": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.2/darwin-amd64.tar.gz",
-        "sha256": "58fa3e17d13ab956fd11055fb774c98ecfddcdf3b588e5f2369bdbc14ef9d76a",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.2/darwin-arm64.tar.gz",
-        "sha256": "2f74bd26bd16487aca357c879d11f7b16c0521328e5148a1930ab6357bcb89fe",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.2/linux-amd64.tar.gz",
-        "sha256": "121c3249bef497adf601df76a4d89aed6053fc5ec2f8c0ec656b86f0142e8ddd",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.2/linux-arm64.tar.gz",
-        "sha256": "869af31b2963194e8a2ecfadc36027c4c1c86a10f4960baec36dadb41b2acf02",
-        "sha256_source": "upstream"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.14.2/windows-amd64.tar.gz",
-        "sha256": "0d660bba9f58cb552e7e99e1f96a9c67b41618c9b8d29f9f3515fe2b5ad1966e",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.14.2/python-3.14.2-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.14.2/windows-arm64.tar.gz",
-        "sha256": "0be0d2557d73efa7f6f3f99679f05252d57fe2aad2d81cac3cad410a9b1eacbd",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.14.2/python-3.14.2-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.5.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.5.0/windows-amd64.zip",
-        "sha256": "31bf80d670130f176cc48ed535e2b1e3446f79385504fa2fcc0affb9116dc062",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.5.0/python-3.5.0-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.5.1": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.5.1/windows-amd64.zip",
-        "sha256": "1bfc3b88619ae04cf6bef66062adb2c897f79457ef8fc7459e71a940b05457f3",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.5.1/python-3.5.1-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.5.2": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.5.2/windows-amd64.zip",
-        "sha256": "faefbd98f61c0d87c5683eeb526ae4d4a9ddc369bef27870cfe1c8939329d066",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.5.2/python-3.5.2-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.5.3": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.5.3/windows-amd64.zip",
-        "sha256": "cc6ba08167a0ba032fe05f96246832887271e6b65e7b3890d1258c0c3035c4cd",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.5.3/python-3.5.3-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.5.4": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.5.4/windows-amd64.zip",
-        "sha256": "4b649c6ec5b2abfb9fc0f6a6d0dcbd9855d8b06ea03637fd142175822cf842f9",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.5.4/python-3.5.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.0/windows-amd64.zip",
-        "sha256": "0e8abf4f0ba044789ff1725231169d495c0cf606b38a2c307afd48cda4802258",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.0/python-3.6.0-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.1": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.1/windows-amd64.zip",
-        "sha256": "431fb43716ad111b0e3be17da36c8c553c0b612c1a0f61c71327a87019afebd5",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.1/python-3.6.1-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.2": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.2/windows-amd64.zip",
-        "sha256": "a59c12dbf953d3cdedc678a4f9195e87e717f10c8b0a42ed3fb7092bef523528",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.2/python-3.6.2-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.3": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.3/windows-amd64.zip",
-        "sha256": "838661acdec7944b23bd5808948656c3bfbf1ec8f3130d9f0d6727e239da7d52",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.3/python-3.6.3-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.4": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.4/windows-amd64.zip",
-        "sha256": "f6ca955d6885a2ac01595dc7857c5c06ee0a5b1f7b3774f89ec52692c7cb691c",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.4/python-3.6.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.5": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.5/windows-amd64.zip",
-        "sha256": "dfb476fabd20f617c8a5be58ca3e55844c8310710c6ff0dd25486d1d03c95a28",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.5/python-3.6.5-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.6": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.6/windows-amd64.zip",
-        "sha256": "d294ed2a18bb2fb822a1be346af79a48980eb0d3d5f209cf9e728e93883b565a",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.6/python-3.6.6-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.7": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.7/windows-amd64.zip",
-        "sha256": "835a5babfad6f539194c28b237bb926c53f9e2a7bcc1d39c33e117c5df1aaa26",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.7/python-3.6.7-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.6.8": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.6.8/windows-amd64.zip",
-        "sha256": "efadf25a090c8438b3cbe27574fb36bd40c80e20a03939188a1d5051685495dd",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.6.8/python-3.6.8-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.0/windows-amd64.zip",
-        "sha256": "0cc08f3c74c0112abc2adafd16a534cde12fe7c7aafb42e936d59fd3ab08fcdb",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.0/python-3.7.0-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.1": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.1/windows-amd64.zip",
-        "sha256": "c9e6ff79b0b9baa948e3819334d70fdc9ce2b195dc4948c9d668334ab4ff244e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.1/python-3.7.1-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.3": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.3/windows-amd64.zip",
-        "sha256": "6de14c9223226cf0cd8c965ecb08c51d62c770171a256991b4fddc25188cfa8e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.3/python-3.7.3-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.4": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.4/windows-amd64.zip",
-        "sha256": "fb65e5cd595ad01049f73b47bc0ee23fd03f0cbadc56cb318990cee83b37761b",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.4/python-3.7.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.5": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.5/windows-amd64.zip",
-        "sha256": "30d8fb3525e0edeb77b29f799c6248755f58da2f46d351c7f091c33adccea059",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.5/python-3.7.5-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.6": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.6/windows-amd64.zip",
-        "sha256": "114638061d636285600cbc3d4def64b45c43da9b225cb9eeead30fe7fe7d60d4",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.6/python-3.7.6-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.7": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.7/windows-amd64.zip",
-        "sha256": "705c03140cfd3372f27ee911db5f4eb1fc9b980c9e27544adbd1a6adf942a1b0",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.7/python-3.7.7-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.8": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.8/windows-amd64.zip",
-        "sha256": "88a033a378437f0d000cfaa2752f4ca860d06b06f17e58a7f31be44b12787a35",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.8/python-3.7.8-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.7.9": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.7.9/windows-amd64.zip",
-        "sha256": "18627a097adf47829a847053febac5532376075243e233bd9ec61d6ea09dee1f",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.7.9/python-3.7.9-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.0/windows-amd64.zip",
-        "sha256": "9f4dba6c7b5c5db2993d899b4627872932e2229fdb9353ed352278cd4ea8b174",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.0/python-3.8.0-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.1": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.1/windows-amd64.zip",
-        "sha256": "d86fe36e65960205cd33d8146d84eb8cb7915528c457cce9194a9aeb3052b20b",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.1/python-3.8.1-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.10": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.10/windows-amd64.zip",
-        "sha256": "abbe314e9b41603dde0a823b76f5bbbe17b3de3e5ac4ef06b759da5466711271",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.12": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.12/darwin-amd64.tar.gz",
-        "sha256": "f323fbc558035c13a85ce2267d0fad9e89282268ecb810e364fff1d0a079d525",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.12/darwin-arm64.tar.gz",
-        "sha256": "f9a3cbb81e0463d6615125964762d133387d561b226a30199f5b039b20f1d944",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.12/linux-amd64.tar.gz",
-        "sha256": "5be9c6d61e238b90dfd94755051c0d3a2d8023ebffdb4b0fa4e8fedd09a6cab6",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.13": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.13/darwin-amd64.tar.gz",
-        "sha256": "cd6e7c0a27daf7df00f6882eaba01490dd963f698e99aeee9706877333e0df69",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.13/darwin-arm64.tar.gz",
-        "sha256": "ae4131253d890b013171cb5f7b03cadc585ae263719506f7b7e063a7cf6fde76",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.13/linux-amd64.tar.gz",
-        "sha256": "fb566629ccb5f76ef56d275a3f8017d683f1c20c5beb5d5f38b155ed11e16187",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.13/linux-arm64.tar.gz",
-        "sha256": "8dc7814bf3425bbf78c6e6e5a6529ded6ae463fa6a4b79c025b343bae4fd955a",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.14": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.14/darwin-amd64.tar.gz",
-        "sha256": "3ed4db8d0308c584196d97c629058ea69bbd8b7f9a034cf8c2c701ebb286c091",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.14/darwin-arm64.tar.gz",
-        "sha256": "6c17f6dcda59de5d8eee922ef7eede403a540dae05423ef2c2a042d8d4f22467",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.14/linux-amd64.tar.gz",
-        "sha256": "4eb53bce831bf52682067579c09ccaccb6524dd44bd4b8047454c69b4817f4f0",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.14/linux-arm64.tar.gz",
-        "sha256": "c45e42deee43e3ebc4ca5b019c37d8ae25fb5b5f1ba5f602098a81b99d2bc804",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.15": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.15/darwin-amd64.tar.gz",
-        "sha256": "70b57f28c2b5e1e3dd89f0d30edd5bc414e8b20195766cf328e1b26bed7890e1",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.15/darwin-arm64.tar.gz",
-        "sha256": "1e0a92d1a4f5e6d4a99f86b1cbf9773d703fe7fd032590f3e9c285c7a5eeb00a",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.15/linux-amd64.tar.gz",
-        "sha256": "e47edfb2ceaf43fc699e20c179ec428b6f3e497cf8e2dcd8e9c936d4b96b1e56",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.15/linux-arm64.tar.gz",
-        "sha256": "886ab33ced13c84bf59ce8ff79eba6448365bfcafea1bf415bd1d75e21b690aa",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.16": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.16/darwin-amd64.tar.gz",
-        "sha256": "28506e509646c11cb2f57a7203bd1b08b6e8e5b159ae308bd5bb93b0d334bdaf",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.16/darwin-arm64.tar.gz",
-        "sha256": "7e484eb6de40d6f6bdfd5099eaa9647f65e45fb6d846ccfc56b1cb1e38b5ab02",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.16/linux-amd64.tar.gz",
-        "sha256": "b1f1502c3a13b899724dbd32bd77a973fa9733b932c5700d747fe33d5de9ac4f",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.16/linux-arm64.tar.gz",
-        "sha256": "9c6615931fd1045bf9f2148aa7dd9ce1ece8575ed68a5483a0b615322a43d54c",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.17": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.17/darwin-amd64.tar.gz",
-        "sha256": "155b06821607bae1a58ecc60a7d036b358c766f19e493b8876190765c883a5c2",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.17/darwin-arm64.tar.gz",
-        "sha256": "c6f7a130d0044a78e39648f4dae56dcff5a41eba91888a99f6e560507162e6a1",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.17/linux-amd64.tar.gz",
-        "sha256": "8d3e1826c0bb7821ec63288038644808a2d45553245af106c685ef5892fabcd8",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.17/linux-arm64.tar.gz",
-        "sha256": "9f6d585091fe26906ff1dbb80437a3fe37a1e3db34d6ecc0098f3d6a78356682",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.18": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.18/darwin-amd64.tar.gz",
-        "sha256": "7d2cd8d289d5e3cdd0a8c06c028c7c621d3d00ce44b7e2f08c1724ae0471c626",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.18/darwin-arm64.tar.gz",
-        "sha256": "4d493a1792bf211f37f98404cc1468f09bd781adc2602dea0df82ad264c11abc",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.18/linux-amd64.tar.gz",
-        "sha256": "5ae36825492372554c02708bdd26b8dcd57e3dbf34b3d6d599ad91d93540b2b7",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.18/linux-arm64.tar.gz",
-        "sha256": "6588c9eed93833d9483d01fe40ac8935f691a1af8e583d404ec7666631b52487",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.19": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.19/darwin-amd64.tar.gz",
-        "sha256": "e13c7afca48e8ef64b38261567bb3b496276d097435d1404636f335447c992c3",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.19/darwin-arm64.tar.gz",
-        "sha256": "f01a9d293e2bff8c4c62478d826a8bb46a197fabe21b26cb4db7a098e23dc9f1",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.19/linux-amd64.tar.gz",
-        "sha256": "9ebb4d3ff993e977c5f2c043369024be8429447cee67a16e7d4a84f03064116a",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.19/linux-arm64.tar.gz",
-        "sha256": "cfa765bf74d034ec45624e3a56f9560d09ca2d4f306aeabaa165c96a1d93c7cb",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.19/windows-amd64.tar.gz",
-        "sha256": "5775cfcfa009c47b6d9b7029d349b5c5b7acc03658319a768e70c5387465a864",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.10/python-3.8.10-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.2": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.2/windows-amd64.zip",
-        "sha256": "2927a3a6d0fe1f6e047a86059220aeda374eed23113b9ef5355acb8452d56453",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.8.20": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.20/darwin-amd64.tar.gz",
-        "sha256": "68d060cd373255d2ca5b8b3441363d5aa7cc45b0c11bbccf52b1717c2b5aa8bb",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.20/darwin-arm64.tar.gz",
-        "sha256": "2ddfc04bdb3e240f30fb782fa1deec6323799d0e857e0b63fa299218658fd3d4",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.20/linux-amd64.tar.gz",
-        "sha256": "285e141c36f88b2e9357654c5f77d1f8fb29cc25132698fe35bb30d787f38e87",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.8.20/linux-arm64.tar.gz",
-        "sha256": "9d8798f9e79e0fc0f36fcb95bfa28a1023407d51a8ea5944b4da711f1f75f1ed",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.20/windows-amd64.tar.gz",
-        "sha256": "41b6709fec9c56419b7de1940d1f87fa62045aff81734480672dcb807eedc47e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.2/python-3.8.2-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.3": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.3/windows-amd64.zip",
-        "sha256": "7f8c29563dae48a07ea3242a6a19b7b5b8519a16fd711e719a8f9680f342279a",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.3/python-3.8.3-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.4": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.4/windows-amd64.zip",
-        "sha256": "18acd42077facdb5ccbada9581828e0b42f742c70a62f61522cd19c49912c7bf",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.4/python-3.8.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.5": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.5/windows-amd64.zip",
-        "sha256": "de59a3544c17dd091c08a6a061fb2660d3bdbd667ed6617b01189a86c18ac2c0",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.5/python-3.8.5-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.6": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.6/windows-amd64.zip",
-        "sha256": "8168d0ce0b81d95939cafb9c14ce8d181951ac63a84e8927c6a9157bb10b3368",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.6/python-3.8.6-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.7": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.7/windows-amd64.zip",
-        "sha256": "dcd180ac0157479c83f555be8f51d0ab1f3d10aacc3edcf7a96016ceb9255395",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.7/python-3.8.7-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.8": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.8/windows-amd64.zip",
-        "sha256": "93ec53127607cd18c4621facab9f3428e1b37df4709a8311484f4fc29a6e55d5",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.8/python-3.8.8-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.8.9": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.8.9/windows-amd64.zip",
-        "sha256": "9f007b9d59bf88edb5e6ab1bb38dc40ff9ff03a069305748e1674ad7cd619467",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.8.9/python-3.8.9-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.0": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.0/windows-amd64.zip",
-        "sha256": "a96fba43060e5c39f98376ae201283b07d20aa1c0532940c9f02c855a7ec13a3",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.0/python-3.9.0-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.1": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.1/windows-amd64.zip",
-        "sha256": "35c74098ba8e4896ba14368c2e2da4f6f92bb5acd72dbb6966ab34459d65b73e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.1/python-3.9.1-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.10": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.10/darwin-amd64.tar.gz",
-        "sha256": "fdaf594142446029e314a9beb91f1ac75af866320b50b8b968181e592550cd68",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.10/darwin-arm64.tar.gz",
-        "sha256": "ad66c2a3e7263147e046a32694de7b897a46fb0124409d29d3a93ede631c8aee",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.10/linux-amd64.tar.gz",
-        "sha256": "455089cc576bd9a58db45e919d1fc867ecdbb0208067dffc845cc9bbf0701b70",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.10/linux-arm64.tar.gz",
-        "sha256": "12dd1f125762f47975990ec744532a1cf3db74ad60f4dfb476ca42deb7f78ca4",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.10/windows-amd64.zip",
-        "sha256": "67161cab713a52f6658b76274f8dbe0cd2f256aab1e84f94cd557d4a906fa5d2",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.10/python-3.9.10-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.10/windows-arm64.zip",
-        "sha256": "6bda8594299e5723108502e8b9692384575e3fe11d1aa288b561244a4fce3324",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.10/python-3.9.10-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.9.11": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.11/darwin-amd64.tar.gz",
-        "sha256": "43889d1a424c84fb155e1619f062adb6984fbde80b6043611790f22bcbeec300",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.11/darwin-arm64.tar.gz",
-        "sha256": "cf92a28f98c8d884df0937bf19d5f1a40caa25a6a211a237b7e9b592b2b71c2b",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.11/linux-amd64.tar.gz",
-        "sha256": "0429d5ceb095d5e24c292bf1a39208b88ae236a680ef8fa3e1830e3a1a7e8882",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.11/linux-arm64.tar.gz",
-        "sha256": "0e50f099409c5e651b5fddd16124af1d830d11653e786a93c28e5b8f8aa470c4",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.11/windows-amd64.zip",
-        "sha256": "31de208823c9969145599783625d6b0c385d852d650c2216e16a2d49d8893d63",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.11/python-3.9.11-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.12": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.12/darwin-amd64.tar.gz",
-        "sha256": "2453ba7f76b3df3310353b48c881d6cff622ba06e30d2b6ae91588b2bc9e481a",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.12/darwin-arm64.tar.gz",
-        "sha256": "8dee06c07cc6429df34b6abe091a4684a86f7cec76f5d1ccc1c3ce2bd11168df",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.12/linux-amd64.tar.gz",
-        "sha256": "ccca12f698b3b810d79c52f007078f520d588232a36bc12ede944ec3ea417816",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.12/linux-arm64.tar.gz",
-        "sha256": "2ee1426c181e65133e57dc55c6a685cb1fb5e63ef02d684b8a667d5c031c4203",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.12/windows-amd64.zip",
-        "sha256": "e18c497de48bed34eec7b91ddc3275b59c6d481db7189a900c4b61c999ff6c2d",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.12/python-3.9.12-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.13": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.13/darwin-amd64.tar.gz",
-        "sha256": "9540a7efb7c8a54a48aff1cb9480e49588d9c0a3f934ad53f5b167338174afa3",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.13/darwin-arm64.tar.gz",
-        "sha256": "d9603edc296a2dcbc59d7ada780fd12527f05c3e0b99f7545112daf11636d6e5",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.13/linux-amd64.tar.gz",
-        "sha256": "ce1cfca2715e7e646dd618a8cb9baff93000e345ccc979b801fc6ccde7ce97df",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.13/linux-arm64.tar.gz",
-        "sha256": "80415aac1b96255b9211f6a4c300f31e9940c7e07a23d0dec12b53aa52c0d25e",
-        "sha256_source": "dtvem"
-      },
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.13/windows-amd64.zip",
-        "sha256": "938a1f3b80d580320836260612084d74ce094a261e36f9ff3ac7b9463df5f5e4",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.14": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.14/darwin-amd64.tar.gz",
-        "sha256": "b7d3a1f4b57e9350571ccee49c82f503133de0d113a2dbaebc8ccf108fb3fe1b",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.14/darwin-arm64.tar.gz",
-        "sha256": "e38df7f230979ce6c53a5bafb3a81287838e5f3892c40cd1b98a0c961c444713",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.14/linux-amd64.tar.gz",
-        "sha256": "e63d0c00a499e0202ba7a0f53ce69fca6d30237af39af9bc3c76bce6c7bf14d7",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.14/linux-arm64.tar.gz",
-        "sha256": "fe538201559ca37f44cd5f66c42a65fe7272cb4f1f63edd698b6f306771db1e9",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.15": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.15/darwin-amd64.tar.gz",
-        "sha256": "f2bcade6fc976c472f18f2b3204d67202d43ae55cf6f9e670f95e488f780da08",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.15/darwin-arm64.tar.gz",
-        "sha256": "64dc7e1013481c9864152c3dd806c41144c79d5e9cd3140e185c6a5060bdc9ab",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.15/linux-amd64.tar.gz",
-        "sha256": "cdc3a4cfddcd63b6cebdd75b14970e02d8ef0ac5be4d350e57ab5df56c19e85e",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.15/linux-arm64.tar.gz",
-        "sha256": "52a8c0a67fb919f80962d992da1bddb511cdf92faf382701ce7673e10a8ff98f",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.16": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.16/darwin-amd64.tar.gz",
-        "sha256": "3abc4d5fbbc80f5f848f280927ac5d13de8dc03aabb6ae65d8247cbb68e6f6bf",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.16/darwin-arm64.tar.gz",
-        "sha256": "c1de1d854717a6245f45262ef1bb17b09e2c587590e7e3f406593c143ff875bd",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.16/linux-amd64.tar.gz",
-        "sha256": "2b6e146234a4ef2a8946081fc3fbfffe0765b80b690425a49ebe40b47c33445b",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.16/linux-arm64.tar.gz",
-        "sha256": "f629b75ebfcafe9ceee2e796b7e4df5cf8dbd14f3c021afca078d159ab797acf",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.17": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.17/darwin-amd64.tar.gz",
-        "sha256": "dfe1bea92c94b9cb779288b0b06e39157c5ff7e465cdd24032ac147c2af485c0",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.17/darwin-arm64.tar.gz",
-        "sha256": "73dbe2d702210b566221da9265acc274ba15275c5d0d1fa327f44ad86cde9aa1",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.17/linux-amd64.tar.gz",
-        "sha256": "26c4a712b4b8e11ed5c027db5654eb12927c02da4857b777afb98f7a930ce637",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.17/linux-arm64.tar.gz",
-        "sha256": "b77012ddaf7e0673e4aa4b1c5085275a06eee2d66f33442b5c54a12b62b96cbe",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.18": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.18/darwin-amd64.tar.gz",
-        "sha256": "171d8b472fce0295be0e28bb702c43d5a2a39feccb3e72efe620ac3843c3e402",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.18/darwin-arm64.tar.gz",
-        "sha256": "2548f911a6e316575c303ba42bb51540dc9b47a9f76a06a2a37460d93b177aa2",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.18/linux-amd64.tar.gz",
-        "sha256": "0e5663025121186bd17d331538a44f48b41baff247891d014f3f962cbe2716b4",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.18/linux-arm64.tar.gz",
-        "sha256": "e5bc5196baa603d635ee6b0cd141e359752ad3e8ea76127eb9141a3155c51200",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.19": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.19/darwin-amd64.tar.gz",
-        "sha256": "9a5059869b715f8ae3c9fac215865275f1d0cbd075f506d7ca29faedda4e0533",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.19/darwin-arm64.tar.gz",
-        "sha256": "ddd57774886a66a71283559cdd39bd2cbfd756cbd996b19b0b3bdb842a2a4a81",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.19/linux-amd64.tar.gz",
-        "sha256": "d21cf7bab25e2a8a1c873395bb7aa4f4b7ae533d2437d92f6496500c1e49625d",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.19/linux-arm64.tar.gz",
-        "sha256": "ebe8ce15d3617e69219e27dc2aa39932aee9df8bf85d2ad46b157d309e3fa5d3",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.19/windows-amd64.tar.gz",
-        "sha256": "cc0c5b42a227f594342c20a66c80f69940dd0f267c85292cc10040132a3161f1",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.13/python-3.9.13-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.2": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.2/windows-amd64.zip",
-        "sha256": "90f12b2475290459e1800d5170bdb5ef444f3803fdf2994edd7cfcd2c92a88ab",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.20": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.20/darwin-amd64.tar.gz",
-        "sha256": "193dc7f0284e4917d52b17a077924474882ee172872f2257cfe3375d6d468ed9",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.20/darwin-arm64.tar.gz",
-        "sha256": "34ab2bc4c51502145e1a624b4e4ea06877e3d1934a88cc73ac2e0fd5fd439b75",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.20/linux-amd64.tar.gz",
-        "sha256": "c20ee831f7f46c58fa57919b75a40eb2b6a31e03fd29aaa4e8dab4b9c4b60d5d",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.20/linux-arm64.tar.gz",
-        "sha256": "1e486c054a4e86666cf24e04f5e29456324ba9c2b95bf1cae1805be90d3da154",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.20/windows-amd64.tar.gz",
-        "sha256": "5069008a237b90f6f7a86956903f2a0221b90d471daa6e4a94831eaa399e3993",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.21": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.21/darwin-amd64.tar.gz",
-        "sha256": "786ebd91e4dd0920acf60aa3428a627a937342d2455f7eb5e9a491517c32db3d",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.21/darwin-arm64.tar.gz",
-        "sha256": "2a7d83db10c082ce59e9c4b8bd6c5790310198fb759a7c94aceebac1d93676d3",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.21/linux-amd64.tar.gz",
-        "sha256": "6f426b5494e90701ffa2753e229252e8b3ac61151a09c8cd6c0a649512df8ab2",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.21/linux-arm64.tar.gz",
-        "sha256": "758ebbc4d60b3ca26cf21720232043ad626373fbeb6632122e5db622a1f55465",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.21/windows-amd64.tar.gz",
-        "sha256": "5392cee2ef7cd20b34128384d0b31864fb3c02bdb7a8ae6995cfec621bb657bc",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.22": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.22/darwin-amd64.tar.gz",
-        "sha256": "8a8276c460f98987d10595d6f3d1bbe6438a28ec4e989d8b02af1f8a7741497b",
-        "sha256_source": "dtvem"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.22/darwin-arm64.tar.gz",
-        "sha256": "29a81900ec2f964538ddd404536da57c2aa816901713e4c03bca3678cae25cb2",
-        "sha256_source": "dtvem"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.22/linux-amd64.tar.gz",
-        "sha256": "b92e31b14691b0db0ad9a27951cf49da070e1cc25f11ce2c2c13d19f6862445a",
-        "sha256_source": "dtvem"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.22/linux-arm64.tar.gz",
-        "sha256": "4020998db84d5400c1ee68fba1601d37678bf8bdbdf637b4eff5729e7cedda82",
-        "sha256_source": "dtvem"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.22/windows-amd64.tar.gz",
-        "sha256": "e54811a7377c54f12c9e86b9e1efad412d2bc5b99c2f080ee2dda287d9c2b730",
-        "sha256_source": "dtvem"
-      }
-    },
-    "3.9.23": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.23/darwin-amd64.tar.gz",
-        "sha256": "fa5a920cc43e756c5fdd280f64058ea6454a560cafaa1301ab227b636dfe0066",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.23/darwin-arm64.tar.gz",
-        "sha256": "32e4b31e693c2830e20f80d115388328cd6a7cff21aa79777e0f2ada6c754ea6",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.23/linux-amd64.tar.gz",
-        "sha256": "c479843a04b0504bc6c571a44219f25e98b7e83463a75aee241b51b1cb2aee27",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.23/linux-arm64.tar.gz",
-        "sha256": "a6bc4ffe655ab01454a91b4d63c4eef298fe73b1b0bbafcdb31001f10070265e",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.23/windows-amd64.tar.gz",
-        "sha256": "921fc4d4d4c039dc824f270a9ae0f81d031f665efa16314b773df3223e72921e",
-        "sha256_source": "upstream"
-      }
-    },
-    "3.9.24": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.24/darwin-amd64.tar.gz",
-        "sha256": "7fc066d92c3670175badd5e2c0733e440a8ed6ffb03e79c2e30fadc8608d5ef3",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.24/darwin-arm64.tar.gz",
-        "sha256": "73a95cd45a2c1fb95ea4e4e9b9bb5bdec5e1533ce7e34b606c2428e31847901b",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.24/linux-amd64.tar.gz",
-        "sha256": "7e90b7e04edf1130f8302165376e04b5fc99f6f27381baddc3254514e338e5a8",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.24/linux-arm64.tar.gz",
-        "sha256": "fd4a3c806d8d100a96fc32f96d7f5f90d2ee0e0e021eb445f5c10ea52928a601",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.24/windows-amd64.tar.gz",
-        "sha256": "f5e7d7ea8a817eb5d7a48169b46044bbaadaf29b5d883248a97d61e89296cdc6",
-        "sha256_source": "upstream"
-      }
-    },
-    "3.9.25": {
-      "darwin-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.25/darwin-amd64.tar.gz",
-        "sha256": "ace63cfe27a9487c4d72e1cb518be01c1d985271da0b2158e813801f7d3e5503",
-        "sha256_source": "upstream"
-      },
-      "darwin-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.25/darwin-arm64.tar.gz",
-        "sha256": "87275619c2706affa4d1090d2ca3dad354b6d69f8b85dbfafe38785870751b9a",
-        "sha256_source": "upstream"
-      },
-      "linux-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.25/linux-amd64.tar.gz",
-        "sha256": "42834f61eb6df43432c3dd6ab9ca3fdf8c06d10a404ebdb53d6902e6b9570b08",
-        "sha256_source": "upstream"
-      },
-      "linux-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.25/linux-arm64.tar.gz",
-        "sha256": "6112d46355857680b81849764a6cf9f38cc4cd0d1cf29d432bc12fe5aeedf9d0",
-        "sha256_source": "upstream"
-      },
-      "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.25/windows-amd64.tar.gz",
-        "sha256": "4fb1b416482ce94d73cfa140317a670c596c830671d137b07c26afe8c461768a",
-        "sha256_source": "upstream"
+        "url": "https://www.python.org/ftp/python/3.9.2/python-3.9.2-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.3": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.3/windows-amd64.zip",
-        "sha256": "0556e9e44ecebfd9a164dbcb906cba3f0c0c67ca5b434b2339cf46d755b7237a",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.3/python-3.9.3-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.4": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.4/windows-amd64.zip",
-        "sha256": "0c3944cbfa4f44603a529d360aa1b146ddb4cf5a03abf95893d07919c66d331f",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.4/python-3.9.4-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.5": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.5/windows-amd64.zip",
-        "sha256": "f6954b64af18386c523988a23c512452fd289e3591218e7dbb76589b9b326d34",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.5/python-3.9.5-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.6": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.6/windows-amd64.zip",
-        "sha256": "94f796d3c222e6bbd11b11dc8cec2249ef6a9408f06f82ee7877c793d45e22ea",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.6/python-3.9.6-embed-amd64.zip",
+        "sha256": ""
       }
     },
     "3.9.7": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.7/windows-amd64.zip",
-        "sha256": "fa5484e6141cfa055b412bc229806a0129424da11a683ecc586697ec8e340e1d",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.7/python-3.9.7-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.7/windows-arm64.zip",
-        "sha256": "ed5bf4167ee51dd42f2d62fc240b294e37779df0eade7a5af450811e3d60c23e",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.7/python-3.9.7-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.9.8": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.8/windows-amd64.zip",
-        "sha256": "588653e8f584b22e9a0a9ee74c2cb15c30c76cb2d18aee86dad3f9017b4d866b",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.8/python-3.9.8-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.8/windows-arm64.zip",
-        "sha256": "0620e552161f32877b08735b131d303eb7975b83d2f4f9e0ee82214798e316f6",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.8/python-3.9.8-embed-arm64.zip",
+        "sha256": ""
       }
     },
     "3.9.9": {
       "windows-amd64": {
-        "url": "https://builds.dtvem.io/python/3.9.9/windows-amd64.zip",
-        "sha256": "b4380916b4035fd5ac176b36737117293faf5255a82d8a7584cb1adc034f6bbd",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-amd64.zip",
+        "sha256": ""
       },
       "windows-arm64": {
-        "url": "https://builds.dtvem.io/python/3.9.9/windows-arm64.zip",
-        "sha256": "53013308967b94bebf663d3e20ec3b437c6e8e7bab0b2b3a153fe2b053d0622f",
-        "sha256_source": "dtvem"
+        "url": "https://www.python.org/ftp/python/3.9.9/python-3.9.9-embed-arm64.zip",
+        "sha256": ""
       }
     }
   }
