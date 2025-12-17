@@ -14,11 +14,7 @@
     "build:shim": "go build -v -ldflags=\"-s -w\" -o dist/dtvem-shim.exe ./src/cmd/shim",
     "deploy:local": "npm run build && copy dist\\dtvem.exe %USERPROFILE%\\.dtvem\\bin\\dtvem.exe && copy dist\\dtvem-shim.exe %USERPROFILE%\\.dtvem\\bin\\dtvem-shim.exe && echo Deploy complete. Run 'dtvem reshim' manually to update shims.",
     "clean": "rm -rf dist coverage.out coverage.html",
-    "check": "npm run format && npm run lint && npm run test",
-    "manifest:node": "go run ./scripts/generate-manifests node",
-    "manifest:python": "go run ./scripts/generate-manifests python",
-    "manifest:ruby": "go run ./scripts/generate-manifests ruby",
-    "manifest:all": "go run ./scripts/generate-manifests all"
+    "check": "npm run format && npm run lint && npm run test"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.0.0",
