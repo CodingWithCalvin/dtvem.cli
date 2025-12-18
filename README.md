@@ -13,7 +13,7 @@
   [![Build & Test](https://img.shields.io/github/actions/workflow/status/dtvem/dtvem/build.yml?style=for-the-badge&label=Build%20%26%20Test)](https://github.com/dtvem/dtvem/actions)
   [![Release](https://img.shields.io/github/actions/workflow/status/dtvem/dtvem/release.yml?style=for-the-badge&label=Release)](https://github.com/dtvem/dtvem/actions)
 
-  **[Documentation](https://github.com/dtvem/dtvem/wiki)** · **[Installation](https://github.com/dtvem/dtvem/wiki/Installation)** · **[Quick Start](https://github.com/dtvem/dtvem/wiki/Quick-Start)** · **[Commands](https://github.com/dtvem/dtvem/wiki/Commands)**
+  **[Documentation](https://dtvem.io/docs)** · **[Installation](https://dtvem.io/docs/user-guide/getting-started)** · **[Quick Start](https://dtvem.io/docs/user-guide/getting-started)** · **[Commands](https://dtvem.io/docs/user-guide/commands/overview)**
 
 </div>
 
@@ -25,7 +25,7 @@ Managing multiple versions of Python, Node.js, Ruby, and other runtimes across d
 
 ✅ **Cross-Platform**: Windows, Linux, and macOS with identical behavior
 
-✅ **Multiple Runtimes**: Python, Node.js (Ruby, Go, and more coming)
+✅ **Multiple Runtimes**: Python, Node.js, Ruby (Go, Rust, Java coming soon)
 
 ✅ **Shim-Based**: Automatic version switching without shell integration
 
@@ -35,21 +35,21 @@ Managing multiple versions of Python, Node.js, Ruby, and other runtimes across d
 
 ✅ **No Shell Hooks**: Works in cmd.exe, PowerShell, bash, zsh, fish, etc.
 
-See [Competitive Analysis](https://github.com/dtvem/dtvem/wiki/Competitive-Analysis) for how dtvem compares to nvm, pyenv, asdf, and mise.
+See [Compare](https://dtvem.io/compare) for how dtvem compares to nvm, pyenv, asdf, and mise.
 
 ## 📦 Installation
 
 **macOS / Linux:**
 ```bash
-curl -fsSL https://github.com/dtvem/dtvem/releases/latest/download/install.sh | bash
+curl -fsSL dtvem.io/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://github.com/dtvem/dtvem/releases/latest/download/install.ps1 | iex
+irm dtvem.io/install.ps1 | iex
 ```
 
-See [Installation Guide](https://github.com/dtvem/dtvem/wiki/Installation) for manual installation, building from source, and PATH configuration.
+See [Getting Started](https://dtvem.io/docs/user-guide/getting-started) for manual installation, building from source, and PATH configuration.
 
 ## 🚀 Quick Start
 
@@ -72,25 +72,23 @@ dtvem migrate node
 dtvem migrate python
 ```
 
-See [Quick Start Guide](https://github.com/dtvem/dtvem/wiki/Quick-Start) for more examples.
+See [Getting Started](https://dtvem.io/docs/user-guide/getting-started) for more examples.
 
 ## 📚 Documentation
 
 | Topic | Description |
 |-------|-------------|
-| [Installation](https://github.com/dtvem/dtvem/wiki/Installation) | Install on Windows, macOS, or Linux |
-| [Quick Start](https://github.com/dtvem/dtvem/wiki/Quick-Start) | Get up and running in 5 minutes |
-| [Commands](https://github.com/dtvem/dtvem/wiki/Commands) | Complete command reference |
-| [Configuration](https://github.com/dtvem/dtvem/wiki/Configuration) | Config files and environment variables |
-| [Architecture](https://github.com/dtvem/dtvem/wiki/Architecture) | How dtvem works (shims, version resolution) |
-| [Migration](https://github.com/dtvem/dtvem/wiki/Migration) | Import from nvm, pyenv, fnm, etc. |
-| [FAQ](https://github.com/dtvem/dtvem/wiki/FAQ) | Frequently asked questions |
-| [Competitive Analysis](https://github.com/dtvem/dtvem/wiki/Competitive-Analysis) | vs nvm, pyenv, asdf, mise |
-| [Roadmap](https://github.com/dtvem/dtvem/wiki/Roadmap) | Planned features and runtimes |
+| [Getting Started](https://dtvem.io/docs/user-guide/getting-started) | Install and get up and running |
+| [Commands](https://dtvem.io/docs/user-guide/commands/overview) | Complete command reference |
+| [Configuration](https://dtvem.io/docs/user-guide/configuration) | Config files and environment variables |
+| [Concepts](https://dtvem.io/docs/user-guide/concepts) | How dtvem works (shims, version resolution) |
+| [Migration](https://dtvem.io/docs/user-guide/migration) | Import from nvm, pyenv, fnm, etc. |
+| [Compare](https://dtvem.io/compare) | vs nvm, pyenv, asdf, mise |
+| [Runtimes](https://dtvem.io/docs/user-guide/runtimes/overview) | Supported runtimes and roadmap |
 
 ## 🤝 Contributing
 
-Contributions are welcome! See the [Development Guide](https://github.com/dtvem/dtvem/wiki/Development) for:
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - Setting up your development environment
 - npm scripts for building and testing

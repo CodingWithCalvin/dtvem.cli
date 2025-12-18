@@ -93,15 +93,15 @@ gh api repos/dtvem/dtvem/issues/<number>/dependencies/blocked_by/<blocker_id> -X
 | Attribute | Value |
 |-----------|-------|
 | Version | dev (pre-1.0) |
-| Runtimes | Python, Node.js |
-| Tests | 230+ passing |
+| Runtimes | Python, Node.js, Ruby |
+| Tests | 160+ passing |
 | Style | Google Go Style Guide |
 
 **Key Concept**: Shims are Go executables that intercept runtime commands (like `python`, `node`), resolve versions, and execute the appropriate binary.
 
 ### Available Commands
 
-`init`, `install`, `uninstall`, `list`, `list-all`, `global`, `local`, `current`, `freeze`, `migrate`, `reshim`, `which`, `where`, `version`, `help`
+`init`, `install`, `uninstall`, `list`, `list-all`, `global`, `local`, `current`, `freeze`, `migrate`, `reshim`, `which`, `where`, `update`, `request`, `version`, `help`
 
 ---
 
@@ -152,10 +152,12 @@ Maps to runtime provider → Resolves version
 | `internal/ui/` | Colored output, prompts, verbose/debug logging |
 | `internal/tui/` | Table formatting and styles |
 | `internal/download/` | File downloads with progress |
+| `internal/manifest/` | Version manifest fetching and caching |
+| `internal/migration/` | Migration detection and helpers |
 | `internal/testutil/` | Shared test utility functions |
 | `internal/constants/` | Platform constants |
 | `src/cmd/` | CLI commands (one file per command) |
-| `src/runtimes/` | Runtime providers (node/, python/) |
+| `src/runtimes/` | Runtime providers (node/, python/, ruby/) |
 
 ---
 
@@ -173,6 +175,7 @@ func init() {
 import (
     _ "github.com/dtvem/dtvem/src/runtimes/node"
     _ "github.com/dtvem/dtvem/src/runtimes/python"
+    _ "github.com/dtvem/dtvem/src/runtimes/ruby"
 )
 ```
 
@@ -273,7 +276,7 @@ cd src && go test -cover ./...    # With coverage
 
 ### Provider Test Harness
 
-`internal/runtime/provider_test_harness.go` validates all Provider implementations consistently. Used by node and python providers.
+`internal/runtime/provider_test_harness.go` validates all Provider implementations consistently. Used by node, python, and ruby providers.
 
 ### Import Cycle Avoidance
 
@@ -285,22 +288,40 @@ cd src && go test -cover ./...    # With coverage
 
 ## CI/CD
 
-### Build Workflow (`.github/workflows/build.yml`)
+### Workflows in This Repo (`.github/workflows/`)
 
-1. **golangci-lint** - Linting (errcheck, govet, unused, misspell, etc.)
-2. **go-mod** - Verify go.mod/go.sum are tidy
-3. **build** - Matrix build/test on Windows, macOS, Linux
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `build.yml` | PR, push to main | Lint, build, test on Windows/macOS/Linux. Posts coverage reports on PRs |
+| `release.yml` | Manual dispatch | Full release: validate, build 5 platforms, create GitHub Release, notify |
+| `commit-lint.yml` | PR | Validate PR titles follow conventional commits |
+| `script-lint.yml` | PR (install scripts) | Lint install.sh and install.ps1 with shellcheck/PSScriptAnalyzer |
+| `contributors.yml` | Push to main | Auto-update contributors section in README |
+| `preview-changelog.yml` | PR | Preview release notes for PRs |
+| `integration-test.yml` | Manual dispatch | Full integration test suite (runtimes + migrations) |
+| `integration-test-runtimes.yml` | Manual dispatch | Runtime install/uninstall tests only |
+| `integration-test-migrations.yml` | Manual dispatch | Migration tests only (all platforms/managers) |
+| `generate-manifests-from-r2.yml` | Manual/scheduled | Generate version manifests from R2 mirror |
+| `deploy-manifests.yml` | Push to main (manifests/) | Deploy manifest files to R2 |
+| `mirror-all.yml` | Manual dispatch | Mirror all runtime binaries to R2 |
+| `mirror-sync.yml` | Scheduled | Sync new versions to R2 mirror |
 
-PRs get automatic coverage reports posted as comments.
+### Reusable Workflows (from `dtvem/.github` repo)
 
-### Release Workflow (`.github/workflows/release.yml`)
+Integration tests and changelog generation use reusable workflows stored in the separate `dtvem/.github` repository:
 
-Triggered manually via workflow dispatch:
+**Runtime Tests:**
+- `integration-test-node.yml` - Node.js install/global/local/uninstall
+- `integration-test-python.yml` - Python install/global/local/uninstall
+- `integration-test-ruby.yml` - Ruby install/global/local/uninstall
 
-1. **validate** - Check build passed, version format valid
-2. **build** - Matrix build for 5 platforms
-3. **release** - Create tag, GitHub Release with artifacts
-4. **notify** - Post to GitHub Discussions and BlueSky
+**Migration Tests** (per runtime × platform × version manager):
+- `integration-test-migrate-{runtime}-{platform}-{manager}.yml`
+- Platforms: ubuntu, macos, windows
+- Managers: system, nvm, fnm, pyenv, rbenv, uru
+
+**Utilities:**
+- `generate-changelog.yml` - Generate release notes from commits
 
 Version injected at build time; main branch always shows `Version = "dev"`.
 
@@ -312,12 +333,12 @@ Version injected at build time; main branch always shows `Version = "dev"`.
 
 **Unix:**
 ```bash
-curl -fsSL https://github.com/dtvem/dtvem/releases/latest/download/install.sh | bash
+curl -fsSL dtvem.io/install.sh | bash
 ```
 
 **Windows:**
 ```powershell
-irm https://github.com/dtvem/dtvem/releases/latest/download/install.ps1 | iex
+irm dtvem.io/install.ps1 | iex
 ```
 
 Features: Auto platform detection, PATH configuration, runs `dtvem init`.
