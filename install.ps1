@@ -4,7 +4,19 @@
 $ErrorActionPreference = "Stop"
 
 $REPO = "dtvem/dtvem"
-$INSTALL_DIR = "$env:USERPROFILE\.dtvem\bin"
+
+# Get dtvem root directory
+# Respects DTVEM_ROOT environment variable if set, otherwise uses default
+function Get-DtvemRoot {
+    if ($env:DTVEM_ROOT) {
+        return $env:DTVEM_ROOT
+    }
+    return "$env:USERPROFILE\.dtvem"
+}
+
+$DTVEM_ROOT = Get-DtvemRoot
+$INSTALL_DIR = "$DTVEM_ROOT\bin"
+$SHIMS_DIR = "$DTVEM_ROOT\shims"
 
 # This will be replaced with the actual version during release
 # Format: $DTVEM_RELEASE_VERSION = "1.0.0"
@@ -119,6 +131,10 @@ function Main {
         default { "amd64" }
     }
     Write-Info "Detected platform: windows-$ARCH"
+    if ($env:DTVEM_ROOT) {
+        Write-Info "Using custom DTVEM_ROOT: $DTVEM_ROOT"
+    }
+    Write-Info "Install directory: $INSTALL_DIR"
 
     # Determine version to install
     $requestedVersion = $null
@@ -255,7 +271,7 @@ function Main {
 
             & $dtvemPath init
             Write-Success "dtvem is ready to use!"
-            Write-Info "Both ~/.dtvem/bin and ~/.dtvem/shims have been added to PATH"
+            Write-Info "Both $INSTALL_DIR and $SHIMS_DIR have been added to PATH"
         }
         catch {
             Write-Warning-Custom "dtvem init failed - you may need to run it manually after restarting your terminal"
