@@ -77,4 +77,4 @@ rules:
     - 100
 
 # Help URL shown in error messages
-helpUrl: 'https://github.com/dtvem/dtvem/blob/main/docs/COMMIT_CONVENTION.md'
+helpUrl: 'https://www.conventionalcommits.org/'

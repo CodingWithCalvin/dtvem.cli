@@ -35,7 +35,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 4. **Use a conventional commit format for your PR title** (e.g., `feat(node): add version caching`)
 5. Submit your pull request!
 
-**Note:** We use squash merges, so your PR title becomes the commit message on main. Make sure it follows the [commit convention](docs/COMMIT_CONVENTION.md).
+**Note:** We use squash merges, so your PR title becomes the commit message on main. Make sure it follows the [Conventional Commits](https://www.conventionalcommits.org/) specification.
 
 ## Development Setup
 
@@ -172,8 +172,9 @@ src/
 │   ├── runtime/     # Core plugin system
 │   └── shim/        # Shim management
 └── runtimes/        # Runtime provider implementations
+    ├── node/
     ├── python/
-    └── node/
+    └── ruby/
 ```
 
 ### Commit Messages
@@ -196,7 +197,7 @@ test(migrate): add tests for package preservation
 
 **Common scopes:** `node`, `python`, `cli`, `install`, `migrate`, `shim`, `config`, `path`, `ui`, `test`, `docs`
 
-For detailed guidelines and examples, see [Commit Convention Guide](docs/COMMIT_CONVENTION.md).
+For detailed guidelines, see the [Conventional Commits specification](https://www.conventionalcommits.org/).
 
 **Note:** PR titles are automatically validated for conventional commit compliance. Non-conforming titles will fail CI checks. Since we use squash merges, your PR title becomes the final commit message.
 
