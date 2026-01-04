@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/dtvem/dtvem/src/internal/migration"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/migration"
 )
 
 // Provider implements the migration.Provider interface for rvm.

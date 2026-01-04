@@ -2,9 +2,9 @@
 set -e
 
 # dtvem installer for macOS and Linux
-# Usage: curl -fsSL https://raw.githubusercontent.com/dtvem/dtvem/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.sh | bash
 
-REPO="dtvem/dtvem"
+REPO="CodingWithCalvin/dtvem.cli"
 
 # This will be replaced with the actual version during release
 # Format: DTVEM_RELEASE_VERSION="1.0.0"

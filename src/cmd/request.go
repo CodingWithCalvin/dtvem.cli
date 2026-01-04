@@ -7,14 +7,14 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/dtvem/dtvem/src/internal/manifest"
-	"github.com/dtvem/dtvem/src/internal/runtime"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/manifest"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 const (
-	buildRequestURL = "https://github.com/dtvem/dtvem/issues/new"
+	buildRequestURL = "https://github.com/CodingWithCalvin/dtvem.cli/issues/new"
 )
 
 var requestCmd = &cobra.Command{

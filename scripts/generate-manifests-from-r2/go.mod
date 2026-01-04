@@ -1,4 +1,4 @@
-module github.com/dtvem/dtvem/scripts/generate-manifests-from-r2
+module github.com/CodingWithCalvin/dtvem.cli/scripts/generate-manifests-from-r2
 
 go 1.23.0
 

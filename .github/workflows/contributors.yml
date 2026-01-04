@@ -18,7 +18,7 @@ jobs:
           GH_TOKEN: ${{ secrets.CONTRIBUTORS_TOKEN }}
         run: |
           # Fetch contributors from GitHub API (exclude bots)
-          contributors=$(gh api repos/dtvem/dtvem/contributors --paginate --jq '.[] | select(.type != "Bot") | select(.login | test("\\[bot\\]$") | not) | "<a href=\"\(.html_url)\"><img src=\"\(.avatar_url)\" width=\"64\" height=\"64\" alt=\"\(.login)\"/></a>"')
+          contributors=$(gh api repos/CodingWithCalvin/dtvem.cli/contributors --paginate --jq '.[] | select(.type != "Bot") | select(.login | test("\\[bot\\]$") | not) | "<a href=\"\(.html_url)\"><img src=\"\(.avatar_url)\" width=\"64\" height=\"64\" alt=\"\(.login)\"/></a>"')
 
           # Build the contributors section
           contrib_section="<!-- readme: contributors -start -->

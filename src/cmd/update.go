@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dtvem/dtvem/src/internal/manifest"
-	"github.com/dtvem/dtvem/src/internal/tui"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/manifest"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/tui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 	"github.com/spf13/cobra"
 )
 

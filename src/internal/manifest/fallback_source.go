@@ -1,7 +1,7 @@
 package manifest
 
 import (
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 )
 
 // FallbackSource tries multiple sources in order, falling back on failure.

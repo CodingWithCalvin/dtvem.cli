@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/dtvem/dtvem/src/internal/config"
-	"github.com/dtvem/dtvem/src/internal/constants"
-	runtimepkg "github.com/dtvem/dtvem/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
+	runtimepkg "github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 )
 
 // Manager handles shim creation and management

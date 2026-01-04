@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/dtvem/dtvem/src/internal/constants"
-	runtimepkg "github.com/dtvem/dtvem/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
+	runtimepkg "github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 )
 
 // mockProvider for testing

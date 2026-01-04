@@ -1,4 +1,4 @@
-module github.com/dtvem/dtvem
+module github.com/CodingWithCalvin/dtvem.cli
 
 go 1.23
 

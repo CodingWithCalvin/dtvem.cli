@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dtvem/dtvem/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 )
 
 func TestUninstallCommand_VersionStripping(t *testing.T) {

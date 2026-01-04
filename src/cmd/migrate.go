@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dtvem/dtvem/src/internal/migration"
-	internalRuntime "github.com/dtvem/dtvem/src/internal/runtime"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/migration"
+	internalRuntime "github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 	"github.com/spf13/cobra"
 )
 

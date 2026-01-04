@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/dtvem/dtvem/src/internal/constants"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 )
 
 func TestGetPaths(t *testing.T) {

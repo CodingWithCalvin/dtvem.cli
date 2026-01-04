@@ -9,7 +9,7 @@ import (
 	"regexp"
 	goruntime "runtime"
 
-	"github.com/dtvem/dtvem/src/internal/migration"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/migration"
 )
 
 // rubyEntry represents a Ruby installation in uru's rubies.json.

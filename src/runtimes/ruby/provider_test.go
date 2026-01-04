@@ -3,8 +3,8 @@ package ruby
 import (
 	"testing"
 
-	"github.com/dtvem/dtvem/src/internal/runtime"
-	"github.com/dtvem/dtvem/src/internal/testutil"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/testutil"
 )
 
 // TestRubyProviderContract runs the generic provider test harness

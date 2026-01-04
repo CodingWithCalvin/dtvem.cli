@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/bodgit/sevenzip"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 )
 
 // archiveFile is an interface for files within an archive (zip or 7z)

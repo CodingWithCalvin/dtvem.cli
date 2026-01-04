@@ -229,7 +229,7 @@ jobs:
   changelog:
     name: Generate Changelog
     needs: build
-    uses: dtvem/.github/.github/workflows/generate-changelog.yml@main
+    uses: CodingWithCalvin/.github/.github/workflows/dtvem/generate-changelog.yml@main
     secrets: inherit
 
   release:

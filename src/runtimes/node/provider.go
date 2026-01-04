@@ -10,13 +10,13 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/dtvem/dtvem/src/internal/config"
-	"github.com/dtvem/dtvem/src/internal/constants"
-	"github.com/dtvem/dtvem/src/internal/download"
-	"github.com/dtvem/dtvem/src/internal/manifest"
-	"github.com/dtvem/dtvem/src/internal/runtime"
-	"github.com/dtvem/dtvem/src/internal/shim"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/download"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/manifest"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/shim"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 )
 
 // Provider implements the runtime.Provider interface for Node.js

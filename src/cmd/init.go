@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/dtvem/dtvem/src/internal/config"
-	"github.com/dtvem/dtvem/src/internal/path"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/path"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 	"github.com/spf13/cobra"
 )
 

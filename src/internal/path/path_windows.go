@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/dtvem/dtvem/src/internal/constants"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )

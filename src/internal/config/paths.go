@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/dtvem/dtvem/src/internal/constants"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 )
 
 // Paths holds all important dtvem directory paths
