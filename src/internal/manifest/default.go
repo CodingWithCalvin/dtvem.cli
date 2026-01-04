@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/dtvem/dtvem/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 )
 
 var (

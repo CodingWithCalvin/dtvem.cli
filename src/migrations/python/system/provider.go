@@ -7,8 +7,8 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/dtvem/dtvem/src/internal/migration"
-	"github.com/dtvem/dtvem/src/internal/path"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/migration"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/path"
 )
 
 // Provider implements the migration.Provider interface for system-installed Python.

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dtvem/dtvem/src/internal/constants"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 )
 
 // DetectShell returns the user's shell name (bash, zsh, fish, etc.)

@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for suggesting a new feature! We appreciate your ideas for improving dtvem.
 
-        **Note:** If you have a question or want to discuss ideas before submitting a formal feature request, please use [GitHub Discussions](https://github.com/dtvem/dtvem/discussions).
+        **Note:** If you have a question or want to discuss ideas before submitting a formal feature request, please use [GitHub Discussions](https://github.com/CodingWithCalvin/dtvem.cli/discussions).
 
   - type: textarea
     id: problem
@@ -98,7 +98,7 @@ body:
     id: terms
     attributes:
       label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/dtvem/dtvem/blob/main/CODE_OF_CONDUCT.md)
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/CodingWithCalvin/dtvem.cli/blob/main/CODE_OF_CONDUCT.md)
       options:
         - label: I agree to follow this project's Code of Conduct
           required: true

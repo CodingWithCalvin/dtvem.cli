@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/dtvem/dtvem/src/internal/tui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/tui"
 	"github.com/spf13/cobra"
 )
 

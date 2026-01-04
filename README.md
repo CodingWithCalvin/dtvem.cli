@@ -10,8 +10,8 @@
   [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)]()
   [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow?style=for-the-badge)](https://conventionalcommits.org)
 
-  [![Build & Test](https://img.shields.io/github/actions/workflow/status/dtvem/dtvem/build.yml?style=for-the-badge&label=Build%20%26%20Test)](https://github.com/dtvem/dtvem/actions)
-  [![Release](https://img.shields.io/github/actions/workflow/status/dtvem/dtvem/release.yml?style=for-the-badge&label=Release)](https://github.com/dtvem/dtvem/actions)
+  [![Build & Test](https://img.shields.io/github/actions/workflow/status/CodingWithCalvin/dtvem.cli/build.yml?style=for-the-badge&label=Build%20%26%20Test)](https://github.com/CodingWithCalvin/dtvem.cli/actions)
+  [![Release](https://img.shields.io/github/actions/workflow/status/CodingWithCalvin/dtvem.cli/release.yml?style=for-the-badge&label=Release)](https://github.com/CodingWithCalvin/dtvem.cli/actions)
 
   **[Documentation](https://dtvem.io/docs)** · **[Installation](https://dtvem.io/docs/user-guide/getting-started)** · **[Quick Start](https://dtvem.io/docs/user-guide/getting-started)** · **[Commands](https://dtvem.io/docs/user-guide/commands/overview)**
 
@@ -101,14 +101,14 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 ```bash
 # First, install dtvem (see Installation section above)
 # Then clone and set up the development environment:
-git clone https://github.com/dtvem/dtvem.git
+git clone https://github.com/CodingWithCalvin/dtvem.cli.git
 cd dtvem
 dtvem install      # Install Node.js for git hooks
 npm install        # Set up dev dependencies
 npm run check      # Run format, lint, and tests
 ```
 
-Looking for something to work on? Check out [good first issues](https://github.com/dtvem/dtvem/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+Looking for something to work on? Check out [good first issues](https://github.com/CodingWithCalvin/dtvem.cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 ## 👥 Contributors
 

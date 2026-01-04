@@ -3,7 +3,7 @@ package uru
 import (
 	"testing"
 
-	"github.com/dtvem/dtvem/src/internal/migration"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/migration"
 )
 
 func TestProvider(t *testing.T) {

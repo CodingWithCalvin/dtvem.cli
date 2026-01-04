@@ -10,17 +10,17 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dtvem/dtvem/src/internal/config"
-	"github.com/dtvem/dtvem/src/internal/constants"
-	"github.com/dtvem/dtvem/src/internal/path"
-	"github.com/dtvem/dtvem/src/internal/runtime"
-	"github.com/dtvem/dtvem/src/internal/shim"
-	"github.com/dtvem/dtvem/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/path"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/shim"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 
 	// Import runtime providers to register them
-	_ "github.com/dtvem/dtvem/src/runtimes/node"
-	_ "github.com/dtvem/dtvem/src/runtimes/python"
-	_ "github.com/dtvem/dtvem/src/runtimes/ruby"
+	_ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/node"
+	_ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/python"
+	_ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/ruby"
 )
 
 func main() {

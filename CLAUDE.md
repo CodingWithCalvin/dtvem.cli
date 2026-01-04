@@ -70,22 +70,22 @@ gh issue close <number>
 
 ```bash
 # List what blocks an issue
-gh api repos/dtvem/dtvem/issues/<number>/dependencies/blocked_by --jq '.[] | "#\(.number) \(.title)"'
+gh api repos/CodingWithCalvin/dtvem.cli/issues/<number>/dependencies/blocked_by --jq '.[] | "#\(.number) \(.title)"'
 
 # List what an issue blocks
-gh api repos/dtvem/dtvem/issues/<number>/dependencies/blocking --jq '.[] | "#\(.number) \(.title)"'
+gh api repos/CodingWithCalvin/dtvem.cli/issues/<number>/dependencies/blocking --jq '.[] | "#\(.number) \(.title)"'
 
 # Add a blocking relationship (issue <number> is blocked by <blocker_id>)
 # First get the blocker's numeric ID (not issue number):
-gh api repos/dtvem/dtvem/issues/<blocker_number> --jq '.id'
+gh api repos/CodingWithCalvin/dtvem.cli/issues/<blocker_number> --jq '.id'
 # Then add the dependency:
-gh api repos/dtvem/dtvem/issues/<number>/dependencies/blocked_by -X POST -F issue_id=<blocker_id>
+gh api repos/CodingWithCalvin/dtvem.cli/issues/<number>/dependencies/blocked_by -X POST -F issue_id=<blocker_id>
 
 # Remove a blocking relationship
-gh api repos/dtvem/dtvem/issues/<number>/dependencies/blocked_by/<blocker_id> -X DELETE
+gh api repos/CodingWithCalvin/dtvem.cli/issues/<number>/dependencies/blocked_by/<blocker_id> -X DELETE
 ```
 
-**Note:** The API uses numeric issue IDs (not issue numbers) for POST/DELETE operations. Get the ID with `gh api repos/dtvem/dtvem/issues/<number> --jq '.id'`
+**Note:** The API uses numeric issue IDs (not issue numbers) for POST/DELETE operations. Get the ID with `gh api repos/CodingWithCalvin/dtvem.cli/issues/<number> --jq '.id'`
 
 ---
 
@@ -176,9 +176,9 @@ func init() {
 
 // src/main.go - blank imports trigger registration
 import (
-    _ "github.com/dtvem/dtvem/src/runtimes/node"
-    _ "github.com/dtvem/dtvem/src/runtimes/python"
-    _ "github.com/dtvem/dtvem/src/runtimes/ruby"
+    _ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/node"
+    _ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/python"
+    _ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/ruby"
 )
 ```
 
@@ -200,7 +200,7 @@ import (
 1. Create `src/runtimes/<name>/provider.go`
 2. Implement `runtime.Provider` interface (all 20 methods)
 3. Add `init()` function: `runtime.Register(NewProvider())`
-4. Import in `src/main.go`: `_ "github.com/dtvem/dtvem/src/runtimes/<name>"`
+4. Import in `src/main.go`: `_ "github.com/CodingWithCalvin/dtvem.cli/src/runtimes/<name>"`
 5. Update `schemas/runtimes.schema.json` enum
 
 The shim mappings are automatically registered via `Shims()`.

@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/dtvem/dtvem/src/internal/runtime"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 )
 
 // mockProvider implements runtime.Provider for testing

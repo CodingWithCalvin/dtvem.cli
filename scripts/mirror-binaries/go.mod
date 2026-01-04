@@ -1,4 +1,4 @@
-module github.com/dtvem/dtvem/scripts/mirror-binaries
+module github.com/CodingWithCalvin/dtvem.cli/scripts/mirror-binaries
 
 go 1.23.0
 

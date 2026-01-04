@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Ask a Question
-    url: https://github.com/dtvem/dtvem/discussions
+    url: https://github.com/CodingWithCalvin/dtvem.cli/discussions
     about: Have a question? Use GitHub Discussions instead of opening an issue. Get help from the community!
   - name: 📖 Documentation
-    url: https://github.com/dtvem/dtvem/blob/main/README.md
+    url: https://github.com/CodingWithCalvin/dtvem.cli/blob/main/README.md
     about: Check the README for comprehensive usage instructions, examples, and guides
   - name: 🗨️ General Discussions
-    url: https://github.com/dtvem/dtvem/discussions
+    url: https://github.com/CodingWithCalvin/dtvem.cli/discussions
     about: Share ideas, feedback, or discuss anything related to dtvem with the community

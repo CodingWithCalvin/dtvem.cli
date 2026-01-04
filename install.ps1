@@ -1,9 +1,9 @@
 # dtvem installer for Windows
-# Usage: irm https://raw.githubusercontent.com/dtvem/dtvem/main/install.ps1 | iex
+# Usage: irm https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
-$REPO = "dtvem/dtvem"
+$REPO = "CodingWithCalvin/dtvem.cli"
 
 # Get dtvem root directory
 # Respects DTVEM_ROOT environment variable if set, otherwise uses default
