@@ -8,7 +8,7 @@ on:
 jobs:
   generate:
     name: Generate
-    uses: CodingWithCalvin/.github/workflows/dtvem/generate-changelog.yml@main
+    uses: CodingWithCalvin/.github/workflows/generate-changelog.yml@main
     secrets: inherit
 
   preview:
