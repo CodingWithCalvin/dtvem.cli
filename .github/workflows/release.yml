@@ -229,7 +229,7 @@ jobs:
   changelog:
     name: Generate Changelog
     needs: build
-    uses: CodingWithCalvin/.github/workflows/generate-changelog.yml@main
+    uses: CodingWithCalvin/.github/.github/workflows/generate-changelog.yml@main
     secrets: inherit
 
   release:
