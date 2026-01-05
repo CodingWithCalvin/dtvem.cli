@@ -16,21 +16,21 @@ jobs:
   # ==========================================================================
   node:
     name: Node.js
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-node.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-node.yml@main
     with:
       version1: '20.18.0'
       version2: '22.11.0'
 
   python:
     name: Python
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-python.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-python.yml@main
     with:
       version1: '3.11.9'
       version2: '3.12.7'
 
   ruby:
     name: Ruby
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-ruby.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-ruby.yml@main
     with:
       version1: '3.3.6'
       version2: '3.4.1'
@@ -40,72 +40,72 @@ jobs:
   # ==========================================================================
   migrate-node-ubuntu-system:
     name: Migrate Node.js from System (Ubuntu)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-node-ubuntu-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-node-ubuntu-system.yml@main
 
   migrate-node-ubuntu-nvm:
     name: Migrate Node.js from nvm (Ubuntu)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-node-ubuntu-nvm.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-node-ubuntu-nvm.yml@main
 
   migrate-node-macos-system:
     name: Migrate Node.js from System (macOS)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-node-macos-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-node-macos-system.yml@main
 
   migrate-node-windows-system:
     name: Migrate Node.js from System (Windows)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-node-windows-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-node-windows-system.yml@main
 
   migrate-node-macos-fnm:
     name: Migrate Node.js from fnm (macOS)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-node-macos-fnm.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-node-macos-fnm.yml@main
 
   migrate-node-windows-nvm:
     name: Migrate Node.js from nvm-windows (Windows)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-node-windows-nvm.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-node-windows-nvm.yml@main
 
   migrate-python-ubuntu-system:
     name: Migrate Python from System (Ubuntu)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-python-ubuntu-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-python-ubuntu-system.yml@main
 
   migrate-python-ubuntu-pyenv:
     name: Migrate Python from pyenv (Ubuntu)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-python-ubuntu-pyenv.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-python-ubuntu-pyenv.yml@main
 
   migrate-python-macos-system:
     name: Migrate Python from System (macOS)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-python-macos-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-python-macos-system.yml@main
 
   migrate-python-macos-pyenv:
     name: Migrate Python from pyenv (macOS)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-python-macos-pyenv.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-python-macos-pyenv.yml@main
 
   migrate-python-windows-system:
     name: Migrate Python from System (Windows)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-python-windows-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-python-windows-system.yml@main
 
   migrate-python-windows-pyenv:
     name: Migrate Python from pyenv-win (Windows)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-python-windows-pyenv.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-python-windows-pyenv.yml@main
 
   migrate-ruby-ubuntu-system:
     name: Migrate Ruby from System (Ubuntu)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-ruby-ubuntu-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-ruby-ubuntu-system.yml@main
 
   migrate-ruby-ubuntu-rbenv:
     name: Migrate Ruby from rbenv (Ubuntu)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-ruby-ubuntu-rbenv.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-ruby-ubuntu-rbenv.yml@main
 
   migrate-ruby-macos-system:
     name: Migrate Ruby from System (macOS)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-ruby-macos-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-ruby-macos-system.yml@main
 
   migrate-ruby-macos-rbenv:
     name: Migrate Ruby from rbenv (macOS)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-ruby-macos-rbenv.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-ruby-macos-rbenv.yml@main
 
   migrate-ruby-windows-system:
     name: Migrate Ruby from System (Windows)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-ruby-windows-system.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-ruby-windows-system.yml@main
 
   migrate-ruby-windows-uru:
     name: Migrate Ruby from uru (Windows)
-    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-migrate-ruby-windows-uru.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem-integration-test-migrate-ruby-windows-uru.yml@main
