@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/runtimes.schema.json",
+  "$id": "https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/schemas/runtimes.schema.json",
   "title": "dtvem Runtimes Configuration",
   "description": "Configuration file for dtvem (Development Tool Virtual Environment Manager) to specify runtime versions for a project",
   "type": "object",

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/runtimes.schema.json",
+  "$schema": "https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/schemas/runtimes.schema.json",
   "node": "22.0.0",
   "python": "3.8.9",
   "ruby": "3.3.9"

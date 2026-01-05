@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/manifest.schema.json",
+  "$id": "https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/schemas/manifest.schema.json",
   "title": "dtvem Runtime Manifest",
   "description": "Manifest file containing available versions and download URLs for a runtime",
   "type": "object",

@@ -12,7 +12,7 @@ import (
 type RuntimesConfig map[string]string
 
 // SchemaURL is the URL to the runtimes.json schema
-const SchemaURL = "https://raw.githubusercontent.com/dtvem/dtvem/main/schemas/runtimes.schema.json"
+const SchemaURL = "https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/schemas/runtimes.schema.json"
 
 // ResolveVersion finds the version to use for a runtime
 // Priority: local dtvem.config.json file (walking up directory tree) > global config
