@@ -10,21 +10,21 @@ permissions:
 jobs:
   node:
     name: Node.js
-    uses: CodingWithCalvin/.github/.github/workflows/dtvem/integration-test-node.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-node.yml@main
     with:
       version1: '20.18.0'
       version2: '22.11.0'
 
   python:
     name: Python
-    uses: CodingWithCalvin/.github/.github/workflows/dtvem/integration-test-python.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-python.yml@main
     with:
       version1: '3.11.9'
       version2: '3.12.7'
 
   ruby:
     name: Ruby
-    uses: CodingWithCalvin/.github/.github/workflows/dtvem/integration-test-ruby.yml@main
+    uses: CodingWithCalvin/.github/workflows/dtvem/integration-test-ruby.yml@main
     with:
       version1: '3.3.6'
       version2: '3.4.1'
