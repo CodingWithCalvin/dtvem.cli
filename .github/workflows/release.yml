@@ -317,205 +317,82 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  notify:
-    name: Send Release Notifications
-    runs-on: ubuntu-latest
+  notify-discussion:
+    name: Create GitHub Discussion
     needs: release
+    uses: CodingWithCalvin/.github/.github/workflows/github-discussion.yml@main
+    with:
+      title: "🎉 dtvem v${{ github.event.inputs.version }} has been released!"
+      body: |
+        ## Changes in this release
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+        See the [full changelog](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}) for details on what's new in this release.
 
-    - name: Create GitHub Discussion Announcement
-      id: discussion
-      run: |
-        VERSION="${{ github.event.inputs.version }}"
-        RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
-        REPO_URL="https://github.com/${{ github.repository }}"
+        ## Installation
 
-        # Get repository ID and Announcements category ID
-        REPO_DATA=$(gh api graphql -f query='
-          query($owner: String!, $repo: String!) {
-            repository(owner: $owner, name: $repo) {
-              id
-              discussionCategories(first: 10) {
-                nodes {
-                  id
-                  name
-                }
-              }
-            }
-          }
-        ' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}")
+        ### Quick Install (Recommended)
 
-        REPO_ID=$(echo "$REPO_DATA" | jq -r '.data.repository.id')
-        CATEGORY_ID=$(echo "$REPO_DATA" | jq -r '.data.repository.discussionCategories.nodes[] | select(.name == "Announcements") | .id')
+        **macOS / Linux:**
+        ```bash
+        curl -fsSL https://github.com/${{ github.repository }}/releases/download/v${{ github.event.inputs.version }}/install.sh | bash
+        ```
 
-        if [ -z "$CATEGORY_ID" ]; then
-          echo "Error: Could not find Announcements category"
-          exit 1
-        fi
+        **Windows (PowerShell):**
+        ```powershell
+        irm https://github.com/${{ github.repository }}/releases/download/v${{ github.event.inputs.version }}/install.ps1 | iex
+        ```
 
-        echo "Repository ID: $REPO_ID"
-        echo "Announcements Category ID: $CATEGORY_ID"
+        ### Manual Installation
 
-        # Create discussion body (build it with string concatenation to avoid heredoc issues)
-        DISCUSSION_BODY="## Changes in this release"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"See the [full changelog](RELEASE_URL_PLACEHOLDER) for details on what's new in this release."
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"## Installation"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"### Quick Install (Recommended)"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"**macOS / Linux:**"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```bash'
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"curl -fsSL REPO_URL_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/install.sh | bash"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```'
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"**Windows (PowerShell):**"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```powershell'
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"irm REPO_URL_PLACEHOLDER/releases/download/vVERSION_PLACEHOLDER/install.ps1 | iex"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n''```'
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"### Manual Installation"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"1. Download the appropriate archive for your platform from the [release page](RELEASE_URL_PLACEHOLDER)"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"2. Extract the archive"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"3. Move binaries to a directory in your PATH"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"4. Run \`dtvem init\` to complete setup"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"## Supported Platforms"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"- ✅ Windows (amd64, arm64)"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"- ✅ macOS (amd64, arm64/Apple Silicon)"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n'"- ✅ Linux (amd64)"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"---"
-        DISCUSSION_BODY="$DISCUSSION_BODY"$'\n\n'"📦 [View Release](RELEASE_URL_PLACEHOLDER) | 📖 [Documentation](REPO_URL_PLACEHOLDER)"
-        # Replace placeholders with actual values
-        DISCUSSION_BODY="${DISCUSSION_BODY//RELEASE_URL_PLACEHOLDER/$RELEASE_URL}"
-        DISCUSSION_BODY="${DISCUSSION_BODY//REPO_URL_PLACEHOLDER/$REPO_URL}"
-        DISCUSSION_BODY="${DISCUSSION_BODY//VERSION_PLACEHOLDER/${{ github.event.inputs.version }}}"
+        1. Download the appropriate archive for your platform from the [release page](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})
+        2. Extract the archive
+        3. Move binaries to a directory in your PATH
+        4. Run `dtvem init` to complete setup
 
-        # Create the discussion
-        DISCUSSION_RESULT=$(gh api graphql -f query='
-          mutation($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
-            createDiscussion(input: {
-              repositoryId: $repositoryId
-              categoryId: $categoryId
-              title: $title
-              body: $body
-            }) {
-              discussion {
-                url
-              }
-            }
-          }
-        ' -f repositoryId="$REPO_ID" -f categoryId="$CATEGORY_ID" -f title="🎉 dtvem v$VERSION has been released!" -f body="$DISCUSSION_BODY")
+        ## Supported Platforms
 
-        DISCUSSION_URL=$(echo "$DISCUSSION_RESULT" | jq -r '.data.createDiscussion.discussion.url')
-        echo "✓ Created discussion: $DISCUSSION_URL"
-        echo "discussion_url=$DISCUSSION_URL" >> $GITHUB_OUTPUT
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - ✅ Windows (amd64, arm64)
+        - ✅ macOS (amd64, arm64/Apple Silicon)
+        - ✅ Linux (amd64)
 
-    - name: Post to BlueSky
-      run: |
-        VERSION="${{ github.event.inputs.version }}"
-        RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/v$VERSION"
-        DISCUSSION_URL="${{ steps.discussion.outputs.discussion_url }}"
+        ---
 
-        # Discover runtimes from src/runtimes/ directory
-        RUNTIME_DIRS=$(find src/runtimes -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+        📦 [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}) | 📖 [Documentation](https://github.com/${{ github.repository }})
 
-        # Capitalize runtime names
-        RUNTIME_LIST=()
-        for runtime in $RUNTIME_DIRS; do
-          RUNTIME_LIST+=("${runtime^}")  # Capitalize first letter
-        done
+  notify-bluesky:
+    name: Post to Bluesky
+    needs: notify-discussion
+    uses: CodingWithCalvin/.github/.github/workflows/bluesky-post.yml@main
+    with:
+      post_text: |
+        🚀 #dtvem v${{ github.event.inputs.version }} is now available!
 
-        # Format runtime names based on count (with hashtags)
-        RUNTIME_COUNT=${#RUNTIME_LIST[@]}
-        if [ $RUNTIME_COUNT -eq 1 ]; then
-          RUNTIME_NAMES="#${RUNTIME_LIST[0]}"
-        elif [ $RUNTIME_COUNT -eq 2 ]; then
-          RUNTIME_NAMES="#${RUNTIME_LIST[0]} and #${RUNTIME_LIST[1]}"
-        else
-          # Three or more: "#A, #B, and #C"
-          RUNTIME_NAMES=""
-          for i in "${!RUNTIME_LIST[@]}"; do
-            if [ $i -eq 0 ]; then
-              RUNTIME_NAMES="#${RUNTIME_LIST[$i]}"
-            elif [ $i -eq $((RUNTIME_COUNT - 1)) ]; then
-              RUNTIME_NAMES="${RUNTIME_NAMES}, and #${RUNTIME_LIST[$i]}"
-            else
-              RUNTIME_NAMES="${RUNTIME_NAMES}, #${RUNTIME_LIST[$i]}"
-            fi
-          done
-        fi
+        Cross-platform version manager for #Node, #Python, and #Ruby - supports #Windows, #Linux, and #macOS
 
-        echo "Detected runtimes: $RUNTIME_NAMES"
+        [Release Notes](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})
+        [Discussion](${{ needs.notify-discussion.outputs.discussion_url }})
+      embed_url: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
+      embed_title: dtvem v${{ github.event.inputs.version }}
+      embed_description: Cross-platform runtime version manager for Node.js, Python, and Ruby
+    secrets:
+      BLUESKY_USERNAME: ${{ secrets.BLUESKY_USERNAME }}
+      BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
 
-        # Authenticate with BlueSky
-        echo "Authenticating with BlueSky..."
-        AUTH_RESPONSE=$(curl -s -X POST https://bsky.social/xrpc/com.atproto.server.createSession \
-          -H "Content-Type: application/json" \
-          -d "{\"identifier\": \"${{ secrets.BLUESKY_USERNAME }}\", \"password\": \"${{ secrets.BLUESKY_APP_PASSWORD }}\"}")
+  notify-linkedin:
+    name: Post to LinkedIn
+    needs: notify-discussion
+    uses: CodingWithCalvin/.github/.github/workflows/linkedin-post.yml@main
+    with:
+      post_text: |
+        🚀 #dtvem v${{ github.event.inputs.version }} is now available!
 
-        ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessJwt')
-        DID=$(echo "$AUTH_RESPONSE" | jq -r '.did')
+        Cross-platform version manager for #Node, #Python, and #Ruby - supports #Windows, #Linux, and #macOS
 
-        if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
-          echo "Error: Failed to authenticate with BlueSky"
-          echo "Response: $AUTH_RESPONSE"
-          exit 1
-        fi
-
-        echo "✓ Authenticated as $DID"
-
-        # Create post text (must be under 300 graphemes)
-        POST_TEXT="🚀 #dtvem v${VERSION} is now available!"
-        POST_TEXT="${POST_TEXT}"$'\n\n'"Cross-platform version manager for ${RUNTIME_NAMES} - supports #Windows, #Linux, and #MacOS"
-        POST_TEXT="${POST_TEXT}"$'\n\n'"Release: ${RELEASE_URL}"
-        POST_TEXT="${POST_TEXT}"$'\n'"Discuss: ${DISCUSSION_URL}"
-
-        echo "Post text: $POST_TEXT"
-        echo "Post length: $(echo -n "$POST_TEXT" | wc -c) characters"
-
-        # Get current timestamp in ISO 8601 format
-        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-        # Calculate facets (byte positions for hashtags and links)
-        echo "Calculating facets for links and hashtags..."
-        export POST_TEXT
-        FACETS=$(python3 -c "import json; import re; import os; text = os.environ['POST_TEXT']; facets = []; [facets.append({'index': {'byteStart': len(text[:m.start()].encode('utf-8')), 'byteEnd': len(text[:m.start()+len(m.group(0))].encode('utf-8'))}, 'features': [{'\$type': 'app.bsky.richtext.facet#tag', 'tag': m.group(1)}]}) for m in re.finditer(r'#(\w+)', text)]; [facets.append({'index': {'byteStart': len(text[:m.start()].encode('utf-8')), 'byteEnd': len(text[:m.start()+len(m.group())].encode('utf-8'))}, 'features': [{'\$type': 'app.bsky.richtext.facet#link', 'uri': m.group()}]}) for m in re.finditer(r'https?://[^\s]+', text)]; print(json.dumps(facets))")
-
-        echo "Facets: $FACETS"
-
-        # Create the post using jq to properly escape JSON
-        echo "Creating BlueSky post..."
-        POST_RESPONSE=$(jq -n \
-          --arg did "$DID" \
-          --arg text "$POST_TEXT" \
-          --arg timestamp "$TIMESTAMP" \
-          --argjson facets "$FACETS" \
-          '{
-            repo: $did,
-            collection: "app.bsky.feed.post",
-            record: {
-              text: $text,
-              facets: $facets,
-              createdAt: $timestamp,
-              "$type": "app.bsky.feed.post"
-            }
-          }' | curl -s -X POST https://bsky.social/xrpc/com.atproto.repo.createRecord \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer $ACCESS_TOKEN" \
-          -d @-)
-
-        POST_URI=$(echo "$POST_RESPONSE" | jq -r '.uri')
-
-        if [ -z "$POST_URI" ] || [ "$POST_URI" == "null" ]; then
-          echo "Error: Failed to create BlueSky post"
-          echo "Response: $POST_RESPONSE"
-          exit 1
-        fi
-
-        # Extract the post ID from the URI (format: at://did:plc:.../app.bsky.feed.post/POST_ID)
-        POST_ID=$(echo "$POST_URI" | sed 's|.*/||')
-        POST_URL="https://bsky.app/profile/${{ secrets.BLUESKY_USERNAME }}/post/$POST_ID"
-
-        echo "✓ Posted to BlueSky: $POST_URL"
-      shell: bash
+        Release Notes: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
+        Discussion: ${{ needs.notify-discussion.outputs.discussion_url }}
+      article_url: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
+      article_title: dtvem v${{ github.event.inputs.version }}
+      article_description: Cross-platform runtime version manager for Node.js, Python, and Ruby
+    secrets:
+      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+      LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
