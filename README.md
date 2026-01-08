@@ -113,9 +113,7 @@ Looking for something to work on? Check out [good first issues](https://github.c
 ## 👥 Contributors
 
 <!-- readme: contributors -start -->
-<p align="left">
-<a href="https://github.com/CalvinAllen"><img src="https://avatars.githubusercontent.com/u/41448698?v=4" width="64" height="64" alt="CalvinAllen"/></a>
-</p>
+[![AlanBarber](https://avatars.githubusercontent.com/u/800996?v=4&s=64)](https://github.com/AlanBarber) [![CalvinAllen](https://avatars.githubusercontent.com/u/41448698?v=4&s=64)](https://github.com/CalvinAllen) 
 <!-- readme: contributors -end -->
 
 ## 📄 License
