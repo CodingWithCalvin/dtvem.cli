@@ -8,11 +8,13 @@ import (
 
 // mockProvider implements runtime.Provider for testing
 type mockProvider struct {
-	name           string
-	displayName    string
-	globalVersion  string
-	globalSetError error
-	setGlobalCalls []string
+	name              string
+	displayName       string
+	globalVersion     string
+	globalSetError    error
+	setGlobalCalls    []string
+	availableVersions []runtime.AvailableVersion
+	listAvailableErr  error
 }
 
 func (m *mockProvider) Name() string                                          { return m.name }
@@ -27,7 +29,7 @@ func (m *mockProvider) ListInstalled() ([]runtime.InstalledVersion, error) {
 	return nil, nil
 }
 func (m *mockProvider) ListAvailable() ([]runtime.AvailableVersion, error) {
-	return nil, nil
+	return m.availableVersions, m.listAvailableErr
 }
 func (m *mockProvider) InstallPath(version string) (string, error) { return "", nil }
 func (m *mockProvider) LocalVersion() (string, error)              { return "", nil }
@@ -112,5 +114,149 @@ func TestAutoSetGlobalIfNeeded_MultipleInstalls(t *testing.T) {
 
 	if len(provider.setGlobalCalls) != 1 {
 		t.Errorf("Expected second install to not change global, got %d calls total", len(provider.setGlobalCalls))
+	}
+}
+
+// Helper to create AvailableVersion from a version string
+func makeAvailableVersion(v string) runtime.AvailableVersion {
+	return runtime.AvailableVersion{
+		Version: runtime.NewVersion(v),
+	}
+}
+
+func TestResolveVersionForProvider_FullVersion(t *testing.T) {
+	provider := &mockProvider{
+		name:        "node",
+		displayName: "Node.js",
+		availableVersions: []runtime.AvailableVersion{
+			makeAvailableVersion("22.15.0"),
+			makeAvailableVersion("22.0.0"),
+		},
+	}
+
+	// Full version should pass through unchanged
+	result, err := resolveVersionForProvider(provider, "22.15.0")
+	if err != nil {
+		t.Errorf("resolveVersionForProvider returned error: %v", err)
+	}
+	if result != "22.15.0" {
+		t.Errorf("Expected 22.15.0, got %q", result)
+	}
+}
+
+func TestResolveVersionForProvider_FullVersionWithVPrefix(t *testing.T) {
+	provider := &mockProvider{
+		name:        "node",
+		displayName: "Node.js",
+		availableVersions: []runtime.AvailableVersion{
+			makeAvailableVersion("22.15.0"),
+		},
+	}
+
+	// Full version with v prefix should have prefix stripped
+	result, err := resolveVersionForProvider(provider, "v22.15.0")
+	if err != nil {
+		t.Errorf("resolveVersionForProvider returned error: %v", err)
+	}
+	if result != "22.15.0" {
+		t.Errorf("Expected 22.15.0, got %q", result)
+	}
+}
+
+func TestResolveVersionForProvider_MajorOnly(t *testing.T) {
+	provider := &mockProvider{
+		name:        "node",
+		displayName: "Node.js",
+		availableVersions: []runtime.AvailableVersion{
+			makeAvailableVersion("22.0.0"),
+			makeAvailableVersion("22.5.0"),
+			makeAvailableVersion("22.15.0"),
+			makeAvailableVersion("22.15.1"),
+			makeAvailableVersion("21.0.0"),
+		},
+	}
+
+	// Major-only should resolve to highest 22.x.x
+	result, err := resolveVersionForProvider(provider, "22")
+	if err != nil {
+		t.Errorf("resolveVersionForProvider returned error: %v", err)
+	}
+	if result != "22.15.1" {
+		t.Errorf("Expected 22.15.1 (highest 22.x.x), got %q", result)
+	}
+}
+
+func TestResolveVersionForProvider_MajorMinor(t *testing.T) {
+	provider := &mockProvider{
+		name:        "node",
+		displayName: "Node.js",
+		availableVersions: []runtime.AvailableVersion{
+			makeAvailableVersion("14.21.0"),
+			makeAvailableVersion("14.21.3"),
+			makeAvailableVersion("14.20.0"),
+			makeAvailableVersion("14.20.1"),
+		},
+	}
+
+	// Major.minor should resolve to highest 14.21.x
+	result, err := resolveVersionForProvider(provider, "14.21")
+	if err != nil {
+		t.Errorf("resolveVersionForProvider returned error: %v", err)
+	}
+	if result != "14.21.3" {
+		t.Errorf("Expected 14.21.3 (highest 14.21.x), got %q", result)
+	}
+}
+
+func TestResolveVersionForProvider_NoMatch(t *testing.T) {
+	provider := &mockProvider{
+		name:        "node",
+		displayName: "Node.js",
+		availableVersions: []runtime.AvailableVersion{
+			makeAvailableVersion("22.0.0"),
+			makeAvailableVersion("21.0.0"),
+		},
+	}
+
+	// No matching version should return error
+	_, err := resolveVersionForProvider(provider, "99")
+	if err == nil {
+		t.Error("Expected error for non-matching version, got nil")
+	}
+}
+
+func TestResolveVersionForProvider_PythonVersions(t *testing.T) {
+	provider := &mockProvider{
+		name:        "python",
+		displayName: "Python",
+		availableVersions: []runtime.AvailableVersion{
+			makeAvailableVersion("3.9.18"),
+			makeAvailableVersion("3.10.13"),
+			makeAvailableVersion("3.11.7"),
+			makeAvailableVersion("3.12.0"),
+			makeAvailableVersion("3.12.1"),
+		},
+	}
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"3", "3.12.1"},    // Latest 3.x.x
+		{"3.11", "3.11.7"}, // Latest 3.11.x
+		{"3.12", "3.12.1"}, // Latest 3.12.x
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			result, err := resolveVersionForProvider(provider, tt.input)
+			if err != nil {
+				t.Errorf("resolveVersionForProvider(%q) returned error: %v", tt.input, err)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("resolveVersionForProvider(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
 	}
 }

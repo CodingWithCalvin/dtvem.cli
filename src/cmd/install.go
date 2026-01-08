@@ -9,6 +9,7 @@ import (
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -21,9 +22,13 @@ var installCmd = &cobra.Command{
 	Short: "Install runtime version(s)",
 	Long: `Install a specific version of a runtime, or install all runtimes from .dtvem/runtimes.json.
 
-Single install:
+Single install (exact version):
   dtvem install python 3.11.0
   dtvem install node 18.16.0
+
+Single install (partial version - resolves to latest match):
+  dtvem install node 22       # Installs latest 22.x.x (e.g., 22.15.0)
+  dtvem install python 3.12   # Installs latest 3.12.x (e.g., 3.12.1)
 
 Bulk install (reads .dtvem/runtimes.json):
   dtvem install
@@ -51,8 +56,8 @@ func init() {
 }
 
 // installSingle installs a single runtime/version
-func installSingle(runtimeName, version string) {
-	ui.Debug("Installing single runtime: %s version %s", runtimeName, version)
+func installSingle(runtimeName, versionInput string) {
+	ui.Debug("Installing single runtime: %s version %s", runtimeName, versionInput)
 
 	provider, err := runtime.Get(runtimeName)
 	if err != nil {
@@ -64,20 +69,33 @@ func installSingle(runtimeName, version string) {
 
 	ui.Debug("Using provider: %s (%s)", provider.Name(), provider.DisplayName())
 
-	if err := provider.Install(version); err != nil {
+	// Resolve partial version to full version if needed
+	resolvedVersion, err := resolveVersionForProvider(provider, versionInput)
+	if err != nil {
+		ui.Debug("Version resolution failed: %v", err)
+		ui.Error("%v", err)
+		os.Exit(1)
+	}
+
+	// Inform user if version was resolved from partial input
+	if resolvedVersion != versionInput {
+		ui.Info("Resolved %s to %s", versionInput, resolvedVersion)
+	}
+
+	if err := provider.Install(resolvedVersion); err != nil {
 		ui.Debug("Installation failed: %v", err)
 		ui.Error("%v", err)
 		os.Exit(1)
 	}
 
-	ui.Success("Successfully installed %s %s", provider.DisplayName(), version)
+	ui.Success("Successfully installed %s %s", provider.DisplayName(), resolvedVersion)
 
 	// Auto-set global version if no global version is currently configured
-	autoSetGlobalIfNeeded(provider, version)
+	autoSetGlobalIfNeeded(provider, resolvedVersion)
 }
 
 // autoSetGlobalIfNeeded sets the installed version as global if no global version exists
-func autoSetGlobalIfNeeded(provider runtime.Provider, version string) {
+func autoSetGlobalIfNeeded(provider runtime.Provider, ver string) {
 	currentGlobal, err := provider.GlobalVersion()
 	if err != nil || currentGlobal != "" {
 		// Either an error occurred or a global version is already set
@@ -86,13 +104,43 @@ func autoSetGlobalIfNeeded(provider runtime.Provider, version string) {
 	}
 
 	// No global version configured, auto-set it
-	if err := provider.SetGlobalVersion(version); err != nil {
+	if err := provider.SetGlobalVersion(ver); err != nil {
 		ui.Debug("Failed to auto-set global version: %v", err)
 		ui.Warning("Could not auto-set global version: %v", err)
 		return
 	}
 
 	ui.Info("Set as global version (first install)")
+}
+
+// resolveVersionForProvider resolves a partial version input to a full version.
+// If the input is already a full version (3 components), it's returned as-is.
+// For partial versions (1-2 components), it finds the highest matching version.
+func resolveVersionForProvider(provider runtime.Provider, input string) (string, error) {
+	// If it's already a full version, return as-is
+	if !version.IsPartialVersion(input) {
+		return strings.TrimPrefix(input, "v"), nil
+	}
+
+	// Get available versions from the provider
+	available, err := provider.ListAvailable()
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch available versions: %w", err)
+	}
+
+	// Extract version strings
+	versionStrings := make([]string, len(available))
+	for i, av := range available {
+		versionStrings[i] = av.Version.Raw
+	}
+
+	// Resolve the partial version
+	resolved, err := version.ResolvePartialVersion(input, versionStrings)
+	if err != nil {
+		return "", fmt.Errorf("no %s version matching %q found", provider.DisplayName(), input)
+	}
+
+	return resolved, nil
 }
 
 // installBulk installs all runtimes from .dtvem/runtimes.json
