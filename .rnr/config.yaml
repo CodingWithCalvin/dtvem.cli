@@ -1,0 +1,7 @@
+version: 0.1.0
+platforms:
+- linux-amd64
+- macos-amd64
+- macos-arm64
+- windows-amd64
+- windows-arm64
