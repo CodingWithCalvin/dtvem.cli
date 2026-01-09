@@ -1,0 +1,62 @@
+# dtvem task definitions
+# Replaces npm scripts - no Node.js required
+
+# Code quality
+format: gofmt -w ./src
+
+lint: golangci-lint run --timeout=5m --config=.golangci.yml ./src/...
+
+# Testing
+test: go test -v ./src/...
+
+test-coverage:
+  description: Run tests with coverage report
+  steps:
+    - cmd: go test -v -coverprofile=coverage.out -covermode=atomic ./src/...
+    - cmd: go tool cover -html=coverage.out -o coverage.html
+
+# Building
+build:
+  description: Build both CLI and shim
+  steps:
+    - task: build-cli
+    - task: build-shim
+
+build-cli:
+  description: Build the main CLI executable
+  cmd: go build -v -ldflags="-s -w" -o dist/dtvem.exe ./src
+
+build-shim:
+  description: Build the shim executable
+  cmd: go build -v -ldflags="-s -w" -o dist/dtvem-shim.exe ./src/cmd/shim
+
+# Deployment (Windows)
+deploy-local:
+  description: Build and deploy to local dtvem installation (Windows)
+  steps:
+    - task: build
+    - cmd: copy dist\dtvem.exe %USERPROFILE%\.dtvem\bin\dtvem.exe
+    - cmd: copy dist\dtvem-shim.exe %USERPROFILE%\.dtvem\bin\dtvem-shim.exe
+    - cmd: echo "Deploy complete. Run 'dtvem reshim' manually to update shims."
+
+# Deployment (Unix)
+deploy-local-unix:
+  description: Build and deploy to local dtvem installation (macOS/Linux)
+  steps:
+    - task: build
+    - cmd: cp dist/dtvem.exe ~/.dtvem/bin/dtvem.exe
+    - cmd: cp dist/dtvem-shim.exe ~/.dtvem/bin/dtvem-shim.exe
+    - cmd: echo "Deploy complete. Run 'dtvem reshim' manually to update shims."
+
+# Cleanup
+clean:
+  description: Remove build artifacts
+  cmd: rm -rf dist coverage.out coverage.html
+
+# CI pipeline
+check:
+  description: Run format, lint, and test
+  steps:
+    - task: format
+    - task: lint
+    - task: test

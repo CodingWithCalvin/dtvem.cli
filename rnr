@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+# Detect OS
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+case "$OS" in
+  linux*) OS="linux" ;;
+  darwin*) OS="macos" ;;
+  *) echo "Error: Unsupported OS: $OS" >&2; exit 1 ;;
+esac
+
+# Detect architecture
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64|amd64) ARCH="amd64" ;;
+  arm64|aarch64) ARCH="arm64" ;;
+  *) echo "Error: Unsupported architecture: $ARCH" >&2; exit 1 ;;
+esac
+
+BINARY="$(dirname "$0")/.rnr/bin/rnr-${OS}-${ARCH}"
+
+if [ ! -f "$BINARY" ]; then
+  echo "Error: rnr is not configured for ${OS}-${ARCH}." >&2
+  echo "Run 'rnr init --add-platform ${OS}-${ARCH}' to add support." >&2
+  exit 1
+fi
+
+exec "$BINARY" "$@"

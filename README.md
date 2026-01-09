@@ -91,7 +91,7 @@ See [Getting Started](https://dtvem.io/docs/user-guide/getting-started) for more
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 - Setting up your development environment
-- npm scripts for building and testing
+- Task runner commands for building and testing
 - Commit conventions and PR guidelines
 - CI/CD workflows and release process
 - Adding new runtime providers
@@ -99,13 +99,9 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 ### Quick Setup
 
 ```bash
-# First, install dtvem (see Installation section above)
-# Then clone and set up the development environment:
 git clone https://github.com/CodingWithCalvin/dtvem.cli.git
-cd dtvem
-dtvem install      # Install Node.js for git hooks
-npm install        # Set up dev dependencies
-npm run check      # Run format, lint, and tests
+cd dtvem.cli
+./rnr check      # Run format, lint, and tests
 ```
 
 Looking for something to work on? Check out [good first issues](https://github.com/CodingWithCalvin/dtvem.cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).

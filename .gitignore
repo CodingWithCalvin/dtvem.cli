@@ -5,6 +5,9 @@ dist/
 *.so
 *.dylib
 
+# But allow rnr binaries (they should be committed)
+!.rnr/bin/*
+
 # Test binary, built with `go test -c`
 *.test
 
