@@ -223,7 +223,7 @@ The shim mappings are automatically registered via `Shims()`.
 ## Version Resolution
 
 **Priority order:**
-1. **Local**: Walk up from `pwd` looking for `.dtvem/runtimes.json` (stops at git root)
+1. **Local**: Walk up from `pwd` looking for `.dtvem/runtimes.json` (stops at filesystem root)
 2. **Global**: `~/.dtvem/config/runtimes.json`
 3. **Error**: No version configured
 
@@ -282,7 +282,7 @@ cd src && go test -cover ./...    # With coverage
 
 ### Test Coverage
 
-- `internal/config/` - Paths, version resolution, git root detection
+- `internal/config/` - Paths, version resolution, directory traversal
 - `internal/runtime/` - Registry, provider test harness
 - `internal/shim/` - Shim mapping, cache, file operations
 - `internal/ui/` - Output formatting functions
