@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bodgit/sevenzip"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
+	"github.com/bodgit/sevenzip"
 )
 
 // archiveFile is an interface for files within an archive (zip or 7z)

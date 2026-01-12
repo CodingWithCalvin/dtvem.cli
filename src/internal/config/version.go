@@ -33,7 +33,7 @@ func ResolveVersion(runtimeName string) (string, error) {
 }
 
 // findLocalVersion walks up the directory tree looking for .dtvem/runtimes.json file
-// Stops at git repository root or filesystem root
+// Stops at filesystem root
 func findLocalVersion(runtimeName string) (string, error) {
 	// Start from current working directory
 	currentDir, err := os.Getwd()
@@ -52,13 +52,6 @@ func findLocalVersion(runtimeName string) (string, error) {
 			if err == nil && version != "" {
 				return version, nil
 			}
-		}
-
-		// Check if this directory contains a .git directory (repository root)
-		gitDir := filepath.Join(currentDir, ".git")
-		if _, err := os.Stat(gitDir); err == nil {
-			// We've reached the git repository root, stop here
-			break
 		}
 
 		// Move up one directory
@@ -128,13 +121,6 @@ func FindLocalRuntimesFile() (string, error) {
 		// Check if .dtvem/runtimes.json exists
 		if _, err := os.Stat(versionFile); err == nil {
 			return versionFile, nil
-		}
-
-		// Check if this directory contains a .git directory (repository root)
-		gitDir := filepath.Join(currentDir, ".git")
-		if _, err := os.Stat(gitDir); err == nil {
-			// We've reached the git repository root, stop here
-			break
 		}
 
 		// Move up one directory

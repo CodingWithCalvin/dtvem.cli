@@ -269,7 +269,7 @@ func TestFindLocalRuntimesFile_DirectoryWalking(t *testing.T) {
 	}
 }
 
-func TestFindLocalRuntimesFile_StopsAtGitRoot(t *testing.T) {
+func TestFindLocalRuntimesFile_TraversesThroughGitRoot(t *testing.T) {
 	// Create structure:
 	// temp/
 	//   └── outer/
@@ -277,7 +277,7 @@ func TestFindLocalRuntimesFile_StopsAtGitRoot(t *testing.T) {
 	//       └── repo/
 	//           └── .git/
 	//           └── subdir/
-	//               (run from here - should NOT find outer config)
+	//               (run from here - SHOULD find outer config)
 	tmpRoot := t.TempDir()
 	outerDir := filepath.Join(tmpRoot, "outer")
 	repoDir := filepath.Join(outerDir, "repo")
@@ -287,7 +287,7 @@ func TestFindLocalRuntimesFile_StopsAtGitRoot(t *testing.T) {
 		t.Fatalf("Failed to create directory structure: %v", err)
 	}
 
-	// Create outer config (should NOT be found)
+	// Create outer config (SHOULD be found)
 	outerConfigDir := filepath.Join(outerDir, ".dtvem")
 	if err := os.MkdirAll(outerConfigDir, 0755); err != nil {
 		t.Fatalf("Failed to create outer .dtvem: %v", err)
@@ -297,7 +297,7 @@ func TestFindLocalRuntimesFile_StopsAtGitRoot(t *testing.T) {
 		t.Fatalf("Failed to write outer config: %v", err)
 	}
 
-	// Create .git directory at repo level (marks git root)
+	// Create .git directory at repo level (should NOT stop traversal)
 	gitDir := filepath.Join(repoDir, ".git")
 	if err := os.MkdirAll(gitDir, 0755); err != nil {
 		t.Fatalf("Failed to create .git directory: %v", err)
@@ -311,10 +311,24 @@ func TestFindLocalRuntimesFile_StopsAtGitRoot(t *testing.T) {
 		t.Fatalf("Failed to change directory: %v", err)
 	}
 
-	// Should NOT find the outer config (stopped at git root)
-	_, err := FindLocalRuntimesFile()
-	if err == nil {
-		t.Error("FindLocalRuntimesFile() should not find config outside git root")
+	// SHOULD find the outer config (traverses through git root)
+	foundPath, err := FindLocalRuntimesFile()
+	if err != nil {
+		t.Fatalf("FindLocalRuntimesFile() error: %v", err)
+	}
+
+	// Resolve symlinks for comparison (macOS uses /var -> /private/var symlink)
+	foundPathResolved, err := filepath.EvalSymlinks(foundPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve symlinks in found path: %v", err)
+	}
+	outerConfigPathResolved, err := filepath.EvalSymlinks(outerConfigPath)
+	if err != nil {
+		t.Fatalf("Failed to resolve symlinks in outer config path: %v", err)
+	}
+
+	if foundPathResolved != outerConfigPathResolved {
+		t.Errorf("FindLocalRuntimesFile() = %q, want %q", foundPathResolved, outerConfigPathResolved)
 	}
 }
 
