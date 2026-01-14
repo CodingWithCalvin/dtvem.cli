@@ -371,7 +371,6 @@ jobs:
 
         [Release Notes](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})
         [Discussion](${{ needs.notify-discussion.outputs.discussion_url }})
-      embed_url: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
       embed_title: dtvem v${{ github.event.inputs.version }}
       embed_description: Cross-platform runtime version manager for Node.js, Python, and Ruby
     secrets:
@@ -390,7 +389,6 @@ jobs:
 
         Release Notes: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
         Discussion: ${{ needs.notify-discussion.outputs.discussion_url }}
-      article_url: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
       article_title: dtvem v${{ github.event.inputs.version }}
       article_description: Cross-platform runtime version manager for Node.js, Python, and Ruby
     secrets:
