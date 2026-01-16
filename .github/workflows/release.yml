@@ -377,20 +377,3 @@ jobs:
       BLUESKY_USERNAME: ${{ secrets.BLUESKY_USERNAME }}
       BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
 
-  notify-linkedin:
-    name: Post to LinkedIn
-    needs: notify-discussion
-    uses: CodingWithCalvin/.github/.github/workflows/linkedin-post.yml@main
-    with:
-      post_text: |
-        🚀 #dtvem v${{ github.event.inputs.version }} is now available!
-
-        Cross-platform version manager for #Node, #Python, and #Ruby - supports #Windows, #Linux, and #macOS
-
-        Release Notes: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
-        Discussion: ${{ needs.notify-discussion.outputs.discussion_url }}
-      article_title: dtvem v${{ github.event.inputs.version }}
-      article_description: Cross-platform runtime version manager for Node.js, Python, and Ruby
-    secrets:
-      LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
-      LINKEDIN_CLIENT_ID: ${{ secrets.LINKEDIN_CLIENT_ID }}
