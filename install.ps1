@@ -123,6 +123,7 @@ function Test-Checksum {
 }
 
 function Main {
+    param([switch]$UserInstall)
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Blue
     Write-Host "   dtvem installer" -ForegroundColor Blue
@@ -310,4 +311,4 @@ function Main {
     }
 }
 
-Main
+Main -UserInstall:$UserInstall
