@@ -109,7 +109,7 @@ Looking for something to work on? Check out [good first issues](https://github.c
 ## 👥 Contributors
 
 <!-- readme: contributors -start -->
-[![CalvinAllen](https://avatars.githubusercontent.com/u/41448698?v=4&s=64)](https://github.com/CalvinAllen) [![AlanBarber](https://avatars.githubusercontent.com/u/800996?v=4&s=64)](https://github.com/AlanBarber) 
+[![CalvinAllen](https://avatars.githubusercontent.com/u/41448698?v=4&s=64)](https://github.com/CalvinAllen) [![AlanBarber](https://avatars.githubusercontent.com/u/800996?v=4&s=64)](https://github.com/AlanBarber) [![BradKnowles](https://avatars.githubusercontent.com/u/1277856?v=4&s=64)](https://github.com/BradKnowles) 
 <!-- readme: contributors -end -->
 
 ## 📄 License
