@@ -3,7 +3,7 @@ name: Generate Manifests from R2
 on:
   # Trigger after mirror workflows complete
   workflow_run:
-    workflows: ["Mirror Sync", "Mirror All Binaries"]
+    workflows: ["Mirror Sync"]
     types:
       - completed
   # Manual trigger
