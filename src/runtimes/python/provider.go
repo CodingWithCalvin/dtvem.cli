@@ -102,22 +102,23 @@ func determineSourceDir(extractDir string) string {
 	return extractDir
 }
 
-// installPipIfNeeded installs pip on Windows or shows success message on Unix
+// installPipIfNeeded ensures pip is properly installed and accessible.
+// On Windows, pip may be missing (python.org embeddable) or have broken
+// executables (python-build-standalone with embedded build paths).
+// Running ensurepip --default-pip --upgrade creates working pip executables.
 func (p *Provider) installPipIfNeeded(version string) {
 	if goruntime.GOOS == constants.OSWindows {
-		// Windows embeddable packages need pip installed
-		pipSpinner := ui.NewSpinner("Installing pip...")
+		pipSpinner := ui.NewSpinner("Configuring pip...")
 		pipSpinner.Start()
 		if err := p.installPip(version); err != nil {
-			pipSpinner.Warning("Failed to install pip")
-			ui.Info("To install pip manually:")
-			ui.Info("  1. Download: %s", p.getPipURL(version))
-			ui.Info("  2. Run: python get-pip.py")
+			pipSpinner.Warning("Failed to configure pip")
+			ui.Info("To install pip manually, run:")
+			ui.Info("  python -m ensurepip --default-pip --upgrade")
 		} else {
-			pipSpinner.Success("pip installed successfully")
+			pipSpinner.Success("pip configured successfully")
 		}
 	} else {
-		// python-build-standalone includes pip
+		// python-build-standalone includes pip on Unix
 		ui.Success("pip included")
 	}
 }
@@ -169,7 +170,10 @@ func (p *Provider) Install(version string) error {
 		return fmt.Errorf("failed to move to install location: %w", err)
 	}
 
-	// Create shims
+	// Install/configure pip first (so executables exist before creating shims)
+	p.installPipIfNeeded(version)
+
+	// Create shims (after pip is installed, all executables now exist)
 	shimSpinner := ui.NewSpinner("Creating shims...")
 	shimSpinner.Start()
 	if err := p.createShims(); err != nil {
@@ -180,9 +184,6 @@ func (p *Provider) Install(version string) error {
 
 	ui.Success("Python v%s installed successfully", version)
 	ui.Info("Location: %s", installPath)
-
-	// Install/verify pip
-	p.installPipIfNeeded(version)
 
 	return nil
 }
@@ -222,7 +223,13 @@ func (p *Provider) createShims() error {
 	return manager.CreateShims(shimNames)
 }
 
-// installPip installs pip for Windows embeddable Python packages
+// installPip ensures pip is properly installed with working executables.
+// This handles two scenarios:
+// 1. python.org embeddable packages: pip is not included, needs ensurepip
+// 2. python-build-standalone: pip module exists but pip.exe has broken paths
+//
+// Running "python -m ensurepip --default-pip --upgrade" handles both cases
+// by (re)installing pip and creating working pip/pip3/pipX.Y executables.
 func (p *Provider) installPip(version string) error {
 	pythonPath, err := p.ExecutablePath(version)
 	if err != nil {
@@ -231,17 +238,31 @@ func (p *Provider) installPip(version string) error {
 
 	installPath := config.RuntimeVersionPath("python", version)
 
-	// For embeddable packages, we need to:
-	// 1. Modify python311._pth to enable site-packages
-	// 2. Download and run get-pip.py
-
-	// Step 1: Enable site-packages by uncommenting the import site line
+	// For python.org embeddable packages, enable site-packages first.
+	// This file doesn't exist in python-build-standalone, so errors are ignored.
 	pthFile := filepath.Join(installPath, fmt.Sprintf("python%s._pth", strings.Join(strings.Split(version, ".")[:2], "")))
-	if err := p.enableSitePackages(pthFile); err != nil {
-		return fmt.Errorf("failed to enable site-packages: %w", err)
+	_ = p.enableSitePackages(pthFile) // Best effort - ignore errors
+
+	// Run ensurepip to install/reinstall pip with working executables.
+	// --default-pip: creates pip.exe in addition to pipX.exe and pipX.Y.exe
+	// --upgrade: reinstalls even if pip module already exists (fixes broken executables)
+	cmd := exec.Command(pythonPath, "-m", "ensurepip", "--default-pip", "--upgrade")
+	cmd.Dir = installPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		ui.Debug("ensurepip failed: %v\nOutput: %s", err, string(output))
+		// Fall back to get-pip.py for older Python versions or edge cases
+		return p.installPipWithGetPip(version, pythonPath, installPath)
 	}
 
-	// Step 2: Download get-pip.py (use version-specific URL for older Python)
+	return nil
+}
+
+// installPipWithGetPip is a fallback method that downloads and runs get-pip.py.
+// Used when ensurepip fails (e.g., ensurepip module missing or corrupted).
+func (p *Provider) installPipWithGetPip(version, pythonPath, installPath string) error {
+	ui.Debug("Falling back to get-pip.py")
+
 	getPipURL := p.getPipURL(version)
 	getPipPath := filepath.Join(installPath, "get-pip.py")
 	if err := download.File(getPipURL, getPipPath); err != nil {
@@ -249,7 +270,6 @@ func (p *Provider) installPip(version string) error {
 	}
 	defer func() { _ = os.Remove(getPipPath) }()
 
-	// Step 3: Run get-pip.py
 	cmd := exec.Command(pythonPath, getPipPath)
 	cmd.Dir = installPath
 	output, err := cmd.CombinedOutput()
