@@ -384,8 +384,8 @@ func TestGetRootDir_XDGOnLinux(t *testing.T) {
 	}
 }
 
-func TestGetRootDir_NonLinux(t *testing.T) {
-	// On non-Linux platforms, verify that ~/.dtvem is used regardless of XDG
+func TestGetRootDir_NonLinux_WithXDG(t *testing.T) {
+	// On non-Linux platforms, verify that XDG_DATA_HOME is respected when set
 	if runtime.GOOS == constants.OSLinux {
 		t.Skip("This test only runs on non-Linux platforms")
 	}
@@ -409,7 +409,45 @@ func TestGetRootDir_NonLinux(t *testing.T) {
 
 	// Clear DTVEM_ROOT and set XDG_DATA_HOME
 	_ = os.Unsetenv("DTVEM_ROOT")
-	_ = os.Setenv("XDG_DATA_HOME", "/should/be/ignored")
+	customXDG := "/custom/xdg/data"
+	_ = os.Setenv("XDG_DATA_HOME", customXDG)
+	resetPathsForTesting()
+
+	result := getRootDir()
+	expected := filepath.Join(customXDG, "dtvem")
+
+	if result != expected {
+		t.Errorf("getRootDir() on %s should use XDG_DATA_HOME when set, got %q, want %q",
+			runtime.GOOS, result, expected)
+	}
+}
+
+func TestGetRootDir_NonLinux_WithoutXDG(t *testing.T) {
+	// On non-Linux platforms, verify that ~/.dtvem is used when XDG_DATA_HOME is not set
+	if runtime.GOOS == constants.OSLinux {
+		t.Skip("This test only runs on non-Linux platforms")
+	}
+
+	// Save original environment
+	originalRoot := os.Getenv("DTVEM_ROOT")
+	originalXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() {
+		if originalRoot != "" {
+			_ = os.Setenv("DTVEM_ROOT", originalRoot)
+		} else {
+			_ = os.Unsetenv("DTVEM_ROOT")
+		}
+		if originalXDG != "" {
+			_ = os.Setenv("XDG_DATA_HOME", originalXDG)
+		} else {
+			_ = os.Unsetenv("XDG_DATA_HOME")
+		}
+		resetPathsForTesting()
+	}()
+
+	// Clear both DTVEM_ROOT and XDG_DATA_HOME
+	_ = os.Unsetenv("DTVEM_ROOT")
+	_ = os.Unsetenv("XDG_DATA_HOME")
 	resetPathsForTesting()
 
 	result := getRootDir()
@@ -417,7 +455,7 @@ func TestGetRootDir_NonLinux(t *testing.T) {
 	expected := filepath.Join(home, ".dtvem")
 
 	if result != expected {
-		t.Errorf("getRootDir() on %s should ignore XDG_DATA_HOME, got %q, want %q",
+		t.Errorf("getRootDir() on %s without XDG_DATA_HOME should use ~/.dtvem, got %q, want %q",
 			runtime.GOOS, result, expected)
 	}
 }
