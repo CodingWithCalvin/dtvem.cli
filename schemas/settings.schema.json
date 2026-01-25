@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/schemas/settings.schema.json",
+  "title": "dtvem Settings Configuration",
+  "description": "Settings file for dtvem (Development Tool Virtual Environment Manager) installation preferences",
+  "type": "object",
+  "properties": {
+    "installType": {
+      "type": "string",
+      "description": "The type of dtvem installation. 'system' uses System PATH (requires admin on Windows), 'user' uses User PATH (no admin required).",
+      "enum": ["system", "user"],
+      "default": "system"
+    }
+  },
+  "required": ["installType"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "installType": "system"
+    },
+    {
+      "installType": "user"
+    }
+  ]
+}

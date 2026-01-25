@@ -54,7 +54,10 @@ func GetShellConfigFile(shell string) string {
 
 // AddToPath adds the shims directory to the user's PATH by modifying their shell config.
 // If skipConfirmation is true, the function will proceed without prompting the user.
-func AddToPath(shimsDir string, skipConfirmation bool) error {
+// The userInstall parameter is accepted for API consistency with Windows but is ignored
+// since Unix installations always modify user-level shell config files.
+func AddToPath(shimsDir string, skipConfirmation bool, userInstall bool) error {
+	// Note: userInstall is ignored on Unix - we always modify user shell config
 	shell := DetectShell()
 	if shell == "unknown" {
 		return fmt.Errorf("could not detect shell - please add %s to your PATH manually", shimsDir)

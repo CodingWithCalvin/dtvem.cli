@@ -1,5 +1,11 @@
 # dtvem installer for Windows
-# Usage: irm https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.ps1 | iex
+# Usage:
+#   Standard (admin required): irm https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.ps1 | iex
+#   User install (no admin):   iex "& { $(irm https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.ps1) } -UserInstall"
+
+param(
+    [switch]$UserInstall
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -269,7 +275,13 @@ function Main {
             # Temporarily add to PATH for this session
             $env:Path = "$INSTALL_DIR;$env:Path"
 
-            & $dtvemPath init
+            if ($UserInstall) {
+                Write-Info "Using user-level PATH (no admin required)"
+                & $dtvemPath init --user -y
+            }
+            else {
+                & $dtvemPath init
+            }
             Write-Success "dtvem is ready to use!"
             Write-Info "Both $INSTALL_DIR and $SHIMS_DIR have been added to PATH"
         }
