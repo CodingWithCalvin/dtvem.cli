@@ -30,6 +30,8 @@ const (
 
 	// pathActionMove is used to indicate the shims directory needs to be moved to the beginning of PATH
 	pathActionMove = "move"
+	// pathActionAdd is used to indicate the shims directory needs to be added to PATH
+	pathActionAdd = "add"
 )
 
 // RuntimeConflict represents a system-installed runtime that may conflict with dtvem
@@ -132,7 +134,7 @@ func checkSystemPath(shimsDir string) (bool, string, error) {
 	} else if foundAt > 0 {
 		return true, pathActionMove, nil // Exists but not at beginning
 	}
-	return true, "add", nil // Not in PATH
+	return true, pathActionAdd, nil // Not in PATH
 }
 
 // checkUserPath checks if the shims directory needs to be added/moved in User PATH
@@ -151,7 +153,7 @@ func checkUserPath(shimsDir string) (bool, string, error) {
 
 	// If PATH doesn't exist yet, we need to add it
 	if errors.Is(err, registry.ErrNotExist) || currentPath == "" {
-		return true, "add", nil
+		return true, pathActionAdd, nil
 	}
 
 	paths := strings.Split(currentPath, ";")
@@ -170,7 +172,7 @@ func checkUserPath(shimsDir string) (bool, string, error) {
 	} else if foundAt > 0 {
 		return true, pathActionMove, nil // Exists but not at beginning
 	}
-	return true, "add", nil // Not in PATH
+	return true, pathActionAdd, nil // Not in PATH
 }
 
 // isAdmin checks if the current process has administrator privileges
@@ -471,7 +473,7 @@ func warnAboutSystemConflicts(conflicts []RuntimeConflict, skipConfirmation bool
 		return true, nil
 	}
 
-	ui.Info("User install cancelled. Run 'dtvem init' without --user for system-level PATH.")
+	ui.Info("User install canceled. Run 'dtvem init' without --user for system-level PATH.")
 	return false, nil
 }
 
