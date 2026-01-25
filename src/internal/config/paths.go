@@ -54,16 +54,18 @@ func initPaths() *Paths {
 //   - Otherwise uses ~/.local/share/dtvem (XDG default)
 //   - This is the standard location for user-specific data files on Linux
 //
-// macOS: Uses ~/.dtvem
+// macOS: Uses ~/.dtvem by default
 //   - macOS has its own conventions (~/Library/Application Support) but many CLI tools
 //     use dotfiles in home directory for better discoverability and Unix compatibility
 //   - ~/.dtvem is more familiar to users coming from tools like nvm, pyenv, rbenv
+//   - Optionally respects $XDG_DATA_HOME if set (for users who prefer XDG consistency)
 //
-// Windows: Uses %USERPROFILE%\.dtvem
+// Windows: Uses %USERPROFILE%\.dtvem by default
 //   - Alternatives considered: %LOCALAPPDATA% (C:\Users\<user>\AppData\Local)
 //   - Chose home directory for consistency with macOS/Linux and better visibility
 //   - Users expect CLI tool configs in their home directory
 //   - Easier to locate and backup than buried in AppData
+//   - Optionally respects $XDG_DATA_HOME if set (for users who prefer XDG consistency)
 //
 // Override: DTVEM_ROOT environment variable overrides all platform defaults
 func getRootDir() string {
@@ -79,12 +81,17 @@ func getRootDir() string {
 		return ".dtvem"
 	}
 
-	// On Linux, respect XDG Base Directory specification
+	// On Linux, always respect XDG Base Directory specification
 	if runtime.GOOS == constants.OSLinux {
 		return getXDGDataPath(home)
 	}
 
-	// On macOS and Windows, use ~/.dtvem
+	// On macOS and Windows, use XDG_DATA_HOME if explicitly set (opt-in)
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+		return filepath.Join(xdgDataHome, "dtvem")
+	}
+
+	// Default for macOS and Windows: ~/.dtvem
 	return filepath.Join(home, ".dtvem")
 }
 
