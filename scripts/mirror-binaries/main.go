@@ -23,17 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-// Manifest represents the structure of a runtime manifest
-type Manifest struct {
-	Versions map[string]map[string]*Download `json:"versions"`
-}
-
-// Download represents a single download entry
-type Download struct {
-	URL    string `json:"url"`
-	SHA256 string `json:"sha256,omitempty"`
-}
-
 // BinaryMeta represents metadata stored alongside each binary
 type BinaryMeta struct {
 	SHA256       string `json:"sha256"`
@@ -56,26 +45,25 @@ type MirrorJob struct {
 
 // Stats tracks mirroring statistics
 type Stats struct {
-	Total            int64
-	Skipped          int64
-	Mirrored         int64
-	Failed           int64
-	BytesDown        int64
-	UpstreamChecksum int64
+	Total             int64
+	Skipped           int64
+	Mirrored          int64
+	Failed            int64
+	BytesDown         int64
+	UpstreamChecksum  int64
 	GeneratedChecksum int64
 }
 
 var (
-	runtimeFlag  = flag.String("runtime", "", "Runtime to mirror (node, python, ruby, or all)")
-	dryRun       = flag.Bool("dry-run", false, "Report what would be done without doing it")
-	syncOnly     = flag.Bool("sync-only", false, "Only mirror files not already in R2")
-	manifestDir  = flag.String("manifest-dir", "src/internal/manifest/data", "Directory containing manifest files")
-	r2Endpoint   = flag.String("r2-endpoint", "", "R2 endpoint URL")
-	r2Bucket     = flag.String("r2-bucket", "", "R2 bucket name")
-	r2AccessKey  = flag.String("r2-access-key", "", "R2 access key ID")
-	r2SecretKey  = flag.String("r2-secret-key", "", "R2 secret access key")
-	workers      = flag.Int("workers", 10, "Number of parallel workers")
-	retries      = flag.Int("retries", 3, "Number of retries for failed downloads")
+	runtimeFlag = flag.String("runtime", "", "Runtime to mirror (node, python, ruby, or all)")
+	dryRun      = flag.Bool("dry-run", false, "Report what would be done without doing it")
+	syncOnly    = flag.Bool("sync-only", false, "Only mirror files not already in R2")
+	r2Endpoint  = flag.String("r2-endpoint", "", "R2 endpoint URL")
+	r2Bucket    = flag.String("r2-bucket", "", "R2 bucket name")
+	r2AccessKey = flag.String("r2-access-key", "", "R2 access key ID")
+	r2SecretKey = flag.String("r2-secret-key", "", "R2 secret access key")
+	workers     = flag.Int("workers", 10, "Number of parallel workers")
+	retries     = flag.Int("retries", 3, "Number of retries for failed downloads")
 )
 
 func main() {
@@ -121,13 +109,13 @@ func main() {
 		}
 	}
 
-	// Collect all jobs
+	// Collect all jobs from upstream sources
 	var jobs []MirrorJob
 	for _, rt := range runtimes {
-		manifestPath := filepath.Join(*manifestDir, rt+".json")
-		rtJobs, err := loadJobs(rt, manifestPath)
+		fmt.Printf("Discovering %s versions from upstream...\n", rt)
+		rtJobs, err := fetchJobsFromUpstream(rt)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error loading manifest for %s: %v\n", rt, err)
+			fmt.Fprintf(os.Stderr, "Error fetching upstream versions for %s: %v\n", rt, err)
 			os.Exit(1)
 		}
 		jobs = append(jobs, rtJobs...)
@@ -228,44 +216,6 @@ func listExistingKeys(client *s3.Client) (map[string]bool, error) {
 	}
 
 	return keys, nil
-}
-
-func loadJobs(runtime, manifestPath string) ([]MirrorJob, error) {
-	data, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return nil, err
-	}
-
-	var jobs []MirrorJob
-	for version, platforms := range manifest.Versions {
-		for platform, dl := range platforms {
-			if dl == nil || dl.URL == "" {
-				continue
-			}
-
-			// Determine file extension from URL
-			ext := getExtension(dl.URL)
-			r2Key := fmt.Sprintf("%s/%s/%s%s", runtime, version, platform, ext)
-			metaKey := fmt.Sprintf("%s/%s/%s.meta.json", runtime, version, platform)
-
-			jobs = append(jobs, MirrorJob{
-				Runtime:        runtime,
-				Version:        version,
-				Platform:       platform,
-				URL:            dl.URL,
-				UpstreamSHA256: dl.SHA256,
-				R2Key:          r2Key,
-				MetaKey:        metaKey,
-			})
-		}
-	}
-
-	return jobs, nil
 }
 
 func getExtension(url string) string {
