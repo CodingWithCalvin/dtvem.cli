@@ -51,7 +51,6 @@ jobs:
         run: |
           ./scripts/mirror-binaries/mirror-binaries \
             --runtime=${{ matrix.runtime }} \
-            --manifest-dir=src/internal/manifest/data \
             --r2-endpoint="$R2_ENDPOINT" \
             --r2-bucket="$R2_BUCKET" \
             --r2-access-key="$R2_ACCESS_KEY" \
