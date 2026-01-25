@@ -1,0 +1,33 @@
+name: Integration Tests - Init Command
+
+on:
+  workflow_dispatch:
+    # Manual trigger for testing init command flags
+  push:
+    branches: [main]
+    paths:
+      - 'src/cmd/init.go'
+      - 'src/internal/config/settings.go'
+      - 'src/internal/path/path_windows.go'
+      - 'src/internal/path/path_unix.go'
+      - 'install.ps1'
+      - 'install.sh'
+      - '.github/workflows/integration-test-init.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/cmd/init.go'
+      - 'src/internal/config/settings.go'
+      - 'src/internal/path/path_windows.go'
+      - 'src/internal/path/path_unix.go'
+      - 'install.ps1'
+      - 'install.sh'
+      - '.github/workflows/integration-test-init.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  init:
+    name: Init Command
+    uses: CodingWithCalvin/.github/.github/workflows/dtvem-integration-test-init.yml@main

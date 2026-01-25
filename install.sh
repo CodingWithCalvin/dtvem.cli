@@ -2,9 +2,25 @@
 set -e
 
 # dtvem installer for macOS and Linux
-# Usage: curl -fsSL https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.sh | bash
+# Usage:
+#   Standard: curl -fsSL https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.sh | bash
+#   User install: curl -fsSL https://raw.githubusercontent.com/CodingWithCalvin/dtvem.cli/main/install.sh | bash -s -- --user-install
 
 REPO="CodingWithCalvin/dtvem.cli"
+USER_INSTALL=false
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --user-install)
+            USER_INSTALL=true
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
 # This will be replaced with the actual version during release
 # Format: DTVEM_RELEASE_VERSION="1.0.0"
@@ -366,11 +382,21 @@ main() {
     # Run init to add shims directory to PATH
     echo ""
     info "Running dtvem init to add shims directory to PATH..."
-    if "$INSTALL_DIR/dtvem" init; then
-        success "dtvem is ready to use!"
-        info "Both $INSTALL_DIR and $SHIMS_DIR have been added to PATH"
+    if [ "$USER_INSTALL" = true ]; then
+        info "Using user-level PATH"
+        if "$INSTALL_DIR/dtvem" init --user -y; then
+            success "dtvem is ready to use!"
+            info "Both $INSTALL_DIR and $SHIMS_DIR have been added to PATH"
+        else
+            warning "dtvem init failed - you may need to run it manually"
+        fi
     else
-        warning "dtvem init failed - you may need to run it manually"
+        if "$INSTALL_DIR/dtvem" init; then
+            success "dtvem is ready to use!"
+            info "Both $INSTALL_DIR and $SHIMS_DIR have been added to PATH"
+        else
+            warning "dtvem init failed - you may need to run it manually"
+        fi
     fi
 
     echo ""
