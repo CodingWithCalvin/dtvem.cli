@@ -11,3 +11,14 @@ jobs:
     uses: CodingWithCalvin/.github/.github/workflows/generate-changelog.yml@main
     secrets: inherit
 
+  summary:
+    name: Summary
+    needs: preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write changelog to summary
+        run: |
+          echo "## 📋 Preview Release Notes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ needs.preview.outputs.changelog }}" >> $GITHUB_STEP_SUMMARY
+
