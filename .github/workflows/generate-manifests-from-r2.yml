@@ -27,7 +27,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   generate:
@@ -113,28 +112,14 @@ jobs:
         run: |
           git diff --quiet src/internal/manifest/data/ || echo "changed=true" >> $GITHUB_OUTPUT
 
-      - name: Create Pull Request
+      - name: Commit and push changes
         if: ${{ steps.check-changes.outputs.changed == 'true' }}
-        uses: peter-evans/create-pull-request@v7
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: 'chore(manifest): regenerate manifests from R2'
-          title: 'chore(manifest): regenerate manifests from R2'
-          body: |
-            Regenerated manifests from binaries hosted on `builds.dtvem.io`.
-
-            This PR was created by the [Generate Manifests from R2 workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
-
-            ## Changes
-            - URLs now point to `builds.dtvem.io` (our hosted binaries)
-            - Includes `sha256_source` field indicating checksum origin ("upstream" or "dtvem")
-
-            Please review the changes before merging.
-          branch: chore/regenerate-manifests-from-r2
-          delete-branch: true
-          labels: |
-            automated
-            manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/internal/manifest/data/
+          git commit -m "chore(manifest): regenerate manifests from R2"
+          git push
 
       - name: Generate summary
         if: always()
@@ -146,7 +131,7 @@ jobs:
           elif [ "${{ steps.check-changes.outputs.changed }}" = "true" ]; then
             echo "**Result:** Changes detected" >> $GITHUB_STEP_SUMMARY
             echo "- Manifests deployed to R2 (live immediately)" >> $GITHUB_STEP_SUMMARY
-            echo "- PR created for embedded manifests" >> $GITHUB_STEP_SUMMARY
+            echo "- Embedded manifests committed to main" >> $GITHUB_STEP_SUMMARY
           else
             echo "**Result:** No changes detected" >> $GITHUB_STEP_SUMMARY
           fi
