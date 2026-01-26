@@ -119,9 +119,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git stash --include-untracked
+          git pull --rebase origin main
+          git stash pop
           git add src/internal/manifest/data/
           git commit -m "chore(manifest): regenerate manifests from R2"
-          git pull --rebase origin main
           git push
 
       - name: Generate summary
