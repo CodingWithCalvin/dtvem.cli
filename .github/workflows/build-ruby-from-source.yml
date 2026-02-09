@@ -108,21 +108,40 @@ jobs:
         run: |
           brew install openssl@3 readline libyaml gmp rust
 
-      - name: Build Ruby (Unix)
-        if: matrix.build_os != 'windows'
+      - name: Build Ruby (Linux)
+        if: matrix.build_os == 'linux'
         env:
-          RUBY_CONFIGURE_OPTS: >-
-            ${{ matrix.platform == 'darwin-arm64'
-              && '--disable-shared --disable-install-doc'
-              || '--enable-shared --disable-install-doc' }}
+          RUBY_CONFIGURE_OPTS: "--enable-shared --disable-install-doc"
           CPPFLAGS: "-DENABLE_PATH_CHECK=0"
         run: |
           ruby-build ${{ matrix.version }} "$RUNNER_TEMP/ruby-install/ruby"
+
+      - name: Build Ruby (macOS ARM64)
+        if: matrix.platform == 'darwin-arm64'
+        env:
+          RUBY_CONFIGURE_OPTS: "--disable-shared --disable-install-doc"
+          CPPFLAGS: "-DENABLE_PATH_CHECK=0"
+        run: |
+          ruby-build ${{ matrix.version }} "$RUNNER_TEMP/ruby-install/ruby"
+
+      - name: Build Ruby (macOS x86_64 via Rosetta)
+        if: matrix.platform == 'darwin-amd64'
+        env:
+          RUBY_CONFIGURE_OPTS: "--enable-shared --disable-install-doc"
+          CPPFLAGS: "-DENABLE_PATH_CHECK=0"
+        run: |
+          arch -x86_64 ruby-build ${{ matrix.version }} "$RUNNER_TEMP/ruby-install/ruby"
 
       - name: Verify Ruby (Unix)
         if: matrix.build_os != 'windows'
         run: |
           "$RUNNER_TEMP/ruby-install/ruby/bin/ruby" --version
+          # Verify architecture matches expected platform
+          FILE_ARCH=$(file "$RUNNER_TEMP/ruby-install/ruby/bin/ruby")
+          echo "Binary architecture: $FILE_ARCH"
+          if [ "${{ matrix.platform }}" = "darwin-amd64" ]; then
+            echo "$FILE_ARCH" | grep -q "x86_64" || { echo "ERROR: Expected x86_64 binary"; exit 1; }
+          fi
 
       - name: Package Ruby (Unix)
         if: matrix.build_os != 'windows'
