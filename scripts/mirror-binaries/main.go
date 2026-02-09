@@ -89,6 +89,7 @@ func main() {
 	// Initialize S3 client for R2
 	var s3Client *s3.Client
 	var existingKeys map[string]bool
+	var builtFromSourceKeys map[string]bool
 
 	if !*dryRun {
 		var err error
@@ -106,6 +107,16 @@ func main() {
 				os.Exit(1)
 			}
 			fmt.Printf("Found %d existing files in R2\n", len(existingKeys))
+
+			fmt.Println("Checking for built-from-source entries...")
+			builtFromSourceKeys, err = listBuiltFromSourceKeys(s3Client, existingKeys)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error checking built-from-source keys: %v\n", err)
+				os.Exit(1)
+			}
+			if len(builtFromSourceKeys) > 0 {
+				fmt.Printf("Found %d built-from-source entries (will re-mirror from upstream)\n", len(builtFromSourceKeys))
+			}
 		}
 	}
 
@@ -146,8 +157,11 @@ func main() {
 	if *syncOnly && existingKeys != nil {
 		var filtered []MirrorJob
 		for _, job := range jobs {
-			// Check for metadata file existence (indicates successful mirror)
 			if !existingKeys[job.MetaKey] {
+				// Not yet mirrored
+				filtered = append(filtered, job)
+			} else if builtFromSourceKeys[job.MetaKey] {
+				// Exists but was built from source — re-mirror from upstream
 				filtered = append(filtered, job)
 			}
 		}
@@ -216,6 +230,52 @@ func listExistingKeys(client *s3.Client) (map[string]bool, error) {
 	}
 
 	return keys, nil
+}
+
+// listBuiltFromSourceKeys downloads .meta.json files that exist in R2 and returns
+// the set of meta keys where source_url is "built-from-source". Only checks meta
+// files that are in the existingKeys set to avoid unnecessary downloads.
+func listBuiltFromSourceKeys(client *s3.Client, existingKeys map[string]bool) (map[string]bool, error) {
+	builtFromSource := make(map[string]bool)
+
+	// Collect all .meta.json keys from existingKeys
+	var metaKeys []string
+	for key := range existingKeys {
+		if strings.HasSuffix(key, ".meta.json") {
+			metaKeys = append(metaKeys, key)
+		}
+	}
+
+	// Download and check each meta file
+	for _, metaKey := range metaKeys {
+		resp, err := client.GetObject(context.Background(), &s3.GetObjectInput{
+			Bucket: r2Bucket,
+			Key:    aws.String(metaKey),
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to read %s: %v\n", metaKey, err)
+			continue
+		}
+
+		data, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to read body of %s: %v\n", metaKey, err)
+			continue
+		}
+
+		var meta BinaryMeta
+		if err := json.Unmarshal(data, &meta); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to parse %s: %v\n", metaKey, err)
+			continue
+		}
+
+		if meta.SourceURL == "built-from-source" {
+			builtFromSource[metaKey] = true
+		}
+	}
+
+	return builtFromSource, nil
 }
 
 func getExtension(url string) string {

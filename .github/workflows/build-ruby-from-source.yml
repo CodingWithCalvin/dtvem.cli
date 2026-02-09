@@ -1,0 +1,260 @@
+name: Build Ruby from Source
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Ruby version to build (leave empty to auto-detect gaps)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Only detect gaps, do not build'
+        required: false
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: ["Mirror Sync"]
+    types: [completed]
+
+jobs:
+  detect-gaps:
+    name: Detect gaps
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      has_gaps: ${{ steps.detect.outputs.has_gaps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build gap detector
+        run: |
+          cd scripts/detect-ruby-gaps
+          go build -o detect-ruby-gaps .
+
+      - name: Detect gaps
+        id: detect
+        env:
+          R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
+          R2_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          R2_SECRET_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.version }}" ]; then
+            ARGS="--version=${{ inputs.version }}"
+          else
+            ARGS="--r2-endpoint=$R2_ENDPOINT --r2-bucket=$R2_BUCKET --r2-access-key=$R2_ACCESS_KEY --r2-secret-key=$R2_SECRET_KEY"
+          fi
+
+          MATRIX=$(./scripts/detect-ruby-gaps/detect-ruby-gaps $ARGS)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+          # Check if there are any gaps
+          COUNT=$(echo "$MATRIX" | jq '.include | length')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has_gaps=true" >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT gaps to fill"
+          else
+            echo "has_gaps=false" >> "$GITHUB_OUTPUT"
+            echo "No gaps detected"
+          fi
+
+      - name: Summary
+        run: |
+          echo "## Gap Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          MATRIX='${{ steps.detect.outputs.matrix }}'
+          COUNT=$(echo "$MATRIX" | jq '.include | length')
+          echo "Found **$COUNT** version+platform gaps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$COUNT" -gt 0 ]; then
+            echo "| Version | Platform | Runner |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|----------|--------|" >> $GITHUB_STEP_SUMMARY
+            echo "$MATRIX" | jq -r '.include[] | "| \(.version) | \(.platform) | \(.runner) |"' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  build:
+    name: Build Ruby ${{ matrix.version }} (${{ matrix.platform }})
+    needs: detect-gaps
+    if: needs.detect-gaps.outputs.has_gaps == 'true' && inputs.dry_run != true
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-gaps.outputs.matrix) }}
+    steps:
+      # ─── Unix builds (Linux & macOS) ───
+      - name: Install ruby-build (Unix)
+        if: matrix.build_os != 'windows'
+        run: |
+          git clone https://github.com/rbenv/ruby-build.git "$RUNNER_TEMP/ruby-build"
+          echo "$RUNNER_TEMP/ruby-build/bin" >> "$GITHUB_PATH"
+
+      - name: Install build dependencies (Linux)
+        if: matrix.build_os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf bison build-essential libssl-dev libyaml-dev \
+            libreadline-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm-dev libgmp-dev rustc
+
+      - name: Install build dependencies (macOS)
+        if: matrix.build_os == 'darwin'
+        run: |
+          brew install openssl@3 readline libyaml gmp rust
+
+      - name: Build Ruby (Unix)
+        if: matrix.build_os != 'windows'
+        env:
+          RUBY_CONFIGURE_OPTS: >-
+            ${{ matrix.platform == 'darwin-arm64'
+              && '--disable-shared --disable-install-doc'
+              || '--enable-shared --disable-install-doc' }}
+          CPPFLAGS: "-DENABLE_PATH_CHECK=0"
+        run: |
+          ruby-build ${{ matrix.version }} "$RUNNER_TEMP/ruby-install/ruby"
+
+      - name: Verify Ruby (Unix)
+        if: matrix.build_os != 'windows'
+        run: |
+          "$RUNNER_TEMP/ruby-install/ruby/bin/ruby" --version
+
+      - name: Package Ruby (Unix)
+        if: matrix.build_os != 'windows'
+        run: |
+          cd "$RUNNER_TEMP/ruby-install"
+          tar -czf "$RUNNER_TEMP/ruby-${{ matrix.version }}-${{ matrix.platform }}.tar.gz" ruby/
+
+      # ─── Windows builds (MSYS2/MinGW) ───
+      - name: Setup MSYS2 (Windows)
+        if: matrix.build_os == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.arch == 'amd64' && 'MINGW64' || 'MINGW32' }}
+          update: true
+          install: >-
+            base-devel
+            ${{ matrix.arch == 'amd64'
+              && 'mingw-w64-x86_64-toolchain mingw-w64-x86_64-openssl mingw-w64-x86_64-libyaml mingw-w64-x86_64-libffi mingw-w64-x86_64-readline mingw-w64-x86_64-zlib mingw-w64-x86_64-gmp'
+              || 'mingw-w64-i686-toolchain mingw-w64-i686-openssl mingw-w64-i686-libyaml mingw-w64-i686-libffi mingw-w64-i686-readline mingw-w64-i686-zlib mingw-w64-i686-gmp' }}
+            autoconf bison git wget
+
+      - name: Build Ruby (Windows)
+        if: matrix.build_os == 'windows'
+        shell: msys2 {0}
+        run: |
+          VERSION="${{ matrix.version }}"
+          MAJOR_MINOR="${VERSION%.*}"
+          INSTALL_DIR="$RUNNER_TEMP/ruby-install/ruby-$VERSION"
+
+          # Download Ruby source
+          wget -q "https://cache.ruby-lang.org/pub/ruby/${MAJOR_MINOR}/ruby-${VERSION}.tar.gz"
+          tar xf "ruby-${VERSION}.tar.gz"
+          cd "ruby-${VERSION}"
+
+          # Configure and build
+          ./configure --prefix="$(cygpath -u "$INSTALL_DIR")" --enable-shared --disable-install-doc
+          make -j$(nproc)
+          make install
+
+      - name: Verify Ruby (Windows)
+        if: matrix.build_os == 'windows'
+        shell: msys2 {0}
+        run: |
+          "$RUNNER_TEMP/ruby-install/ruby-${{ matrix.version }}/bin/ruby.exe" --version
+
+      - name: Package Ruby (Windows)
+        if: matrix.build_os == 'windows'
+        run: |
+          cd "$env:RUNNER_TEMP\ruby-install"
+          7z a "$env:RUNNER_TEMP\ruby-${{ matrix.version }}-${{ matrix.platform }}.7z" "ruby-${{ matrix.version }}"
+
+      # ─── Upload to R2 (all platforms) ───
+      - name: Determine archive path
+        id: archive
+        shell: bash
+        run: |
+          if [ "${{ matrix.build_os }}" = "windows" ]; then
+            ARCHIVE="$RUNNER_TEMP/ruby-${{ matrix.version }}-${{ matrix.platform }}.7z"
+            EXT=".7z"
+          else
+            ARCHIVE="$RUNNER_TEMP/ruby-${{ matrix.version }}-${{ matrix.platform }}.tar.gz"
+            EXT=".tar.gz"
+          fi
+          echo "path=$ARCHIVE" >> "$GITHUB_OUTPUT"
+          echo "ext=$EXT" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate SHA256
+        id: checksum
+        shell: bash
+        run: |
+          if [ "${{ matrix.build_os }}" = "windows" ]; then
+            SHA256=$(sha256sum "${{ steps.archive.outputs.path }}" | awk '{print $1}')
+          else
+            SHA256=$(shasum -a 256 "${{ steps.archive.outputs.path }}" | awk '{print $1}')
+          fi
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+
+      - name: Create metadata
+        shell: bash
+        run: |
+          SIZE=$(wc -c < "${{ steps.archive.outputs.path }}" | tr -d ' ')
+          cat > "$RUNNER_TEMP/meta.json" << EOF
+          {
+            "sha256": "${{ steps.checksum.outputs.sha256 }}",
+            "sha256_source": "dtvem",
+            "source_url": "built-from-source",
+            "mirrored_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "size": $SIZE
+          }
+          EOF
+
+      - name: Install AWS CLI (macOS)
+        if: matrix.build_os == 'darwin'
+        run: brew install awscli
+
+      - name: Upload binary to R2
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
+        run: |
+          aws s3 cp "${{ steps.archive.outputs.path }}" \
+            "s3://$R2_BUCKET/ruby/${{ matrix.version }}/${{ matrix.platform }}${{ steps.archive.outputs.ext }}" \
+            --endpoint-url "$R2_ENDPOINT"
+
+      - name: Upload metadata to R2
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
+        run: |
+          aws s3 cp "$RUNNER_TEMP/meta.json" \
+            "s3://$R2_BUCKET/ruby/${{ matrix.version }}/${{ matrix.platform }}.meta.json" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type "application/json"
+
+  trigger-manifests:
+    name: Trigger manifest regeneration
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger manifest generation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run generate-manifests-from-r2.yml \
+            --repo CodingWithCalvin/dtvem.cli \
+            --field runtime=ruby
