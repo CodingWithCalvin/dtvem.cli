@@ -50,7 +50,7 @@ var allPlatforms = []Platform{
 }
 
 var (
-	versionFlag = flag.String("version", "", "Force all 6 platforms for this version (no R2 check)")
+	versionFlag = flag.String("version", "", "Build missing platforms for this version (checks R2 if credentials provided, otherwise all platforms)")
 	r2Endpoint  = flag.String("r2-endpoint", "", "R2 endpoint URL")
 	r2Bucket    = flag.String("r2-bucket", "", "R2 bucket name")
 	r2AccessKey = flag.String("r2-access-key", "", "R2 access key ID")
@@ -77,17 +77,31 @@ var httpClient = &http.Client{
 func main() {
 	flag.Parse()
 
-	// If --version is provided, output all 6 platforms without R2 check
+	hasR2Creds := *r2Endpoint != "" && *r2Bucket != "" && *r2AccessKey != "" && *r2SecretKey != ""
+
 	if *versionFlag != "" {
-		matrix := buildMatrixForVersion(*versionFlag)
-		outputMatrix(matrix)
+		// --version provided: check R2 if credentials available, otherwise output all platforms
+		if hasR2Creds {
+			fmt.Fprintf(os.Stderr, "Checking R2 for existing builds of Ruby %s...\n", *versionFlag)
+			existingMeta, err := fetchExistingMeta()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching R2 metadata: %v\n", err)
+				os.Exit(1)
+			}
+			matrix := computeGaps([]string{*versionFlag}, existingMeta)
+			fmt.Fprintf(os.Stderr, "Detected %d missing platforms for %s\n", len(matrix.Include), *versionFlag)
+			outputMatrix(matrix)
+		} else {
+			fmt.Fprintln(os.Stderr, "No R2 credentials provided, outputting all platforms")
+			matrix := buildMatrixForVersion(*versionFlag)
+			outputMatrix(matrix)
+		}
 		return
 	}
 
-	// Otherwise, detect gaps by comparing upstream vs R2
-	if *r2Endpoint == "" || *r2Bucket == "" || *r2AccessKey == "" || *r2SecretKey == "" {
+	// No --version: full auto-detect requires R2 credentials
+	if !hasR2Creds {
 		fmt.Fprintln(os.Stderr, "Error: R2 credentials required (--r2-endpoint, --r2-bucket, --r2-access-key, --r2-secret-key)")
-		fmt.Fprintln(os.Stderr, "  Or use --version=X to force all platforms for a specific version")
 		os.Exit(1)
 	}
 
