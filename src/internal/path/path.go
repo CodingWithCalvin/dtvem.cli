@@ -57,7 +57,12 @@ func ShimsDir() string {
 		return filepath.Join(home, ".local", "share", "dtvem", "shims")
 	}
 
-	// On macOS and Windows, use ~/.dtvem
+	// On macOS and Windows, use XDG_DATA_HOME if explicitly set (opt-in)
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+		return filepath.Join(xdgDataHome, "dtvem", "shims")
+	}
+
+	// Default for macOS and Windows: ~/.dtvem
 	return filepath.Join(home, ".dtvem", "shims")
 }
 

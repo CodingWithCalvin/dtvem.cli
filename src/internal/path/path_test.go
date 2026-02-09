@@ -109,6 +109,131 @@ func TestShimsDir(t *testing.T) {
 	}
 }
 
+func TestShimsDir_WithDTVEMROOT(t *testing.T) {
+	// Save original environment
+	originalRoot := os.Getenv("DTVEM_ROOT")
+	defer func() {
+		if originalRoot != "" {
+			_ = os.Setenv("DTVEM_ROOT", originalRoot)
+		} else {
+			_ = os.Unsetenv("DTVEM_ROOT")
+		}
+	}()
+
+	// Set custom DTVEM_ROOT
+	customRoot := filepath.Join(os.TempDir(), "custom-dtvem-root")
+	_ = os.Setenv("DTVEM_ROOT", customRoot)
+
+	result := ShimsDir()
+	expected := filepath.Join(customRoot, "shims")
+	if result != expected {
+		t.Errorf("ShimsDir() with DTVEM_ROOT=%q = %q, want %q", customRoot, result, expected)
+	}
+}
+
+func TestShimsDir_NonLinux_WithXDG(t *testing.T) {
+	// On non-Linux platforms, verify that XDG_DATA_HOME is respected when set
+	if runtime.GOOS == constants.OSLinux {
+		t.Skip("This test only runs on non-Linux platforms")
+	}
+
+	// Save original environment
+	originalRoot := os.Getenv("DTVEM_ROOT")
+	originalXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() {
+		if originalRoot != "" {
+			_ = os.Setenv("DTVEM_ROOT", originalRoot)
+		} else {
+			_ = os.Unsetenv("DTVEM_ROOT")
+		}
+		if originalXDG != "" {
+			_ = os.Setenv("XDG_DATA_HOME", originalXDG)
+		} else {
+			_ = os.Unsetenv("XDG_DATA_HOME")
+		}
+	}()
+
+	// Clear DTVEM_ROOT and set XDG_DATA_HOME
+	_ = os.Unsetenv("DTVEM_ROOT")
+	customXDG := filepath.Join(os.TempDir(), "custom-xdg-data")
+	_ = os.Setenv("XDG_DATA_HOME", customXDG)
+
+	result := ShimsDir()
+	expected := filepath.Join(customXDG, "dtvem", "shims")
+
+	if result != expected {
+		t.Errorf("ShimsDir() on %s should use XDG_DATA_HOME when set, got %q, want %q",
+			runtime.GOOS, result, expected)
+	}
+}
+
+func TestShimsDir_NonLinux_WithoutXDG(t *testing.T) {
+	// On non-Linux platforms, verify that ~/.dtvem/shims is used when XDG_DATA_HOME is not set
+	if runtime.GOOS == constants.OSLinux {
+		t.Skip("This test only runs on non-Linux platforms")
+	}
+
+	// Save original environment
+	originalRoot := os.Getenv("DTVEM_ROOT")
+	originalXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() {
+		if originalRoot != "" {
+			_ = os.Setenv("DTVEM_ROOT", originalRoot)
+		} else {
+			_ = os.Unsetenv("DTVEM_ROOT")
+		}
+		if originalXDG != "" {
+			_ = os.Setenv("XDG_DATA_HOME", originalXDG)
+		} else {
+			_ = os.Unsetenv("XDG_DATA_HOME")
+		}
+	}()
+
+	// Clear both DTVEM_ROOT and XDG_DATA_HOME
+	_ = os.Unsetenv("DTVEM_ROOT")
+	_ = os.Unsetenv("XDG_DATA_HOME")
+
+	result := ShimsDir()
+	home, _ := os.UserHomeDir()
+	expected := filepath.Join(home, ".dtvem", "shims")
+
+	if result != expected {
+		t.Errorf("ShimsDir() on %s without XDG_DATA_HOME should use ~/.dtvem/shims, got %q, want %q",
+			runtime.GOOS, result, expected)
+	}
+}
+
+func TestShimsDir_DTVEMRootOverridesXDG(t *testing.T) {
+	// Verify that DTVEM_ROOT takes precedence over XDG_DATA_HOME
+	originalRoot := os.Getenv("DTVEM_ROOT")
+	originalXDG := os.Getenv("XDG_DATA_HOME")
+	defer func() {
+		if originalRoot != "" {
+			_ = os.Setenv("DTVEM_ROOT", originalRoot)
+		} else {
+			_ = os.Unsetenv("DTVEM_ROOT")
+		}
+		if originalXDG != "" {
+			_ = os.Setenv("XDG_DATA_HOME", originalXDG)
+		} else {
+			_ = os.Unsetenv("XDG_DATA_HOME")
+		}
+	}()
+
+	// Set both DTVEM_ROOT and XDG_DATA_HOME
+	customRoot := filepath.Join(os.TempDir(), "custom-dtvem-root")
+	_ = os.Setenv("DTVEM_ROOT", customRoot)
+	_ = os.Setenv("XDG_DATA_HOME", filepath.Join(os.TempDir(), "should-be-ignored"))
+
+	result := ShimsDir()
+	expected := filepath.Join(customRoot, "shims")
+
+	if result != expected {
+		t.Errorf("ShimsDir() with DTVEM_ROOT set should return DTVEM_ROOT/shims, got %q, want %q",
+			result, expected)
+	}
+}
+
 func TestLookPathExcludingShims(t *testing.T) {
 	originalPath := os.Getenv("PATH")
 	defer func() { _ = os.Setenv("PATH", originalPath) }()
