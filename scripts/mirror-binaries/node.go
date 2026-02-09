@@ -124,7 +124,10 @@ func (s *NodeOfficialSource) fetchShasums(version string) (nodeShasums, error) {
 }
 
 func (s *NodeOfficialSource) mapFileToPlatform(file string) (platform, ext string) {
-	// Node.js file naming: linux-x64, darwin-x64, win-x64, etc.
+	// Node.js file naming in index.json:
+	//   - Linux: linux-x64, linux-arm64, linux-armv7l
+	//   - macOS: osx-x64-tar, osx-arm64-tar (v15+), darwin-x64, darwin-arm64 (legacy)
+	//   - Windows: win-x64-zip, win-arm64-zip, win-x86-zip
 	// We want: linux-amd64, darwin-amd64, windows-amd64, etc.
 
 	switch file {
@@ -136,7 +139,12 @@ func (s *NodeOfficialSource) mapFileToPlatform(file string) (platform, ext strin
 	case "linux-armv7l":
 		return "linux-armv7", ".tar.gz"
 
-	// macOS
+	// macOS (osx-*-tar naming used since v15+)
+	case "osx-x64-tar":
+		return "darwin-amd64", ".tar.gz"
+	case "osx-arm64-tar":
+		return "darwin-arm64", ".tar.gz"
+	// Legacy macOS naming (pre-v15)
 	case "darwin-x64":
 		return "darwin-amd64", ".tar.gz"
 	case "darwin-arm64":
@@ -158,6 +166,7 @@ func (s *NodeOfficialSource) mapFileToPlatform(file string) (platform, ext strin
 
 func (s *NodeOfficialSource) getArchiveName(version, file string) string {
 	// Convert file type to actual archive filename
+	// Note: osx-*-tar entries map to darwin-* archive names (the files on disk use darwin-)
 	switch file {
 	case "linux-x64":
 		return fmt.Sprintf("node-%s-linux-x64.tar.gz", version)
@@ -165,9 +174,9 @@ func (s *NodeOfficialSource) getArchiveName(version, file string) string {
 		return fmt.Sprintf("node-%s-linux-arm64.tar.gz", version)
 	case "linux-armv7l":
 		return fmt.Sprintf("node-%s-linux-armv7l.tar.gz", version)
-	case "darwin-x64":
+	case "osx-x64-tar", "darwin-x64":
 		return fmt.Sprintf("node-%s-darwin-x64.tar.gz", version)
-	case "darwin-arm64":
+	case "osx-arm64-tar", "darwin-arm64":
 		return fmt.Sprintf("node-%s-darwin-arm64.tar.gz", version)
 	case "win-x64-zip":
 		return fmt.Sprintf("node-%s-win-x64.zip", version)
