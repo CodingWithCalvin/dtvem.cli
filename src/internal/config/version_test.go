@@ -442,6 +442,46 @@ func TestSetGlobalVersion_MultipleRuntimes(t *testing.T) {
 	}
 }
 
+func TestGlobalVersion_NoConfigFile(t *testing.T) {
+	// On a clean system with no config file, GlobalVersion should return ("", nil)
+	tmpRoot := t.TempDir()
+	t.Setenv("HOME", tmpRoot)
+	t.Setenv("USERPROFILE", tmpRoot)
+	ResetPathsCache()
+	defer ResetPathsCache()
+
+	version, err := GlobalVersion("python")
+	if err != nil {
+		t.Errorf("GlobalVersion() with no config file should return nil error, got: %v", err)
+	}
+	if version != "" {
+		t.Errorf("GlobalVersion() with no config file should return empty string, got: %q", version)
+	}
+}
+
+func TestGlobalVersion_RuntimeNotInConfig(t *testing.T) {
+	// When config exists but runtime is not in it, GlobalVersion should return ("", nil)
+	tmpRoot := t.TempDir()
+	t.Setenv("HOME", tmpRoot)
+	t.Setenv("USERPROFILE", tmpRoot)
+	ResetPathsCache()
+	defer ResetPathsCache()
+
+	// Set a version for python so the config file exists
+	if err := SetGlobalVersion("python", "3.11.0"); err != nil {
+		t.Fatalf("SetGlobalVersion() setup error: %v", err)
+	}
+
+	// Ask for node which is not in the config
+	version, err := GlobalVersion("node")
+	if err != nil {
+		t.Errorf("GlobalVersion() for missing runtime should return nil error, got: %v", err)
+	}
+	if version != "" {
+		t.Errorf("GlobalVersion() for missing runtime should return empty string, got: %q", version)
+	}
+}
+
 func TestSetLocalVersion_CreatesDirectoryAndFile(t *testing.T) {
 	// Create temp directory and change to it
 	tmpRoot := t.TempDir()
