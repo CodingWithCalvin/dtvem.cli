@@ -43,8 +43,8 @@ type MatrixOutput struct {
 var allPlatforms = []Platform{
 	{Name: "linux-amd64", Runner: "ubuntu-latest", BuildOS: "linux", Arch: "amd64"},
 	{Name: "linux-arm64", Runner: "ubuntu-24.04-arm", BuildOS: "linux", Arch: "arm64"},
-	{Name: "darwin-amd64", Runner: "macos-13", BuildOS: "darwin", Arch: "amd64"},
-	{Name: "darwin-arm64", Runner: "macos-latest", BuildOS: "darwin", Arch: "arm64"},
+	{Name: "darwin-amd64", Runner: "macos-15", BuildOS: "darwin", Arch: "amd64"},
+	{Name: "darwin-arm64", Runner: "macos-15", BuildOS: "darwin", Arch: "arm64"},
 	{Name: "windows-amd64", Runner: "windows-latest", BuildOS: "windows", Arch: "amd64"},
 	{Name: "windows-386", Runner: "windows-latest", BuildOS: "windows", Arch: "386"},
 }
