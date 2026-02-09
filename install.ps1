@@ -12,10 +12,13 @@ $ErrorActionPreference = "Stop"
 $REPO = "CodingWithCalvin/dtvem.cli"
 
 # Get dtvem root directory
-# Respects DTVEM_ROOT environment variable if set, otherwise uses default
+# Respects DTVEM_ROOT environment variable if set, XDG_DATA_HOME if set, otherwise uses default
 function Get-DtvemRoot {
     if ($env:DTVEM_ROOT) {
         return $env:DTVEM_ROOT
+    }
+    if ($env:XDG_DATA_HOME) {
+        return "$env:XDG_DATA_HOME\dtvem"
     }
     return "$env:USERPROFILE\.dtvem"
 }

@@ -53,7 +53,7 @@ warning() {
 
 # Get dtvem root directory
 # On Linux, respects XDG_DATA_HOME if set (defaults to ~/.local/share/dtvem)
-# On macOS, uses ~/.dtvem
+# On macOS, uses XDG_DATA_HOME if explicitly set (opt-in), otherwise ~/.dtvem
 get_dtvem_root() {
     # Check for DTVEM_ROOT environment variable first (overrides all)
     if [ -n "$DTVEM_ROOT" ]; then
@@ -73,8 +73,12 @@ get_dtvem_root() {
             echo "$HOME/.local/share/dtvem"
         fi
     else
-        # macOS and others: use ~/.dtvem
-        echo "$HOME/.dtvem"
+        # macOS and others: use XDG_DATA_HOME if explicitly set (opt-in)
+        if [ -n "$XDG_DATA_HOME" ]; then
+            echo "$XDG_DATA_HOME/dtvem"
+        else
+            echo "$HOME/.dtvem"
+        fi
     fi
 }
 
