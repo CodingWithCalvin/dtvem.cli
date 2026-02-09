@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
@@ -11,6 +12,7 @@ type mockProvider struct {
 	name              string
 	displayName       string
 	globalVersion     string
+	globalVersionErr  error
 	globalSetError    error
 	setGlobalCalls    []string
 	availableVersions []runtime.AvailableVersion
@@ -53,7 +55,7 @@ func (m *mockProvider) GetEnvironment(_ string) (map[string]string, error) {
 }
 
 func (m *mockProvider) GlobalVersion() (string, error) {
-	return m.globalVersion, nil
+	return m.globalVersion, m.globalVersionErr
 }
 
 func (m *mockProvider) SetGlobalVersion(version string) error {
@@ -222,6 +224,21 @@ func TestResolveVersionForProvider_NoMatch(t *testing.T) {
 	_, err := resolveVersionForProvider(provider, "99")
 	if err == nil {
 		t.Error("Expected error for non-matching version, got nil")
+	}
+}
+
+func TestAutoSetGlobalIfNeeded_GlobalVersionError(t *testing.T) {
+	provider := &mockProvider{
+		name:             "test",
+		displayName:      "Test",
+		globalVersion:    "",
+		globalVersionErr: fmt.Errorf("permission denied"),
+	}
+
+	autoSetGlobalIfNeeded(provider, "1.0.0")
+
+	if len(provider.setGlobalCalls) != 0 {
+		t.Errorf("Expected SetGlobalVersion to not be called when GlobalVersion returns error, got %d calls", len(provider.setGlobalCalls))
 	}
 }
 

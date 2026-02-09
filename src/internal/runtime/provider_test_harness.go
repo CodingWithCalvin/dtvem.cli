@@ -250,10 +250,14 @@ func (h *ProviderTestHarness) TestIsInstalled(t *testing.T) {
 func (h *ProviderTestHarness) TestGetGlobalVersion(t *testing.T) {
 	version, err := h.Provider.GlobalVersion()
 
-	// It's OK to have error if no global version is set
-	// But if version is returned, it should be non-empty
-	if err == nil && version == "" {
-		t.Error("GetGlobalVersion() returned empty string without error")
+	// ("", nil) is valid — means no global version configured
+	// If a version is returned, it should be non-empty
+	if err == nil && version != "" {
+		// Valid: a global version is configured
+	}
+	if err != nil {
+		// Valid: an actual error occurred (I/O, corrupt config)
+		t.Logf("GetGlobalVersion() returned error (may be expected): %v", err)
 	}
 }
 

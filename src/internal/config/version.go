@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // RuntimesConfig represents the flat structure of runtimes.json
@@ -142,16 +143,24 @@ func LocalVersion(runtimeName string) (string, error) {
 	return findLocalVersion(runtimeName)
 }
 
-// GlobalVersion reads the global version for a runtime
+// GlobalVersion reads the global version for a runtime.
+// Returns ("", nil) when no version is configured (file missing or runtime not in config).
+// Returns an error only for actual failures (I/O errors, corrupt JSON).
 func GlobalVersion(runtimeName string) (string, error) {
 	configPath := GlobalConfigPath()
 
-	// Check if config file exists
+	// No config file yet — valid "unconfigured" state
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("no global version configured")
+		return "", nil
 	}
 
-	return readVersionFile(configPath, runtimeName)
+	version, err := readVersionFile(configPath, runtimeName)
+	if err != nil && strings.Contains(err.Error(), "not found in config file") {
+		// Runtime not in config — valid "unconfigured" state
+		return "", nil
+	}
+
+	return version, err
 }
 
 // SetGlobalVersion sets the global version for a runtime
