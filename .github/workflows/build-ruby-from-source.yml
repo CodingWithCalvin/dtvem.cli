@@ -45,11 +45,10 @@ jobs:
           R2_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           R2_SECRET_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
         run: |
-          ARGS=""
+          R2_ARGS="--r2-endpoint=$R2_ENDPOINT --r2-bucket=$R2_BUCKET --r2-access-key=$R2_ACCESS_KEY --r2-secret-key=$R2_SECRET_KEY"
+          ARGS="$R2_ARGS"
           if [ -n "${{ inputs.version }}" ]; then
-            ARGS="--version=${{ inputs.version }}"
-          else
-            ARGS="--r2-endpoint=$R2_ENDPOINT --r2-bucket=$R2_BUCKET --r2-access-key=$R2_ACCESS_KEY --r2-secret-key=$R2_SECRET_KEY"
+            ARGS="--version=${{ inputs.version }} $R2_ARGS"
           fi
 
           MATRIX=$(./scripts/detect-ruby-gaps/detect-ruby-gaps $ARGS)
