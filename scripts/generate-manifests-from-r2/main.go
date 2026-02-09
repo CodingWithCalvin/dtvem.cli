@@ -32,6 +32,7 @@ type ManifestDownload struct {
 	URL          string `json:"url"`
 	SHA256       string `json:"sha256,omitempty"`
 	SHA256Source string `json:"sha256_source,omitempty"`
+	Source       string `json:"source,omitempty"` // "built-from-source" when not from upstream
 }
 
 // Manifest represents the output manifest structure
@@ -143,7 +144,7 @@ func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
 		Versions: make(map[string]map[string]*ManifestDownload),
 	}
 
-	// List all .meta.json files for this runtime
+	// List all files for this runtime, separating meta files from binary keys
 	prefix := runtime + "/"
 	paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
 		Bucket: r2Bucket,
@@ -151,6 +152,7 @@ func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
 	})
 
 	metaFiles := []string{}
+	allKeys := make(map[string]bool)
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
@@ -159,6 +161,7 @@ func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
 
 		for _, obj := range page.Contents {
 			key := *obj.Key
+			allKeys[key] = true
 			if strings.HasSuffix(key, ".meta.json") {
 				metaFiles = append(metaFiles, key)
 			}
@@ -193,6 +196,15 @@ func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
 
 		// Determine the binary file extension from source URL
 		ext := getExtension(meta.SourceURL)
+		if !isValidArchiveExt(ext) {
+			// Source URL doesn't contain a valid extension (e.g., "built-from-source"),
+			// probe R2 for the actual binary file
+			ext = findBinaryExtension(allKeys, runtime, version, platform)
+			if ext == "" {
+				fmt.Printf("  Warning: no valid binary found for %s/%s/%s, skipping\n", runtime, version, platform)
+				continue
+			}
+		}
 		binaryURL := fmt.Sprintf("%s/%s/%s/%s%s", *baseURL, runtime, version, platform, ext)
 
 		// Add to manifest
@@ -200,11 +212,16 @@ func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
 			manifest.Versions[version] = make(map[string]*ManifestDownload)
 		}
 
-		manifest.Versions[version][platform] = &ManifestDownload{
+		download := &ManifestDownload{
 			URL:          binaryURL,
 			SHA256:       meta.SHA256,
 			SHA256Source: meta.SHA256Source,
 		}
+		if meta.SourceURL == "built-from-source" {
+			download.Source = "built-from-source"
+		}
+
+		manifest.Versions[version][platform] = download
 	}
 
 	return manifest, nil
@@ -254,6 +271,24 @@ func getExtension(url string) string {
 	base := filepath.Base(url)
 	if idx := strings.Index(base, "."); idx != -1 {
 		return base[idx:]
+	}
+	return ""
+}
+
+func isValidArchiveExt(ext string) bool {
+	switch ext {
+	case ".tar.gz", ".tar.xz", ".tar.bz2", ".zip", ".7z":
+		return true
+	}
+	return false
+}
+
+func findBinaryExtension(allKeys map[string]bool, runtime, version, platform string) string {
+	prefix := fmt.Sprintf("%s/%s/%s", runtime, version, platform)
+	for _, ext := range []string{".tar.gz", ".tar.xz", ".zip", ".7z"} {
+		if allKeys[prefix+ext] {
+			return ext
+		}
 	}
 	return ""
 }
