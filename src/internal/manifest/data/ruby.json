@@ -1840,6 +1840,24 @@
       }
     },
     "3.2.10": {
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/ruby/3.2.10/darwin-arm64.tar.gz",
+        "sha256": "4da92dfee12151c00650ed0ec8f7a3db5de3b10ec8634cb60925adb42f5859bb",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/ruby/3.2.10/linux-amd64.tar.gz",
+        "sha256": "6772154d17f0c553e1dd12dac34cda1233b42fc4e65675b0fe7b6e98511035ea",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/ruby/3.2.10/linux-arm64.tar.gz",
+        "sha256": "6313cf5c70e41643b864e8d24bd59102d731bb4fc9a8164cb6f14f67c65ddaf7",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
       "windows-386": {
         "url": "https://builds.dtvem.io/ruby/3.2.10/windows-386.7z",
         "sha256": "0bcdf9da9913c0696db85bcd6c079eaf889e4c5e7140aca3970fd244bad4eaa4",
@@ -2706,6 +2724,24 @@
       }
     },
     "3.4.8": {
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/ruby/3.4.8/darwin-arm64.tar.gz",
+        "sha256": "abd629a56f9237c8b04e3b4af1129a6b1147fe870ba7b3e4cd8b10a7a790bb8d",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/ruby/3.4.8/linux-amd64.tar.gz",
+        "sha256": "d2f5114345768b28a3e6ad0b4e467ac7eeac3451bb1dc55fa189f381bea715e3",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/ruby/3.4.8/linux-arm64.tar.gz",
+        "sha256": "0c58a9274c6602b7221970c81ca69aff292326d908e75c76784f5f6f5ca506a2",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
       "windows-386": {
         "url": "https://builds.dtvem.io/ruby/3.4.8/windows-386.7z",
         "sha256": "6635cd7a0a4be880ab781aef60dcbd8803e2d6e60455e62915f69f836b17f299",
@@ -2740,6 +2776,24 @@
       }
     },
     "4.0.0": {
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.0/darwin-arm64.tar.gz",
+        "sha256": "39509fce20c007927fa5828b01ed0b6e291a0b52693068a66089f2d43b813c77",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.0/linux-amd64.tar.gz",
+        "sha256": "b23d6e377cf105269f1808a7f2e65984e79d159e1559266e2d26da014e582fc0",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.0/linux-arm64.tar.gz",
+        "sha256": "230df0d0fe316344713203ab2c4b773abbc13f11b5e11f0a4bca1ce2cbcabba7",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
       "windows-amd64": {
         "url": "https://builds.dtvem.io/ruby/4.0.0/windows-amd64.7z",
         "sha256": "4ca3a8a725d204accc4919bf1103a10acee609b67bf2d6ec8ac692eb18dfb780",
@@ -2769,6 +2823,24 @@
       }
     },
     "4.0.1": {
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.1/darwin-arm64.tar.gz",
+        "sha256": "9ca25cf20048d32c785d03a86d62617ac91e6f5062ff8a1810b9b2912702667a",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.1/linux-amd64.tar.gz",
+        "sha256": "1fb24ad9c8e1385fbbc4198c4815dd0007be1967aaadbea552f50c5a0e71f7ec",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.1/linux-arm64.tar.gz",
+        "sha256": "7938537161708d450df19cbe71db5baaafd42cf41041af726032573835e9751f",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
       "windows-amd64": {
         "url": "https://builds.dtvem.io/ruby/4.0.1/windows-amd64.7z",
         "sha256": "45cd5ac6aa0fdd976acbc0b0c768e38e8f5357b1b07d2c803cccafd7de758fb1",
