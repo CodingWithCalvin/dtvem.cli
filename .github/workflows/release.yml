@@ -359,39 +359,3 @@ jobs:
 
         📦 [View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}) | 📖 [Documentation](https://github.com/${{ github.repository }})
 
-  notify-bluesky:
-    name: Post to Bluesky
-    needs: notify-discussion
-    uses: CodingWithCalvin/.github/.github/workflows/bluesky-post.yml@main
-    with:
-      post_text: |
-        🚀 #dtvem v${{ github.event.inputs.version }} is now available!
-
-        Cross-platform version manager for #Node, #Python, and #Ruby - supports #Windows, #Linux, and #macOS
-
-        [Release Notes](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})
-        [Discussion](${{ needs.notify-discussion.outputs.discussion_url }})
-      embed_title: dtvem v${{ github.event.inputs.version }}
-      embed_description: Cross-platform runtime version manager for Node.js, Python, and Ruby
-    secrets:
-      BLUESKY_USERNAME: ${{ secrets.BLUESKY_USERNAME }}
-      BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
-
-  notify-x:
-    name: Post to X
-    needs: notify-discussion
-    uses: CodingWithCalvin/.github/.github/workflows/x-post.yml@main
-    with:
-      post_text: |
-        🚀 #dtvem v${{ github.event.inputs.version }} is now available!
-
-        Cross-platform version manager for #Node, #Python, and #Ruby - supports #Windows, #Linux, and #macOS
-
-        Release Notes: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}
-        Discussion: ${{ needs.notify-discussion.outputs.discussion_url }}
-    secrets:
-      X_CONSUMER_KEY: ${{ secrets.X_CONSUMER_KEY }}
-      X_CONSUMER_KEY_SECRET: ${{ secrets.X_CONSUMER_KEY_SECRET }}
-      X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
-      X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
-
