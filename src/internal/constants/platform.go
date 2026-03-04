@@ -33,4 +33,5 @@ const (
 // File extensions
 const (
 	ExtExe = ".exe"
+	ExtCmd = ".cmd"
 )
