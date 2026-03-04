@@ -77,7 +77,25 @@ func (m *Manager) CreateShim(shimName string) error {
 		}
 	}
 
+	// On Windows, create a companion .cmd wrapper
+	if runtime.GOOS == constants.OSWindows {
+		if err := createCmdWrapper(shimName); err != nil {
+			return fmt.Errorf("failed to create .cmd wrapper for %s: %w", shimName, err)
+		}
+	}
+
 	return nil
+}
+
+// createCmdWrapper writes a .cmd file that forwards to the .exe shim
+func createCmdWrapper(shimName string) error {
+	// shimName is the base name (e.g., "python"), ShimPath adds .exe on Windows
+	// Build the .cmd path by replacing .exe with .cmd in the shim path
+	exePath := config.ShimPath(shimName)
+	cmdPath := exePath[:len(exePath)-len(constants.ExtExe)] + constants.ExtCmd
+
+	content := fmt.Sprintf("@echo off\r\n\"%%~dp0%s%s\" %%*\r\n", shimName, constants.ExtExe)
+	return os.WriteFile(cmdPath, []byte(content), 0644)
 }
 
 // CreateShims creates multiple shims at once
@@ -96,6 +114,14 @@ func (m *Manager) RemoveShim(shimName string) error {
 
 	if err := os.Remove(shimPath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to remove shim %s: %w", shimName, err)
+	}
+
+	// On Windows, also remove the companion .cmd wrapper
+	if runtime.GOOS == constants.OSWindows {
+		cmdPath := shimPath[:len(shimPath)-len(constants.ExtExe)] + constants.ExtCmd
+		if err := os.Remove(cmdPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove .cmd wrapper for %s: %w", shimName, err)
+		}
 	}
 
 	return nil
@@ -118,10 +144,13 @@ func (m *Manager) ListShims() ([]string, error) {
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			name := entry.Name()
-			// Remove .exe extension on Windows for consistency
-			if runtime.GOOS == "windows" {
-				name = filepath.Base(name)
-				name = name[:len(name)-len(filepath.Ext(name))]
+			if runtime.GOOS == constants.OSWindows {
+				ext := filepath.Ext(name)
+				// Skip .cmd/.bat wrappers — only list .exe shims
+				if ext == constants.ExtCmd || ext == ".bat" {
+					continue
+				}
+				name = name[:len(name)-len(ext)]
 			}
 			shims = append(shims, name)
 		}

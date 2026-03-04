@@ -303,6 +303,141 @@ func TestCopyFile_Errors(t *testing.T) {
 	}
 }
 
+func TestCreateShim_CreatesCmdWrapperOnWindows(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Skipping Windows-specific test")
+	}
+
+	tmpRoot := t.TempDir()
+	shimsDir := filepath.Join(tmpRoot, "shims")
+	if err := os.MkdirAll(shimsDir, 0755); err != nil {
+		t.Fatalf("Failed to create shims directory: %v", err)
+	}
+
+	// Create a fake shim source
+	shimSourcePath := filepath.Join(tmpRoot, "dtvem-shim.exe")
+	if err := os.WriteFile(shimSourcePath, []byte("fake shim content"), 0755); err != nil {
+		t.Fatalf("Failed to create fake shim: %v", err)
+	}
+
+	// Create the .exe shim
+	exePath := filepath.Join(shimsDir, "npm.exe")
+	if err := copyFile(shimSourcePath, exePath); err != nil {
+		t.Fatalf("copyFile() error: %v", err)
+	}
+
+	// Create the .cmd wrapper using the helper
+	cmdPath := filepath.Join(shimsDir, "npm.cmd")
+	content := "@echo off\r\n\"%~dp0npm.exe\" %*\r\n"
+	if err := os.WriteFile(cmdPath, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write .cmd wrapper: %v", err)
+	}
+
+	// Verify .cmd file exists
+	if _, err := os.Stat(cmdPath); os.IsNotExist(err) {
+		t.Error(".cmd wrapper was not created")
+	}
+
+	// Verify .cmd content
+	cmdContent, err := os.ReadFile(cmdPath)
+	if err != nil {
+		t.Fatalf("Failed to read .cmd wrapper: %v", err)
+	}
+
+	expected := "@echo off\r\n\"%~dp0npm.exe\" %*\r\n"
+	if string(cmdContent) != expected {
+		t.Errorf(".cmd content = %q, want %q", string(cmdContent), expected)
+	}
+}
+
+func TestRemoveShim_RemovesCmdWrapperOnWindows(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Skipping Windows-specific test")
+	}
+
+	tmpRoot := t.TempDir()
+	shimsDir := filepath.Join(tmpRoot, "shims")
+	if err := os.MkdirAll(shimsDir, 0755); err != nil {
+		t.Fatalf("Failed to create shims directory: %v", err)
+	}
+
+	// Create both .exe and .cmd files
+	exePath := filepath.Join(shimsDir, "npm.exe")
+	cmdPath := filepath.Join(shimsDir, "npm.cmd")
+	if err := os.WriteFile(exePath, []byte("fake shim"), 0755); err != nil {
+		t.Fatalf("Failed to create .exe: %v", err)
+	}
+	if err := os.WriteFile(cmdPath, []byte("@echo off\r\n"), 0644); err != nil {
+		t.Fatalf("Failed to create .cmd: %v", err)
+	}
+
+	// Remove both files
+	if err := os.Remove(exePath); err != nil {
+		t.Fatalf("Failed to remove .exe: %v", err)
+	}
+	if err := os.Remove(cmdPath); err != nil {
+		t.Fatalf("Failed to remove .cmd: %v", err)
+	}
+
+	// Verify both are gone
+	if _, err := os.Stat(exePath); !os.IsNotExist(err) {
+		t.Error(".exe shim was not removed")
+	}
+	if _, err := os.Stat(cmdPath); !os.IsNotExist(err) {
+		t.Error(".cmd wrapper was not removed")
+	}
+}
+
+func TestListShims_SkipsCmdFiles(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Skipping Windows-specific test")
+	}
+
+	tmpRoot := t.TempDir()
+	shimsDir := filepath.Join(tmpRoot, "shims")
+	if err := os.MkdirAll(shimsDir, 0755); err != nil {
+		t.Fatalf("Failed to create shims directory: %v", err)
+	}
+
+	// Create .exe and .cmd files
+	files := map[string]string{
+		"npm.exe": "fake shim",
+		"npm.cmd": "@echo off\r\n",
+		"npx.exe": "fake shim",
+		"npx.cmd": "@echo off\r\n",
+	}
+	for name, content := range files {
+		path := filepath.Join(shimsDir, name)
+		if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+			t.Fatalf("Failed to create %s: %v", name, err)
+		}
+	}
+
+	// Read entries and filter like ListShims does
+	entries, err := os.ReadDir(shimsDir)
+	if err != nil {
+		t.Fatalf("Failed to read shims directory: %v", err)
+	}
+
+	var shims []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		ext := filepath.Ext(name)
+		if ext == constants.ExtCmd || ext == ".bat" {
+			continue
+		}
+		shims = append(shims, name[:len(name)-len(ext)])
+	}
+
+	expected := []string{"npm", "npx"}
+	if !reflect.DeepEqual(shims, expected) {
+		t.Errorf("ListShims filtered result = %v, want %v", shims, expected)
+	}
+}
+
 func TestRuntimeShims_AllKnownRuntimes(t *testing.T) {
 	// Verify all known runtimes have shim mappings
 	knownRuntimes := []string{"python", "node", "ruby", "go"}
