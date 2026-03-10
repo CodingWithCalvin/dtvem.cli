@@ -160,6 +160,20 @@ func getVersionStatus(version, globalVersion, localVersion string) string {
 	return status
 }
 
+// getVersionStatusWithLifecycle returns a status string that combines the
+// global/local indicators with a color-coded lifecycle label (e.g., "Active LTS").
+func getVersionStatusWithLifecycle(version, globalVersion, localVersion, lifecycleStatus string) string {
+	base := getVersionStatus(version, globalVersion, localVersion)
+	colored := tui.RenderLifecycleStatus(lifecycleStatus)
+	if colored == "" {
+		return base
+	}
+	if base == "" {
+		return colored
+	}
+	return base + " · " + colored
+}
+
 // isVersionActive returns true if this version is the currently active one
 func isVersionActive(version, globalVersion, localVersion string) bool {
 	isGlobal := version == globalVersion

@@ -300,7 +300,6 @@ func (p *Provider) ListAvailable() ([]runtime.AvailableVersion, error) {
 	for _, v := range versionStrings {
 		versions = append(versions, runtime.AvailableVersion{
 			Version: runtime.NewVersion(v),
-			Notes:   "",
 		})
 	}
 

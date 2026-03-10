@@ -53,10 +53,10 @@ func (iv InstalledVersion) String() string {
 // AvailableVersion represents a version available for installation
 type AvailableVersion struct {
 	Version
-	DownloadURL string
-	Size        int64
-	Checksum    string
-	Notes       string // Optional notes (e.g., "LTS", "Latest", "Stable")
+	DownloadURL     string
+	Size            int64
+	Checksum        string
+	LifecycleStatus string // Optional lifecycle label (e.g., "Active LTS", "EOL")
 }
 
 // DetectedVersion represents a runtime version found on the system
