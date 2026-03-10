@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/tui"
+)
 
 func TestGetVersionStatusWithLifecycle(t *testing.T) {
 	tests := []struct {
@@ -17,7 +21,7 @@ func TestGetVersionStatusWithLifecycle(t *testing.T) {
 			globalVersion:   "",
 			localVersion:    "",
 			lifecycleStatus: "Active LTS",
-			want:            "Active LTS",
+			want:            tui.RenderLifecycleStatus("Active LTS"),
 		},
 		{
 			name:            "global only",
@@ -33,7 +37,7 @@ func TestGetVersionStatusWithLifecycle(t *testing.T) {
 			globalVersion:   "22.14.0",
 			localVersion:    "",
 			lifecycleStatus: "Active LTS",
-			want:            globalIndicator + " global" + " · " + "Active LTS",
+			want:            globalIndicator + " global" + " · " + tui.RenderLifecycleStatus("Active LTS"),
 		},
 		{
 			name:            "local with lifecycle",
@@ -41,7 +45,7 @@ func TestGetVersionStatusWithLifecycle(t *testing.T) {
 			globalVersion:   "",
 			localVersion:    "22.14.0",
 			lifecycleStatus: "Maintenance LTS",
-			want:            localIndicator + " local" + " · " + "Maintenance LTS",
+			want:            localIndicator + " local" + " · " + tui.RenderLifecycleStatus("Maintenance LTS"),
 		},
 		{
 			name:            "no status at all",

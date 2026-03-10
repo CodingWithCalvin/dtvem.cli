@@ -201,3 +201,26 @@ func GetCrossMark() string {
 	initStyles()
 	return CrossMark
 }
+
+// RenderLifecycleStatus renders a lifecycle status label with color coding.
+// Current → Cyan, Active LTS → Green, Maintenance LTS → Yellow, EOL → Red.
+// Unknown labels are returned unstyled.
+func RenderLifecycleStatus(status string) string {
+	if status == "" {
+		return ""
+	}
+	initStyles()
+
+	switch status {
+	case "Current":
+		return lipgloss.NewStyle().Foreground(colorPrimary).Render(status)
+	case "Active LTS":
+		return lipgloss.NewStyle().Foreground(colorSuccess).Bold(true).Render(status)
+	case "Maintenance LTS":
+		return lipgloss.NewStyle().Foreground(colorWarning).Render(status)
+	case "EOL":
+		return lipgloss.NewStyle().Foreground(colorError).Render(status)
+	default:
+		return status
+	}
+}
