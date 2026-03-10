@@ -160,6 +160,19 @@ func getVersionStatus(version, globalVersion, localVersion string) string {
 	return status
 }
 
+// getVersionStatusWithLifecycle returns a status string that combines the
+// global/local indicators with an optional lifecycle label (e.g., "Active LTS").
+func getVersionStatusWithLifecycle(version, globalVersion, localVersion, lifecycleStatus string) string {
+	base := getVersionStatus(version, globalVersion, localVersion)
+	if lifecycleStatus == "" {
+		return base
+	}
+	if base == "" {
+		return lifecycleStatus
+	}
+	return base + " · " + lifecycleStatus
+}
+
 // isVersionActive returns true if this version is the currently active one
 func isVersionActive(version, globalVersion, localVersion string) bool {
 	isGlobal := version == globalVersion

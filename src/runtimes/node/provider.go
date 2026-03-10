@@ -215,12 +215,15 @@ func (p *Provider) ListAvailable() ([]runtime.AvailableVersion, error) {
 	platform := manifest.CurrentPlatform()
 	versionStrings := m.ListAvailableVersions(platform)
 
+	// Build lifecycle provider for status labels
+	lp := newLifecycleProvider()
+
 	// Convert to AvailableVersion format and sort by semantic version (newest first)
 	versions := make([]runtime.AvailableVersion, 0, len(versionStrings))
 	for _, v := range versionStrings {
 		versions = append(versions, runtime.AvailableVersion{
-			Version: runtime.NewVersion(v),
-			Notes:   "",
+			Version:         runtime.NewVersion(v),
+			LifecycleStatus: lp.VersionStatus(v),
 		})
 	}
 

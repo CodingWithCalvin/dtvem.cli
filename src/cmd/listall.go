@@ -99,7 +99,7 @@ Examples:
 			}
 
 			// Create table for this page
-			table := tui.NewTable("", "Version", "Status", "Notes")
+			table := tui.NewTable("", "Version", "Status")
 			table.SetTitle(provider.DisplayName())
 
 			for i := 0; i < pageSize; i++ {
@@ -112,10 +112,10 @@ Examples:
 					marker = tui.CheckMark
 				}
 
-				// Get status (global/local indicators)
-				status := getVersionStatus(version, globalVersion, localVersion)
+				// Build status: combine global/local indicators with lifecycle
+				status := getVersionStatusWithLifecycle(version, globalVersion, localVersion, v.LifecycleStatus)
 
-				table.AddRow(marker, version, status, v.Notes)
+				table.AddRow(marker, version, status)
 			}
 
 			fmt.Println()
