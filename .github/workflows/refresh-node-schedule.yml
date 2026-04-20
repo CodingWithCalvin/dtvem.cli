@@ -1,0 +1,57 @@
+name: Refresh Node.js Schedule
+
+on:
+  # Run weekly to pick up upstream changes (e.g., new major lines, revised EOL dates)
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 6 AM UTC
+  # Manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    name: Refresh Node.js release schedule
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.CONTRIBUTORS_TOKEN }}
+
+      - name: Download upstream schedule
+        run: |
+          curl -fsSL \
+            https://raw.githubusercontent.com/nodejs/Release/main/schedule.json \
+            -o src/runtimes/node/data/schedule.json
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet src/runtimes/node/data/schedule.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push changes
+        if: ${{ steps.check-changes.outputs.changed == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/runtimes/node/data/schedule.json
+          git commit -m "chore(node): refresh upstream release schedule"
+          git push
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Node.js Release Schedule Refresh" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.check-changes.outputs.changed }}" = "true" ]; then
+            echo "**Result:** Schedule updated from upstream and committed to main." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "**Result:** No changes — embedded schedule is in sync with upstream." >> "$GITHUB_STEP_SUMMARY"
+          fi
