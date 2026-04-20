@@ -55,16 +55,25 @@ func TestLifecycleProvider_VersionStatus(t *testing.T) {
 			want:    string(lifecycle.Current),
 		},
 		{
-			name:    "v23 odd version in maintenance is EOL (not LTS)",
+			name:    "v23 odd version in maintenance window is still Current (not LTS)",
 			now:     "2025-04-15",
 			version: "23.5.0",
-			want:    string(lifecycle.EOL),
+			want:    string(lifecycle.Current),
 		},
 		{
 			name:    "v23 after end is EOL",
 			now:     "2025-07-01",
 			version: "23.5.0",
 			want:    string(lifecycle.EOL),
+		},
+		// v25: start 2025-10-15, maintenance 2026-04-01, end 2026-06-01 (no LTS)
+		// Regression for #241: odd version past maintenance but before end
+		// should show as Current, not EOL.
+		{
+			name:    "v25 past maintenance but before end is Current",
+			now:     "2026-04-20",
+			version: "25.9.0",
+			want:    string(lifecycle.Current),
 		},
 		// Edge cases
 		{

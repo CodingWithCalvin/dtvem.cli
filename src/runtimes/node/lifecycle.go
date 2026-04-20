@@ -91,8 +91,10 @@ func (lp *lifecycleProvider) resolve(e scheduleEntry) string {
 		if e.LTS != "" {
 			return string(lifecycle.MaintenanceLTS)
 		}
-		// Odd releases enter "maintenance" before EOL but are not LTS.
-		return string(lifecycle.EOL)
+		// Odd releases have a maintenance window before EOL but are not LTS;
+		// keep them labeled Current until their end date so the display
+		// matches nodejs.org's release schedule page.
+		return string(lifecycle.Current)
 	}
 
 	if lts := parseDate(e.LTS); !lts.IsZero() && !today.Before(lts) {
