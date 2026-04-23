@@ -66,6 +66,34 @@ func SaveShimMap(shimMap ShimMap) error {
 	return os.WriteFile(cachePath, data, 0644)
 }
 
+// MergeShimMap merges the given entries into the on-disk shim map and persists it.
+//
+// If the cache does not exist yet (first-time install), a new map is created.
+// Existing entries with matching keys are overwritten. The in-memory cache is
+// reset so subsequent LoadShimMap calls read the updated state from disk.
+//
+// This is the preferred path for install-time shim registration, where the
+// caller knows only the shims it just created and wants to register them
+// without rebuilding the entire map (which would require scanning every
+// installed runtime — `Rehash` does that).
+func MergeShimMap(entries ShimMap) error {
+	existing, err := loadShimMapFromDisk()
+	if err != nil || existing == nil {
+		// Cache missing, unreadable, or empty — start a fresh map.
+		existing = make(ShimMap, len(entries))
+	}
+
+	for shim, runtime := range entries {
+		existing[shim] = runtime
+	}
+
+	// Force the next LoadShimMap to re-read from disk so the merged entries
+	// are visible to any subsequent caller in the same process.
+	ResetShimMapCache()
+
+	return SaveShimMap(existing)
+}
+
 // LookupRuntime looks up the runtime for a given shim name using the cache.
 // Returns the runtime name and true if found, or empty string and false if not.
 func LookupRuntime(shimName string) (string, bool) {

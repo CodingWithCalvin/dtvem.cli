@@ -108,6 +108,28 @@ func (m *Manager) CreateShims(shimNames []string) error {
 	return nil
 }
 
+// CreateShimsForRuntime creates shim files for the given names and registers
+// them in the shim map under the given runtime name.
+//
+// This is the preferred path for install-time shim creation (e.g., from a
+// runtime provider's post-install hook). Bare CreateShims only writes the
+// shim binaries to disk — it does not update the shim-map cache, which means
+// subsequent shim invocations have to fall back to the provider registry
+// lookup instead of the O(1) cache hit. Calling CreateShimsForRuntime keeps
+// the shim files and the cache in sync from the moment they are created.
+func (m *Manager) CreateShimsForRuntime(runtimeName string, shimNames []string) error {
+	if err := m.CreateShims(shimNames); err != nil {
+		return err
+	}
+
+	entries := make(ShimMap, len(shimNames))
+	for _, name := range shimNames {
+		entries[name] = runtimeName
+	}
+
+	return MergeShimMap(entries)
+}
+
 // RemoveShim removes a shim
 func (m *Manager) RemoveShim(shimName string) error {
 	shimPath := config.ShimPath(shimName)
