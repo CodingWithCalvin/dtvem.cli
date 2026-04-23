@@ -169,14 +169,18 @@ func getShimName() string {
 // the uppercase extension attached, breaking every downstream lookup in
 // the shim-map cache and the provider registry.
 func shimNameFromPath(shimPath string) string {
-	shimName := filepath.Base(shimPath)
-
-	// Strip .exe / .EXE / any mixed case on Windows-style paths.
-	if ext := filepath.Ext(shimName); strings.EqualFold(ext, constants.ExtExe) {
-		shimName = shimName[:len(shimName)-len(ext)]
+	// Split on both separators so Windows-style paths resolve correctly even
+	// when this runs on a host where filepath.Base ignores backslashes.
+	if i := strings.LastIndexAny(shimPath, `/\`); i >= 0 {
+		shimPath = shimPath[i+1:]
 	}
 
-	return shimName
+	// Strip .exe / .EXE / any mixed case on Windows-style paths.
+	if ext := filepath.Ext(shimPath); strings.EqualFold(ext, constants.ExtExe) {
+		shimPath = shimPath[:len(shimPath)-len(ext)]
+	}
+
+	return shimPath
 }
 
 // mapShimToRuntime maps a shim name to its runtime
