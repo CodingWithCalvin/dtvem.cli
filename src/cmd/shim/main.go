@@ -155,15 +155,32 @@ func handleNoConfiguredVersion(shimName, runtimeName string, provider runtime.Sh
 	return fmt.Errorf("no version configured")
 }
 
-// getShimName returns the name of this shim binary
+// getShimName returns the name of this shim binary based on os.Args[0].
 func getShimName() string {
-	shimPath := os.Args[0]
-	shimName := filepath.Base(shimPath)
+	return shimNameFromPath(os.Args[0])
+}
 
-	// Remove .exe extension on Windows
-	shimName = strings.TrimSuffix(shimName, ".exe")
+// shimNameFromPath derives the shim name from an invocation path.
+//
+// On Windows, the filename's .exe extension is stripped case-insensitively.
+// This matters because Windows command resolution via PATHEXT can surface
+// uppercase extensions (e.g., Python's shutil.which returns "mmdc.EXE"
+// when PATHEXT contains ".EXE"). A case-sensitive TrimSuffix would leave
+// the uppercase extension attached, breaking every downstream lookup in
+// the shim-map cache and the provider registry.
+func shimNameFromPath(shimPath string) string {
+	// Split on both separators so Windows-style paths resolve correctly even
+	// when this runs on a host where filepath.Base ignores backslashes.
+	if i := strings.LastIndexAny(shimPath, `/\`); i >= 0 {
+		shimPath = shimPath[i+1:]
+	}
 
-	return shimName
+	// Strip .exe / .EXE / any mixed case on Windows-style paths.
+	if ext := filepath.Ext(shimPath); strings.EqualFold(ext, constants.ExtExe) {
+		shimPath = shimPath[:len(shimPath)-len(ext)]
+	}
+
+	return shimPath
 }
 
 // mapShimToRuntime maps a shim name to its runtime

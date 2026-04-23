@@ -233,7 +233,9 @@ func (p *Provider) getDownloadURL(version string) (string, string, error) {
 	return dl.URL, archiveName, nil
 }
 
-// createShims creates shims for Ruby executables
+// createShims creates shims for Ruby executables and registers them in the
+// shim-map cache so subsequent shim invocations resolve via O(1) lookup rather
+// than falling back to the provider registry.
 func (p *Provider) createShims() error {
 	manager, err := shim.NewManager()
 	if err != nil {
@@ -243,8 +245,8 @@ func (p *Provider) createShims() error {
 	// Get the list of shims for Ruby
 	shimNames := shim.RuntimeShims("ruby")
 
-	// Create each shim
-	return manager.CreateShims(shimNames)
+	// Create each shim AND record them in the shim map cache
+	return manager.CreateShimsForRuntime("ruby", shimNames)
 }
 
 // Uninstall removes an installed version
