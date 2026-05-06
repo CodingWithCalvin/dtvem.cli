@@ -129,8 +129,16 @@ func checkSystemPath(shimsDir string) (bool, string, error) {
 		}
 	}
 
+	// Even if shimsDir is in the right place, stale dtvem shims entries
+	// from prior installs (e.g. ~/.dtvem/shims left behind after switching
+	// to XDG_DATA_HOME) need to be cleaned up.
+	hasStale := len(FindStaleShimsEntries(paths, shimsDir)) > 0
+
 	if foundAt == 0 {
-		return false, "", nil // Already at beginning
+		if hasStale {
+			return true, pathActionMove, nil
+		}
+		return false, "", nil // Already at beginning, nothing stale
 	} else if foundAt > 0 {
 		return true, pathActionMove, nil // Exists but not at beginning
 	}
@@ -167,8 +175,15 @@ func checkUserPath(shimsDir string) (bool, string, error) {
 		}
 	}
 
+	// Even if shimsDir is in the right place, stale dtvem shims entries
+	// from prior installs need to be cleaned up.
+	hasStale := len(FindStaleShimsEntries(paths, shimsDir)) > 0
+
 	if foundAt == 0 {
-		return false, "", nil // Already at beginning
+		if hasStale {
+			return true, pathActionMove, nil
+		}
+		return false, "", nil // Already at beginning, nothing stale
 	} else if foundAt > 0 {
 		return true, pathActionMove, nil // Exists but not at beginning
 	}
@@ -261,6 +276,7 @@ func modifySystemPath(shimsDir, action string) error {
 	// Parse and filter current PATH entries
 	paths := strings.Split(currentPath, ";")
 	var filteredPaths []string
+	var removedStale []string
 
 	for _, p := range paths {
 		trimmed := strings.TrimSpace(p)
@@ -269,6 +285,11 @@ func modifySystemPath(shimsDir, action string) error {
 		}
 		// Skip if it's the shims dir (we'll prepend it)
 		if strings.EqualFold(trimmed, shimsDir) {
+			continue
+		}
+		// Skip stale dtvem shims entries from prior installs
+		if IsDtvemShimsPath(trimmed) {
+			removedStale = append(removedStale, trimmed)
 			continue
 		}
 		filteredPaths = append(filteredPaths, trimmed)
@@ -288,6 +309,10 @@ func modifySystemPath(shimsDir, action string) error {
 
 	// Broadcast WM_SETTINGCHANGE to notify running processes
 	broadcastSettingChange()
+
+	for _, stale := range removedStale {
+		ui.Success("Removed stale dtvem shims entry from System PATH: %s", stale)
+	}
 
 	if action == pathActionMove {
 		ui.Success("Moved %s to the beginning of your System PATH", shimsDir)
@@ -314,6 +339,7 @@ func modifyUserPath(shimsDir, action string) error {
 
 	// Parse and filter current PATH entries
 	var filteredPaths []string
+	var removedStale []string
 	if currentPath != "" {
 		paths := strings.Split(currentPath, ";")
 		for _, p := range paths {
@@ -323,6 +349,11 @@ func modifyUserPath(shimsDir, action string) error {
 			}
 			// Skip if it's the shims dir (we'll prepend it)
 			if strings.EqualFold(trimmed, shimsDir) {
+				continue
+			}
+			// Skip stale dtvem shims entries from prior installs
+			if IsDtvemShimsPath(trimmed) {
+				removedStale = append(removedStale, trimmed)
 				continue
 			}
 			filteredPaths = append(filteredPaths, trimmed)
@@ -343,6 +374,10 @@ func modifyUserPath(shimsDir, action string) error {
 
 	// Broadcast WM_SETTINGCHANGE to notify running processes
 	broadcastSettingChange()
+
+	for _, stale := range removedStale {
+		ui.Success("Removed stale dtvem shims entry from User PATH: %s", stale)
+	}
 
 	if action == pathActionMove {
 		ui.Success("Moved %s to the beginning of your User PATH", shimsDir)

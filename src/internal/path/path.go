@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 )
 
 // IsInPath checks if a directory is in the system PATH
@@ -14,7 +16,7 @@ func IsInPath(dir string) bool {
 
 	// Get the path separator for this OS
 	separator := ":"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.OSWindows {
 		separator = ";"
 	}
 
@@ -32,6 +34,79 @@ func IsInPath(dir string) bool {
 	}
 
 	return false
+}
+
+// IsDtvemShimsPath reports whether path looks like a dtvem shims directory.
+// It matches the standard installation patterns:
+//   - <anything>/dtvem/shims  (e.g., ~/.local/share/dtvem/shims under XDG_DATA_HOME)
+//   - <anything>/.dtvem/shims (the default Windows/macOS layout, leading dot)
+//
+// Comparison is case-insensitive on Windows. Custom DTVEM_ROOT layouts whose
+// final two components don't match these patterns are not detected.
+func IsDtvemShimsPath(path string) bool {
+	if path == "" {
+		return false
+	}
+
+	cleaned := filepath.Clean(path)
+	leaf := filepath.Base(cleaned)
+	parent := filepath.Base(filepath.Dir(cleaned))
+
+	leafEq := func(a, b string) bool { return a == b }
+	if runtime.GOOS == constants.OSWindows {
+		leafEq = strings.EqualFold
+	}
+
+	if !leafEq(leaf, "shims") {
+		return false
+	}
+	return leafEq(parent, "dtvem") || leafEq(parent, ".dtvem")
+}
+
+// FindStaleShimsEntries scans pathEntries for entries that look like dtvem
+// shims directories but do not match currentShimsDir. The returned slice
+// preserves the order of appearance in pathEntries and has the original
+// (un-cleaned) entry strings, so callers can match them against registry
+// or config-file content.
+//
+// Comparison against currentShimsDir is case-insensitive on Windows.
+func FindStaleShimsEntries(pathEntries []string, currentShimsDir string) []string {
+	if currentShimsDir == "" {
+		return nil
+	}
+	currentClean := filepath.Clean(currentShimsDir)
+
+	var stale []string
+	for _, entry := range pathEntries {
+		trimmed := strings.TrimSpace(entry)
+		if trimmed == "" {
+			continue
+		}
+		if !IsDtvemShimsPath(trimmed) {
+			continue
+		}
+		entryClean := filepath.Clean(trimmed)
+		if runtime.GOOS == constants.OSWindows {
+			if strings.EqualFold(entryClean, currentClean) {
+				continue
+			}
+		} else {
+			if entryClean == currentClean {
+				continue
+			}
+		}
+		stale = append(stale, entry)
+	}
+	return stale
+}
+
+// SplitPath splits the PATH environment variable using the OS-appropriate separator.
+func SplitPath(pathEnv string) []string {
+	separator := ":"
+	if runtime.GOOS == constants.OSWindows {
+		separator = ";"
+	}
+	return strings.Split(pathEnv, separator)
 }
 
 // ShimsDir returns the path to the shims directory
@@ -103,7 +178,7 @@ func LookPathExcludingShims(execName string) string {
 // On Windows, it tries .exe, .cmd, .bat extensions.
 // On Unix, it checks if the file exists and has execute permission.
 func findExecutableInDir(dir, execName string) string {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == constants.OSWindows {
 		// Windows: try .exe, .cmd, .bat extensions
 		for _, ext := range []string{".exe", ".cmd", ".bat"} {
 			candidate := filepath.Join(dir, execName+ext)
