@@ -372,6 +372,167 @@ func TestLookPathExcludingShims_SkipsShimsDir(t *testing.T) {
 	})
 }
 
+func TestIsDtvemShimsPath(t *testing.T) {
+	// Platform-specific path separator handling: filepath.Join produces
+	// backslashes on Windows and forward slashes on Unix, which matches what
+	// real PATH entries look like on each platform.
+	tests := []struct {
+		name string
+		path string
+		want bool
+	}{
+		{
+			name: "leading-dot dtvem under home",
+			path: filepath.Join("C:", "Users", "testuser", ".dtvem", "shims"),
+			want: true,
+		},
+		{
+			name: "no-dot dtvem under XDG data home",
+			path: filepath.Join("C:", "Users", "testuser", ".local", "share", "dtvem", "shims"),
+			want: true,
+		},
+		{
+			name: "unix style leading-dot",
+			path: "/home/testuser/.dtvem/shims",
+			want: true,
+		},
+		{
+			name: "unix style XDG",
+			path: "/home/testuser/.local/share/dtvem/shims",
+			want: true,
+		},
+		{
+			name: "trailing slash is normalized",
+			path: "/home/testuser/.dtvem/shims/",
+			want: true,
+		},
+		{
+			name: "shims under non-dtvem parent does not match",
+			path: "/home/testuser/something/shims",
+			want: false,
+		},
+		{
+			name: "dtvem dir without shims leaf does not match",
+			path: "/home/testuser/.dtvem/bin",
+			want: false,
+		},
+		{
+			name: "empty string",
+			path: "",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := IsDtvemShimsPath(tt.path)
+			if got != tt.want {
+				t.Errorf("IsDtvemShimsPath(%q) = %v, want %v", tt.path, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsDtvemShimsPath_WindowsCaseInsensitive(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Windows-only: case-insensitive path matching")
+	}
+
+	cases := []string{
+		`C:\Users\testuser\.DTVEM\Shims`,
+		`C:\Users\testuser\.local\share\DTVEM\SHIMS`,
+		`C:\Users\testuser\.Dtvem\shims`,
+	}
+	for _, p := range cases {
+		if !IsDtvemShimsPath(p) {
+			t.Errorf("IsDtvemShimsPath(%q) = false, want true (Windows case-insensitive)", p)
+		}
+	}
+}
+
+func TestFindStaleShimsEntries(t *testing.T) {
+	// Build paths that look right on the current platform so the
+	// case-insensitive comparison logic exercises real separators.
+	currentXDG := filepath.Join("C:", "Users", "testuser", ".local", "share", "dtvem", "shims")
+	staleHome := filepath.Join("C:", "Users", "testuser", ".dtvem", "shims")
+	unrelated := filepath.Join("C:", "Windows", "System32")
+
+	tests := []struct {
+		name    string
+		entries []string
+		current string
+		want    []string
+	}{
+		{
+			name:    "stale leading-dot entry alongside current XDG",
+			entries: []string{currentXDG, unrelated, staleHome},
+			current: currentXDG,
+			want:    []string{staleHome},
+		},
+		{
+			name:    "no stale entries when only current is present",
+			entries: []string{currentXDG, unrelated},
+			current: currentXDG,
+			want:    nil,
+		},
+		{
+			name:    "current dir is the leading-dot variant",
+			entries: []string{staleHome, currentXDG, unrelated},
+			current: staleHome,
+			want:    []string{currentXDG},
+		},
+		{
+			name:    "empty entries are skipped",
+			entries: []string{"", staleHome, "  "},
+			current: currentXDG,
+			want:    []string{staleHome},
+		},
+		{
+			name:    "preserves original entry strings (not cleaned)",
+			entries: []string{staleHome + string(filepath.Separator), unrelated},
+			current: currentXDG,
+			want:    []string{staleHome + string(filepath.Separator)},
+		},
+		{
+			name:    "empty current shimsDir returns nil",
+			entries: []string{staleHome},
+			current: "",
+			want:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FindStaleShimsEntries(tt.entries, tt.current)
+			if len(got) != len(tt.want) {
+				t.Fatalf("FindStaleShimsEntries() = %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("FindStaleShimsEntries()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestFindStaleShimsEntries_WindowsCaseInsensitive(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Windows-only: case-insensitive comparison")
+	}
+
+	current := `C:\Users\testuser\.local\share\dtvem\shims`
+	// Same logical path as `current` but with mixed casing — should NOT be
+	// flagged stale.
+	sameAsCurrentDifferentCase := `C:\Users\TESTUSER\.LOCAL\share\dtvem\SHIMS`
+	stale := `C:\Users\testuser\.dtvem\shims`
+
+	got := FindStaleShimsEntries([]string{sameAsCurrentDifferentCase, stale}, current)
+	if len(got) != 1 || got[0] != stale {
+		t.Errorf("FindStaleShimsEntries() = %v, want exactly [%q]", got, stale)
+	}
+}
+
 func TestFindExecutableInDir(t *testing.T) {
 	tempDir := t.TempDir()
 

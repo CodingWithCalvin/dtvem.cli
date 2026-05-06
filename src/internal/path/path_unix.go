@@ -68,6 +68,12 @@ func AddToPath(shimsDir string, skipConfirmation bool, userInstall bool) error {
 		return fmt.Errorf("could not determine config file for shell %s", shell)
 	}
 
+	// Warn about any stale dtvem shims directories in PATH (e.g. left over
+	// after switching XDG_DATA_HOME or upgrading from a pre-XDG install).
+	// We don't auto-rewrite shell config files on Unix because users often
+	// customize them heavily; surface the entries with manual cleanup steps.
+	warnAboutStaleShimsEntries(shimsDir, configFile)
+
 	// Check if the directory is already in PATH
 	if IsInPath(shimsDir) {
 		ui.Info("%s is already in your PATH", shimsDir)
@@ -132,6 +138,25 @@ func AddToPath(shimsDir string, skipConfirmation bool, userInstall bool) error {
 	ui.Warning("Please restart your terminal or run: source %s", configFile)
 
 	return nil
+}
+
+// warnAboutStaleShimsEntries scans the current PATH for dtvem shims directories
+// that don't match shimsDir and prints manual cleanup instructions for each.
+// We don't auto-rewrite shell config files on Unix to avoid clobbering user edits.
+func warnAboutStaleShimsEntries(shimsDir, configFile string) {
+	stale := FindStaleShimsEntries(SplitPath(os.Getenv("PATH")), shimsDir)
+	if len(stale) == 0 {
+		return
+	}
+
+	ui.Warning("Found stale dtvem shims entries in your PATH:")
+	for _, s := range stale {
+		ui.Info("  %s", s)
+	}
+	ui.Info("These were likely left over from a prior install or before XDG_DATA_HOME was set.")
+	ui.Info("Edit %s and remove the export lines that reference the stale paths above.", ui.Highlight(configFile))
+	ui.Info("After editing, restart your terminal or run: source %s", configFile)
+	ui.Info("")
 }
 
 // containsPathModification checks if the config file already has dtvem PATH modification
