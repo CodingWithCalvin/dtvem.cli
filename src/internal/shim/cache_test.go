@@ -1,112 +1,88 @@
 package shim
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 )
 
-func TestSaveAndLoadShimMap(t *testing.T) {
-	// Create a temporary directory for the test
+// withTempCache sets up DTVEM_ROOT to a temp dir, creates the cache dir,
+// and resets the various caches so each test starts from a clean slate.
+// The returned cleanup must be deferred by the caller.
+func withTempCache(t *testing.T) (cacheDir string, cleanup func()) {
+	t.Helper()
 	tempDir := t.TempDir()
 
-	// Set DTVEM_ROOT to use our temp directory
 	originalRoot := os.Getenv("DTVEM_ROOT")
 	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	// Reset the paths cache to pick up new DTVEM_ROOT
 	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	// Reset the shim map cache
 	ResetShimMapCache()
-	defer ResetShimMapCache()
 
-	// Create the cache directory
-	cacheDir := filepath.Join(tempDir, "cache")
+	cacheDir = filepath.Join(tempDir, "cache")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		t.Fatalf("Failed to create cache directory: %v", err)
 	}
 
-	// Create a test shim map
+	cleanup = func() {
+		_ = os.Setenv("DTVEM_ROOT", originalRoot)
+		config.ResetPathsCache()
+		ResetShimMapCache()
+	}
+	return cacheDir, cleanup
+}
+
+// entry is a small constructor for ShimEntry test data.
+func entry(runtime string, versions ...string) ShimEntry {
+	return ShimEntry{Runtime: runtime, Versions: versions}
+}
+
+func TestSaveAndLoadShimMap(t *testing.T) {
+	_, cleanup := withTempCache(t)
+	defer cleanup()
+
 	testMap := ShimMap{
-		"node":   "node",
-		"npm":    "node",
-		"npx":    "node",
-		"tsc":    "node",
-		"eslint": "node",
-		"python": "python",
-		"pip":    "python",
-		"black":  "python",
+		"node":   entry("node", "22.0.0"),
+		"npm":    entry("node", "22.0.0"),
+		"python": entry("python", "3.11.0"),
+		"pip":    entry("python", "3.11.0"),
 	}
 
-	// Save the map
 	if err := SaveShimMap(testMap); err != nil {
 		t.Fatalf("Failed to save shim map: %v", err)
 	}
 
-	// Verify the file was created
-	cachePath := config.ShimMapPath()
-	if _, err := os.Stat(cachePath); os.IsNotExist(err) {
-		t.Fatalf("Shim map cache file was not created at %s", cachePath)
+	if _, err := os.Stat(config.ShimMapPath()); os.IsNotExist(err) {
+		t.Fatalf("Shim map cache file was not created at %s", config.ShimMapPath())
 	}
 
-	// Load the map
-	loadedMap, err := LoadShimMap()
+	loaded, err := LoadShimMap()
 	if err != nil {
 		t.Fatalf("Failed to load shim map: %v", err)
 	}
 
-	// Verify all entries
-	for shimName, expectedRuntime := range testMap {
-		if loadedRuntime, ok := loadedMap[shimName]; !ok {
-			t.Errorf("Shim %q not found in loaded map", shimName)
-		} else if loadedRuntime != expectedRuntime {
-			t.Errorf("Shim %q: expected runtime %q, got %q", shimName, expectedRuntime, loadedRuntime)
-		}
+	if !reflect.DeepEqual(loaded, testMap) {
+		t.Errorf("loaded map does not match saved map\n got: %#v\nwant: %#v", loaded, testMap)
 	}
 }
 
 func TestLookupRuntime(t *testing.T) {
-	// Create a temporary directory for the test
-	tempDir := t.TempDir()
+	_, cleanup := withTempCache(t)
+	defer cleanup()
 
-	// Set DTVEM_ROOT to use our temp directory
-	originalRoot := os.Getenv("DTVEM_ROOT")
-	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	// Reset the paths cache to pick up new DTVEM_ROOT
-	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	// Reset the shim map cache
-	ResetShimMapCache()
-	defer ResetShimMapCache()
-
-	// Create the cache directory
-	cacheDir := filepath.Join(tempDir, "cache")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("Failed to create cache directory: %v", err)
-	}
-
-	// Create and save a test shim map
 	testMap := ShimMap{
-		"node":   "node",
-		"npm":    "node",
-		"tsc":    "node",
-		"python": "python",
-		"black":  "python",
+		"node":   entry("node", "22.0.0"),
+		"npm":    entry("node", "22.0.0"),
+		"python": entry("python", "3.11.0"),
 	}
-
 	if err := SaveShimMap(testMap); err != nil {
 		t.Fatalf("Failed to save shim map: %v", err)
 	}
 
-	// Test lookups
 	tests := []struct {
 		shimName        string
 		expectedRuntime string
@@ -114,9 +90,7 @@ func TestLookupRuntime(t *testing.T) {
 	}{
 		{"node", "node", true},
 		{"npm", "node", true},
-		{"tsc", "node", true},
 		{"python", "python", true},
-		{"black", "python", true},
 		{"unknown", "", false},
 		{"", "", false},
 	}
@@ -125,33 +99,48 @@ func TestLookupRuntime(t *testing.T) {
 		t.Run(tc.shimName, func(t *testing.T) {
 			runtime, found := LookupRuntime(tc.shimName)
 			if found != tc.expectedFound {
-				t.Errorf("LookupRuntime(%q): expected found=%v, got found=%v", tc.shimName, tc.expectedFound, found)
+				t.Errorf("LookupRuntime(%q): expected found=%v, got %v", tc.shimName, tc.expectedFound, found)
 			}
 			if runtime != tc.expectedRuntime {
-				t.Errorf("LookupRuntime(%q): expected runtime=%q, got runtime=%q", tc.shimName, tc.expectedRuntime, runtime)
+				t.Errorf("LookupRuntime(%q): expected runtime=%q, got %q", tc.shimName, tc.expectedRuntime, runtime)
 			}
 		})
 	}
 }
 
-func TestLookupRuntimeNoCacheFile(t *testing.T) {
-	// Create a temporary directory for the test (empty, no cache file)
-	tempDir := t.TempDir()
+func TestLookup_ReturnsFullEntry(t *testing.T) {
+	_, cleanup := withTempCache(t)
+	defer cleanup()
 
-	// Set DTVEM_ROOT to use our temp directory
+	testMap := ShimMap{
+		"uv": entry("python", "3.9.9", "3.10.0"),
+	}
+	if err := SaveShimMap(testMap); err != nil {
+		t.Fatalf("Failed to save shim map: %v", err)
+	}
+
+	got, ok := Lookup("uv")
+	if !ok {
+		t.Fatalf("Lookup(\"uv\") not found")
+	}
+	if got.Runtime != "python" {
+		t.Errorf("Runtime: got %q, want %q", got.Runtime, "python")
+	}
+	if !reflect.DeepEqual(got.Versions, []string{"3.9.9", "3.10.0"}) {
+		t.Errorf("Versions: got %v, want %v", got.Versions, []string{"3.9.9", "3.10.0"})
+	}
+}
+
+func TestLookupNoCacheFile(t *testing.T) {
+	tempDir := t.TempDir()
 	originalRoot := os.Getenv("DTVEM_ROOT")
 	_ = os.Setenv("DTVEM_ROOT", tempDir)
 	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	// Reset the paths cache to pick up new DTVEM_ROOT
 	config.ResetPathsCache()
 	defer config.ResetPathsCache()
-
-	// Reset the shim map cache
 	ResetShimMapCache()
 	defer ResetShimMapCache()
 
-	// Lookup should return not found when cache doesn't exist
 	runtime, found := LookupRuntime("node")
 	if found {
 		t.Errorf("LookupRuntime should return found=false when cache doesn't exist")
@@ -161,84 +150,83 @@ func TestLookupRuntimeNoCacheFile(t *testing.T) {
 	}
 }
 
-func TestShimMapCacheOnlyLoadsOnce(t *testing.T) {
-	// Create a temporary directory for the test
-	tempDir := t.TempDir()
+func TestLoadShimMap_LegacySchemaFallback(t *testing.T) {
+	cacheDir, cleanup := withTempCache(t)
+	defer cleanup()
 
-	// Set DTVEM_ROOT to use our temp directory
-	originalRoot := os.Getenv("DTVEM_ROOT")
-	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	// Reset the paths cache to pick up new DTVEM_ROOT
-	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	// Reset the shim map cache
-	ResetShimMapCache()
-	defer ResetShimMapCache()
-
-	// Create the cache directory
-	cacheDir := filepath.Join(tempDir, "cache")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("Failed to create cache directory: %v", err)
+	// Hand-write a legacy-schema cache file: shim → runtime name (string),
+	// no version coverage data. Loaders must tolerate it so users who
+	// upgrade dtvem don't see broken shims until they next run reshim.
+	legacy := []byte(`{
+  "uv": "python",
+  "npm": "node"
+}`)
+	cachePath := filepath.Join(cacheDir, "shim-map.json")
+	if err := os.WriteFile(cachePath, legacy, 0644); err != nil {
+		t.Fatalf("write legacy cache: %v", err)
 	}
 
-	// Create and save initial shim map
-	initialMap := ShimMap{"node": "node"}
-	if err := SaveShimMap(initialMap); err != nil {
+	loaded, err := LoadShimMap()
+	if err != nil {
+		t.Fatalf("LoadShimMap legacy: %v", err)
+	}
+
+	if got := loaded["uv"].Runtime; got != "python" {
+		t.Errorf("uv runtime: got %q, want python", got)
+	}
+	if got := loaded["npm"].Runtime; got != "node" {
+		t.Errorf("npm runtime: got %q, want node", got)
+	}
+	// Legacy entries should have no version coverage data — that's the
+	// signal callers use to skip the version check.
+	if got := loaded["uv"].Versions; len(got) != 0 {
+		t.Errorf("uv versions on legacy load: got %v, want empty", got)
+	}
+}
+
+func TestShimMapCacheOnlyLoadsOnce(t *testing.T) {
+	_, cleanup := withTempCache(t)
+	defer cleanup()
+
+	if err := SaveShimMap(ShimMap{"node": entry("node", "22.0.0")}); err != nil {
 		t.Fatalf("Failed to save initial shim map: %v", err)
 	}
 
-	// Load the map
-	map1, err := LoadShimMap()
+	first, err := LoadShimMap()
 	if err != nil {
 		t.Fatalf("Failed to load shim map: %v", err)
 	}
 
-	// Modify the file on disk
-	modifiedMap := ShimMap{"node": "modified", "new": "entry"}
-	if err := SaveShimMap(modifiedMap); err != nil {
+	// Mutate on disk; LoadShimMap should still return the originally cached map.
+	if err := SaveShimMap(ShimMap{"node": entry("modified"), "new": entry("entry")}); err != nil {
 		t.Fatalf("Failed to save modified shim map: %v", err)
 	}
 
-	// Load again - should return cached version (sync.Once)
-	map2, err := LoadShimMap()
+	second, err := LoadShimMap()
 	if err != nil {
 		t.Fatalf("Failed to load shim map second time: %v", err)
 	}
 
-	// Both should be the same (initial map, not modified)
-	if map1["node"] != map2["node"] {
-		t.Errorf("Cache should return same map: map1[node]=%q, map2[node]=%q", map1["node"], map2["node"])
+	if first["node"].Runtime != second["node"].Runtime {
+		t.Errorf("cache should return same map: first=%q second=%q",
+			first["node"].Runtime, second["node"].Runtime)
 	}
-
-	// The modified entry should not be present (cache wasn't reloaded)
-	if _, ok := map2["new"]; ok {
-		t.Errorf("Cache should not have reloaded - 'new' entry should not exist")
+	if _, ok := second["new"]; ok {
+		t.Errorf("cache should not have reloaded - 'new' entry should not exist")
 	}
 }
 
 func TestMergeShimMap_CreatesWhenNoExistingCache(t *testing.T) {
-	tempDir := t.TempDir()
+	_, cleanup := withTempCache(t)
+	defer cleanup()
 
-	originalRoot := os.Getenv("DTVEM_ROOT")
-	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
+	// Wipe the cache directory to simulate a truly fresh install.
+	_ = os.RemoveAll(filepath.Dir(config.ShimMapPath()))
 
-	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	ResetShimMapCache()
-	defer ResetShimMapCache()
-
-	// No cache directory pre-existing — MergeShimMap must create it from scratch.
 	entries := ShimMap{
-		"node": "node",
-		"npm":  "node",
-		"npx":  "node",
+		"node": entry("node", "22.0.0"),
+		"npm":  entry("node", "22.0.0"),
 	}
-
 	if err := MergeShimMap(entries); err != nil {
 		t.Fatalf("MergeShimMap returned error on fresh install: %v", err)
 	}
@@ -247,48 +235,28 @@ func TestMergeShimMap_CreatesWhenNoExistingCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadShimMap after MergeShimMap failed: %v", err)
 	}
-
-	if len(loaded) != len(entries) {
-		t.Errorf("expected %d entries, got %d (%v)", len(entries), len(loaded), loaded)
-	}
-	for shim, runtime := range entries {
-		if got := loaded[shim]; got != runtime {
-			t.Errorf("entry %q: expected runtime %q, got %q", shim, runtime, got)
-		}
+	if !reflect.DeepEqual(loaded, entries) {
+		t.Errorf("loaded mismatch\n got: %#v\nwant: %#v", loaded, entries)
 	}
 }
 
 func TestMergeShimMap_MergesIntoExistingCache(t *testing.T) {
-	tempDir := t.TempDir()
-
-	originalRoot := os.Getenv("DTVEM_ROOT")
-	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	ResetShimMapCache()
-	defer ResetShimMapCache()
-
-	cacheDir := filepath.Join(tempDir, "cache")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("Failed to create cache directory: %v", err)
-	}
+	_, cleanup := withTempCache(t)
+	defer cleanup()
 
 	// Seed an existing cache (simulates a prior install).
 	initial := ShimMap{
-		"python": "python",
-		"pip":    "python",
+		"python": entry("python", "3.11.0"),
+		"pip":    entry("python", "3.11.0"),
 	}
 	if err := SaveShimMap(initial); err != nil {
 		t.Fatalf("seed SaveShimMap failed: %v", err)
 	}
 
-	// Merge in a disjoint set of entries (simulates installing a second runtime).
+	// Merge in disjoint entries (simulates installing a second runtime).
 	added := ShimMap{
-		"node": "node",
-		"npm":  "node",
+		"node": entry("node", "22.0.0"),
+		"npm":  entry("node", "22.0.0"),
 	}
 	if err := MergeShimMap(added); err != nil {
 		t.Fatalf("MergeShimMap failed: %v", err)
@@ -299,47 +267,57 @@ func TestMergeShimMap_MergesIntoExistingCache(t *testing.T) {
 		t.Fatalf("LoadShimMap failed: %v", err)
 	}
 
-	// All four entries should now be present.
-	wantAll := ShimMap{
-		"python": "python",
-		"pip":    "python",
-		"node":   "node",
-		"npm":    "node",
+	want := ShimMap{
+		"python": entry("python", "3.11.0"),
+		"pip":    entry("python", "3.11.0"),
+		"node":   entry("node", "22.0.0"),
+		"npm":    entry("node", "22.0.0"),
 	}
-	for shim, runtime := range wantAll {
-		if got := loaded[shim]; got != runtime {
-			t.Errorf("entry %q: expected runtime %q, got %q", shim, runtime, got)
-		}
+	if !reflect.DeepEqual(loaded, want) {
+		t.Errorf("merged mismatch\n got: %#v\nwant: %#v", loaded, want)
 	}
 }
 
-func TestMergeShimMap_OverwritesExistingKeys(t *testing.T) {
-	tempDir := t.TempDir()
+func TestMergeShimMap_UnionsVersionsForSameShim(t *testing.T) {
+	_, cleanup := withTempCache(t)
+	defer cleanup()
 
-	originalRoot := os.Getenv("DTVEM_ROOT")
-	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	ResetShimMapCache()
-	defer ResetShimMapCache()
-
-	cacheDir := filepath.Join(tempDir, "cache")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("Failed to create cache directory: %v", err)
+	// First install records version 3.9.9 for python's "uv" shim.
+	if err := MergeShimMap(ShimMap{"uv": entry("python", "3.9.9")}); err != nil {
+		t.Fatalf("first MergeShimMap failed: %v", err)
 	}
 
-	// Seed with a stale mapping (e.g., a shim that was previously attributed
-	// to the wrong runtime by some prior state).
-	stale := ShimMap{"corepack": "wrong"}
-	if err := SaveShimMap(stale); err != nil {
+	// Second install records version 3.10.0 for the same "uv" shim. The
+	// cache must end up with both versions, not just the latest.
+	if err := MergeShimMap(ShimMap{"uv": entry("python", "3.10.0")}); err != nil {
+		t.Fatalf("second MergeShimMap failed: %v", err)
+	}
+
+	loaded, err := LoadShimMap()
+	if err != nil {
+		t.Fatalf("LoadShimMap failed: %v", err)
+	}
+
+	got := loaded["uv"].Versions
+	sort.Strings(got)
+	want := []string{"3.10.0", "3.9.9"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("versions union: got %v, want %v", got, want)
+	}
+}
+
+func TestMergeShimMap_OverwritesRuntimeName(t *testing.T) {
+	_, cleanup := withTempCache(t)
+	defer cleanup()
+
+	// Seed with a stale mapping (e.g., a shim previously misattributed).
+	if err := SaveShimMap(ShimMap{"corepack": entry("wrong", "1.0.0")}); err != nil {
 		t.Fatalf("seed SaveShimMap failed: %v", err)
 	}
 
-	// Merge should overwrite with the correct runtime.
-	if err := MergeShimMap(ShimMap{"corepack": "node"}); err != nil {
+	// A subsequent install with the correct attribution should overwrite
+	// the runtime name.
+	if err := MergeShimMap(ShimMap{"corepack": entry("node", "22.0.0")}); err != nil {
 		t.Fatalf("MergeShimMap failed: %v", err)
 	}
 
@@ -348,40 +326,25 @@ func TestMergeShimMap_OverwritesExistingKeys(t *testing.T) {
 		t.Fatalf("LoadShimMap failed: %v", err)
 	}
 
-	if got := loaded["corepack"]; got != "node" {
+	if got := loaded["corepack"].Runtime; got != "node" {
 		t.Errorf("expected corepack remapped to node, got %q", got)
 	}
 }
 
 func TestMergeShimMap_ResetsInMemoryCache(t *testing.T) {
-	tempDir := t.TempDir()
+	_, cleanup := withTempCache(t)
+	defer cleanup()
 
-	originalRoot := os.Getenv("DTVEM_ROOT")
-	_ = os.Setenv("DTVEM_ROOT", tempDir)
-	defer func() { _ = os.Setenv("DTVEM_ROOT", originalRoot) }()
-
-	config.ResetPathsCache()
-	defer config.ResetPathsCache()
-
-	ResetShimMapCache()
-	defer ResetShimMapCache()
-
-	cacheDir := filepath.Join(tempDir, "cache")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		t.Fatalf("Failed to create cache directory: %v", err)
-	}
-
-	// Prime the in-memory cache with an initial map.
-	if err := SaveShimMap(ShimMap{"node": "node"}); err != nil {
+	if err := SaveShimMap(ShimMap{"node": entry("node", "22.0.0")}); err != nil {
 		t.Fatalf("SaveShimMap failed: %v", err)
 	}
 	if _, err := LoadShimMap(); err != nil {
 		t.Fatalf("initial LoadShimMap failed: %v", err)
 	}
 
-	// Without ResetShimMapCache, the next Load would return the cached copy.
-	// MergeShimMap is supposed to reset it so callers see merged state.
-	if err := MergeShimMap(ShimMap{"npm": "node"}); err != nil {
+	// MergeShimMap must invalidate the in-memory cache so the merged entry
+	// is visible to the next caller in the same process.
+	if err := MergeShimMap(ShimMap{"npm": entry("node", "22.0.0")}); err != nil {
 		t.Fatalf("MergeShimMap failed: %v", err)
 	}
 
@@ -389,8 +352,31 @@ func TestMergeShimMap_ResetsInMemoryCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("post-merge LoadShimMap failed: %v", err)
 	}
-
 	if _, ok := loaded["npm"]; !ok {
 		t.Error("expected in-memory cache to be reset so the merged 'npm' entry is visible")
+	}
+}
+
+func TestSaveShimMap_OmitsEmptyVersions(t *testing.T) {
+	cacheDir, cleanup := withTempCache(t)
+	defer cleanup()
+
+	// An entry with no Versions should serialize without the field, so
+	// that legacy-style or version-less records stay compact.
+	if err := SaveShimMap(ShimMap{"uv": {Runtime: "python"}}); err != nil {
+		t.Fatalf("SaveShimMap failed: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(cacheDir, "shim-map.json"))
+	if err != nil {
+		t.Fatalf("read cache: %v", err)
+	}
+
+	var parsed map[string]map[string]any
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		t.Fatalf("unmarshal: %v\n%s", err, data)
+	}
+	if _, hasVersions := parsed["uv"]["versions"]; hasVersions {
+		t.Errorf("expected versions field to be omitted when empty, got: %s", data)
 	}
 }

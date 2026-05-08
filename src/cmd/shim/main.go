@@ -59,6 +59,20 @@ func runShim() error {
 	}
 	ui.Debug("Resolved version: %s", version)
 
+	// If this is a secondary executable (e.g. uv mapped to python) and the
+	// shim-map cache knows which versions provide it, verify the active
+	// version is one of them. This catches the case where reshim created
+	// the shim because *some* installed runtime version provides it, but
+	// the currently-active version does not.
+	if shimName != runtimeName {
+		if entry, ok := shim.Lookup(shimName); ok && len(entry.Versions) > 0 {
+			if !versionProvides(entry.Versions, version) {
+				ui.Debug("Active version %s not in providing-versions list %v", version, entry.Versions)
+				return notAvailableInVersionError(shimName, runtimeName, provider.DisplayName(), version, entry.Versions)
+			}
+		}
+	}
+
 	// Check if the version is installed
 	installed, err := provider.IsInstalled(version)
 	if err != nil {
@@ -228,14 +242,47 @@ func mapShimToRuntime(shimName string) string {
 
 // secondaryExecutableError formats a user-facing error explaining that a
 // secondary executable shim (e.g., uv, pip) exists but the binary cannot
-// be located in the active runtime version. This typically happens when
-// the shim was created by a `dtvem reshim` that scanned a different
-// installed version which had the executable available.
+// be located in the active runtime version. This is the catch-all when
+// the shim-map cache has no version coverage data (e.g., legacy cache,
+// or the shim entered the cache without a recorded version).
 func secondaryExecutableError(shimName, displayName, version string) error {
 	ui.Error("'%s' is not available in %s %s", shimName, displayName, version)
 	ui.Info("This shim exists because another installed %s version provides it.", displayName)
 	ui.Info("Install '%s' for the active version, or switch to a version that has it.", shimName)
 	return fmt.Errorf("%s not available in %s %s", shimName, displayName, version)
+}
+
+// notAvailableInVersionError formats a richer error using the providing-
+// versions data recorded in the shim-map cache. Unlike
+// secondaryExecutableError, this can tell the user *which* installed
+// versions actually provide the executable so they can switch to one.
+func notAvailableInVersionError(shimName, runtimeName, displayName, activeVersion string, providingVersions []string) error {
+	ui.Error("'%s' is not available in %s %s", shimName, displayName, activeVersion)
+
+	// "Available in: Python 3.9.9, Python 3.10.0"
+	labeled := make([]string, len(providingVersions))
+	for i, v := range providingVersions {
+		labeled[i] = fmt.Sprintf("%s %s", displayName, v)
+	}
+	ui.Info("Available in: %s", strings.Join(labeled, ", "))
+
+	if len(providingVersions) == 1 {
+		ui.Info("Switch with: dtvem global %s %s", runtimeName, providingVersions[0])
+	} else {
+		ui.Info("Switch with 'dtvem global %s <version>' or set a local version.", runtimeName)
+	}
+
+	return fmt.Errorf("%s not available in %s %s", shimName, displayName, activeVersion)
+}
+
+// versionProvides reports whether version is in the providing-versions list.
+func versionProvides(providingVersions []string, version string) bool {
+	for _, v := range providingVersions {
+		if v == version {
+			return true
+		}
+	}
+	return false
 }
 
 // executeCommand executes a command with the given arguments and provider environment

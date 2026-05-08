@@ -109,7 +109,7 @@ func (m *Manager) CreateShims(shimNames []string) error {
 }
 
 // CreateShimsForRuntime creates shim files for the given names and registers
-// them in the shim map under the given runtime name.
+// them in the shim map under the given runtime name and version.
 //
 // This is the preferred path for install-time shim creation (e.g., from a
 // runtime provider's post-install hook). Bare CreateShims only writes the
@@ -117,14 +117,22 @@ func (m *Manager) CreateShims(shimNames []string) error {
 // subsequent shim invocations have to fall back to the provider registry
 // lookup instead of the O(1) cache hit. Calling CreateShimsForRuntime keeps
 // the shim files and the cache in sync from the moment they are created.
-func (m *Manager) CreateShimsForRuntime(runtimeName string, shimNames []string) error {
+//
+// The version is recorded in each shim's ShimEntry.Versions so the shim can
+// detect at invocation time when the active runtime version is not one
+// that provides the executable, and surface a clear error rather than
+// silently running the runtime binary.
+func (m *Manager) CreateShimsForRuntime(runtimeName, version string, shimNames []string) error {
 	if err := m.CreateShims(shimNames); err != nil {
 		return err
 	}
 
 	entries := make(ShimMap, len(shimNames))
 	for _, name := range shimNames {
-		entries[name] = runtimeName
+		entries[name] = ShimEntry{
+			Runtime:  runtimeName,
+			Versions: []string{version},
+		}
 	}
 
 	return MergeShimMap(entries)
@@ -255,27 +263,36 @@ func (m *Manager) RehashWithCallback(callback RehashCallback) (*RehashResult, er
 			callback(runtimeName, displayName)
 		}
 
-		// For each installed version, scan for executables
+		// For each installed version, scan for executables and record which
+		// versions provide each shim so the runtime version check at
+		// shim-invocation time can give an informed error.
+		recordShim := func(shimName, version string) {
+			entry := shimMap[shimName]
+			entry.Runtime = runtimeName
+			entry.Versions = appendUnique(entry.Versions, version)
+			shimMap[shimName] = entry
+			shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], shimName)
+		}
+
 		for _, versionEntry := range versionEntries {
 			if !versionEntry.IsDir() {
 				continue
 			}
 
-			versionDir := filepath.Join(runtimeVersionsDir, versionEntry.Name())
+			version := versionEntry.Name()
+			versionDir := filepath.Join(runtimeVersionsDir, version)
 
-			// First, add core runtime shims (from provider)
-			coreShims := RuntimeShims(runtimeName)
-			for _, shimName := range coreShims {
-				shimMap[shimName] = runtimeName
-				shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], shimName)
-			}
-
-			// Then, scan bin directory for globally installed packages
-			binDir := filepath.Join(versionDir, "bin")
-			if execs, err := findExecutables(binDir); err == nil {
+			// Scan the directories where runtime and package executables
+			// live. Anything found is recorded as a shim provided by this
+			// version. We deliberately do NOT pre-populate the provider's
+			// declared core shims (e.g. python3, pip3) without checking
+			// the filesystem: an embeddable Windows install may ship only
+			// python.exe, and asserting that 3.8.9 "provides pip" when it
+			// doesn't would corrupt the version-coverage data the shim
+			// uses to give users an informed error.
+			if execs, err := findExecutables(filepath.Join(versionDir, "bin")); err == nil {
 				for _, exec := range execs {
-					shimMap[exec] = runtimeName
-					shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], exec)
+					recordShim(exec, version)
 				}
 			}
 
@@ -284,16 +301,12 @@ func (m *Manager) RehashWithCallback(callback RehashCallback) (*RehashResult, er
 			if runtime.GOOS == constants.OSWindows {
 				if execs, err := findExecutables(versionDir); err == nil {
 					for _, exec := range execs {
-						shimMap[exec] = runtimeName
-						shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], exec)
+						recordShim(exec, version)
 					}
 				}
-				// Check Scripts directory for Python pip packages
-				scriptsDir := filepath.Join(versionDir, "Scripts")
-				if execs, err := findExecutables(scriptsDir); err == nil {
+				if execs, err := findExecutables(filepath.Join(versionDir, "Scripts")); err == nil {
 					for _, exec := range execs {
-						shimMap[exec] = runtimeName
-						shimsByRuntime[runtimeName] = appendUnique(shimsByRuntime[runtimeName], exec)
+						recordShim(exec, version)
 					}
 				}
 			}

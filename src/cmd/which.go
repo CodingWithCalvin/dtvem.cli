@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	goruntime "runtime"
+	"strings"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
@@ -70,6 +71,20 @@ Examples:
 			return
 		}
 
+		// If this is a secondary executable and the shim-map cache knows
+		// which versions provide it, verify the active version is one of
+		// them. This gives the user an informed "available in: X" message
+		// instead of a generic "not found" when they're on a version that
+		// doesn't include the command.
+		if commandName != runtimeName {
+			if entry, ok := shim.Lookup(commandName); ok && len(entry.Versions) > 0 {
+				if !versionInList(version, entry.Versions) {
+					reportNotAvailableInVersion(commandName, runtimeName, provider.DisplayName(), version, entry.Versions)
+					return
+				}
+			}
+		}
+
 		// Get the base executable path
 		baseExecPath, err := provider.ExecutablePath(version)
 		if err != nil {
@@ -102,15 +117,17 @@ Examples:
 	},
 }
 
-// mapCommandToRuntime maps a command name to its runtime
+// mapCommandToRuntime maps a command name to its runtime. It first consults
+// the shim-map cache (which records dynamically-installed packages such as
+// uv, tsc, black) and falls back to the registered providers' core shim
+// lists when the cache has no entry.
 func mapCommandToRuntime(commandName string) string {
-	// Get all registered runtimes
-	runtimes := runtime.List()
+	if runtimeName, ok := shim.LookupRuntime(commandName); ok {
+		return runtimeName
+	}
 
-	// Check each runtime's shims
-	for _, rt := range runtimes {
-		shims := shim.RuntimeShims(rt)
-		for _, shimName := range shims {
+	for _, rt := range runtime.List() {
+		for _, shimName := range shim.RuntimeShims(rt) {
 			if shimName == commandName {
 				return rt
 			}
@@ -118,6 +135,35 @@ func mapCommandToRuntime(commandName string) string {
 	}
 
 	return ""
+}
+
+// versionInList reports whether version is in the providing-versions list.
+func versionInList(version string, providingVersions []string) bool {
+	for _, v := range providingVersions {
+		if v == version {
+			return true
+		}
+	}
+	return false
+}
+
+// reportNotAvailableInVersion prints the user-facing "not available in this
+// runtime version" error for `dtvem which`, including the list of versions
+// that DO provide the executable so the user can switch to one.
+func reportNotAvailableInVersion(commandName, runtimeName, displayName, activeVersion string, providingVersions []string) {
+	ui.Error("'%s' is not available in %s %s", commandName, displayName, activeVersion)
+
+	labeled := make([]string, len(providingVersions))
+	for i, v := range providingVersions {
+		labeled[i] = fmt.Sprintf("%s %s", displayName, v)
+	}
+	ui.Info("Available in: %s", strings.Join(labeled, ", "))
+
+	if len(providingVersions) == 1 {
+		ui.Info("Switch with: dtvem global %s %s", runtimeName, providingVersions[0])
+	} else {
+		ui.Info("Switch with 'dtvem global %s <version>' or set a local version.", runtimeName)
+	}
 }
 
 func init() {
