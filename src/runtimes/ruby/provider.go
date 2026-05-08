@@ -95,7 +95,7 @@ func (p *Provider) Install(version string) error {
 	// Create shims
 	shimSpinner := ui.NewSpinner("Creating shims...")
 	shimSpinner.Start()
-	if err := p.createShims(); err != nil {
+	if err := p.createShims(version); err != nil {
 		shimSpinner.Error("Failed to create shims")
 		return fmt.Errorf("failed to create shims: %w", err)
 	}
@@ -235,8 +235,10 @@ func (p *Provider) getDownloadURL(version string) (string, string, error) {
 
 // createShims creates shims for Ruby executables and registers them in the
 // shim-map cache so subsequent shim invocations resolve via O(1) lookup rather
-// than falling back to the provider registry.
-func (p *Provider) createShims() error {
+// than falling back to the provider registry. The version is recorded in the
+// cache so the shim can detect when an active runtime version is one that
+// does not provide a given executable.
+func (p *Provider) createShims(version string) error {
 	manager, err := shim.NewManager()
 	if err != nil {
 		return err
@@ -246,7 +248,7 @@ func (p *Provider) createShims() error {
 	shimNames := shim.RuntimeShims("ruby")
 
 	// Create each shim AND record them in the shim map cache
-	return manager.CreateShimsForRuntime("ruby", shimNames)
+	return manager.CreateShimsForRuntime("ruby", version, shimNames)
 }
 
 // Uninstall removes an installed version
