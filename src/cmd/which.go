@@ -77,14 +77,19 @@ Examples:
 			return
 		}
 
-		// Adjust path for secondary executables (pip, npm, etc.)
-		execPath := adjustExecutablePath(baseExecPath, commandName, runtimeName)
-
-		// Check if the actual executable exists
-		if _, err := os.Stat(execPath); os.IsNotExist(err) {
-			ui.Error("Executable not found: %s", execPath)
-			ui.Warning("Version %s may not be properly installed", version)
-			return
+		// Resolve secondary executables (pip, npm, uv, etc.) by searching
+		// the runtime install. If the shim name matches the runtime name,
+		// the runtime executable itself is the answer.
+		execPath := baseExecPath
+		if commandName != runtimeName {
+			resolved, err := shim.FindSecondaryExecutable(baseExecPath, commandName)
+			if err != nil {
+				ui.Error("'%s' is not available in %s %s", commandName, provider.DisplayName(), version)
+				ui.Info("This shim exists because another installed %s version provides it.", provider.DisplayName())
+				ui.Info("Install '%s' for the active version, or switch to a version that has it.", commandName)
+				return
+			}
+			execPath = resolved
 		}
 
 		// Display the information
@@ -113,53 +118,6 @@ func mapCommandToRuntime(commandName string) string {
 	}
 
 	return ""
-}
-
-// adjustExecutablePath adjusts the executable path based on the command name
-// For example, if command is "pip" but base executable is "python",
-// we need to find "pip" in the same directory or Scripts subdirectory
-func adjustExecutablePath(execPath, commandName, runtimeName string) string {
-	// If command name matches runtime name, use the path as-is
-	if commandName == runtimeName {
-		return execPath
-	}
-
-	// Otherwise, try to find the related executable
-	dir := filepath.Dir(execPath)
-
-	// Directories to search (in order)
-	searchDirs := []string{
-		dir,                                 // Same directory as runtime executable
-		filepath.Join(dir, "Scripts"),       // Python Scripts directory (Windows)
-		filepath.Join(dir, "..", "Scripts"), // Alternative Python Scripts location
-	}
-
-	// On Windows, try multiple extensions
-	if goruntime.GOOS == "windows" {
-		for _, searchDir := range searchDirs {
-			newExec := filepath.Join(searchDir, commandName)
-
-			// Try .cmd first (npm, npx use .cmd on Windows)
-			if _, err := os.Stat(newExec + ".cmd"); err == nil {
-				return newExec + ".cmd"
-			}
-			// Try .exe
-			if _, err := os.Stat(newExec + ".exe"); err == nil {
-				return newExec + ".exe"
-			}
-		}
-	} else {
-		// On Unix, check if the file exists as-is
-		for _, searchDir := range searchDirs {
-			newExec := filepath.Join(searchDir, commandName)
-			if _, err := os.Stat(newExec); err == nil {
-				return newExec
-			}
-		}
-	}
-
-	// If not found, return original path
-	return execPath
 }
 
 func init() {

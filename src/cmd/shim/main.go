@@ -79,10 +79,16 @@ func runShim() error {
 	}
 	ui.Debug("Base executable path: %s", execPath)
 
-	// If the shim name differs from the base runtime name,
-	// we might need to adjust the executable path
-	// (e.g., python3 -> python3, pip -> pip, npm -> npm)
-	execPath = adjustExecutablePath(execPath, shimName, runtimeName)
+	// If the shim name differs from the base runtime name, find the
+	// secondary executable in the runtime install (e.g. pip, uv, npm).
+	if shimName != runtimeName {
+		resolved, err := shim.FindSecondaryExecutable(execPath, shimName)
+		if err != nil {
+			ui.Debug("Secondary executable lookup failed: %v", err)
+			return secondaryExecutableError(shimName, provider.DisplayName(), version)
+		}
+		execPath = resolved
+	}
 	ui.Debug("Final executable path: %s", execPath)
 
 	// Get provider-specific environment variables (e.g., LD_LIBRARY_PATH for Ruby)
@@ -220,54 +226,16 @@ func mapShimToRuntime(shimName string) string {
 	return shimName
 }
 
-// adjustExecutablePath adjusts the executable path based on the shim name
-// For example, if shim is "pip" but base executable is "python",
-// we need to find "pip" in the same directory or Scripts subdirectory
-func adjustExecutablePath(execPath, shimName, runtimeName string) string {
-	// If shim name matches runtime name, use the path as-is
-	if shimName == runtimeName {
-		return execPath
-	}
-
-	// Otherwise, try to find the related executable
-	// For example: if execPath is /path/to/python and shimName is pip,
-	// look for /path/to/pip
-	dir := filepath.Dir(execPath)
-
-	// Directories to search (in order)
-	searchDirs := []string{
-		dir,                                 // Same directory as runtime executable
-		filepath.Join(dir, "Scripts"),       // Python Scripts directory (Windows)
-		filepath.Join(dir, "..", "Scripts"), // Alternative Python Scripts location
-	}
-
-	// On Windows, try multiple extensions
-	if os.PathSeparator == '\\' {
-		for _, searchDir := range searchDirs {
-			newExec := filepath.Join(searchDir, shimName)
-
-			// Try .cmd first (npm, npx use .cmd on Windows)
-			if _, err := os.Stat(newExec + ".cmd"); err == nil {
-				return newExec + ".cmd"
-			}
-			// Try .exe
-			if _, err := os.Stat(newExec + ".exe"); err == nil {
-				return newExec + ".exe"
-			}
-		}
-	} else {
-		// On Unix, check if the file exists as-is
-		for _, searchDir := range searchDirs {
-			newExec := filepath.Join(searchDir, shimName)
-			if _, err := os.Stat(newExec); err == nil {
-				return newExec
-			}
-		}
-	}
-
-	// If not found, return original path
-	// The runtime provider should have returned the correct path
-	return execPath
+// secondaryExecutableError formats a user-facing error explaining that a
+// secondary executable shim (e.g., uv, pip) exists but the binary cannot
+// be located in the active runtime version. This typically happens when
+// the shim was created by a `dtvem reshim` that scanned a different
+// installed version which had the executable available.
+func secondaryExecutableError(shimName, displayName, version string) error {
+	ui.Error("'%s' is not available in %s %s", shimName, displayName, version)
+	ui.Info("This shim exists because another installed %s version provides it.", displayName)
+	ui.Info("Install '%s' for the active version, or switch to a version that has it.", shimName)
+	return fmt.Errorf("%s not available in %s %s", shimName, displayName, version)
 }
 
 // executeCommand executes a command with the given arguments and provider environment
