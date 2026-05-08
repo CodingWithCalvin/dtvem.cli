@@ -180,7 +180,7 @@ func LookPathExcludingShims(execName string) string {
 func findExecutableInDir(dir, execName string) string {
 	if runtime.GOOS == constants.OSWindows {
 		// Windows: try .exe, .cmd, .bat extensions
-		for _, ext := range []string{".exe", ".cmd", ".bat"} {
+		for _, ext := range []string{constants.ExtExe, constants.ExtCmd, constants.ExtBat} {
 			candidate := filepath.Join(dir, execName+ext)
 			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
 				return candidate

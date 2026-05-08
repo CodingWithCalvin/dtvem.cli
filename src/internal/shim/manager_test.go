@@ -426,7 +426,7 @@ func TestListShims_SkipsCmdFiles(t *testing.T) {
 		}
 		name := entry.Name()
 		ext := filepath.Ext(name)
-		if ext == constants.ExtCmd || ext == ".bat" {
+		if ext == constants.ExtCmd || ext == constants.ExtBat {
 			continue
 		}
 		shims = append(shims, name[:len(name)-len(ext)])

@@ -169,7 +169,7 @@ func (m *Manager) ListShims() ([]string, error) {
 			if runtime.GOOS == constants.OSWindows {
 				ext := filepath.Ext(name)
 				// Skip .cmd/.bat wrappers — only list .exe shims
-				if ext == constants.ExtCmd || ext == ".bat" {
+				if ext == constants.ExtCmd || ext == constants.ExtBat {
 					continue
 				}
 				name = name[:len(name)-len(ext)]
@@ -397,7 +397,7 @@ func findExecutables(dir string) ([]string, error) {
 		// On Windows, check for executable extensions
 		if runtime.GOOS == constants.OSWindows {
 			ext := filepath.Ext(name)
-			if ext == ".exe" || ext == ".cmd" || ext == ".bat" {
+			if ext == constants.ExtExe || ext == constants.ExtCmd || ext == constants.ExtBat {
 				// Remove extension for shim name
 				baseName := name[:len(name)-len(ext)]
 				executables = append(executables, baseName)

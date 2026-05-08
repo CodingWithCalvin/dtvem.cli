@@ -34,4 +34,5 @@ const (
 const (
 	ExtExe = ".exe"
 	ExtCmd = ".cmd"
+	ExtBat = ".bat"
 )
