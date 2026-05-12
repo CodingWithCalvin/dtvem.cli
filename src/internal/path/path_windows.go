@@ -28,11 +28,45 @@ const (
 	WM_SETTINGCHANGE = 0x001A
 	SMTO_ABORTIFHUNG = 0x0002
 
+	// SEE_MASK_NOCLOSEPROCESS tells ShellExecuteEx to return the spawned
+	// process handle in SHELLEXECUTEINFO.hProcess so the parent can wait on
+	// it and read the exit code.
+	seeMaskNoCloseProcess = 0x00000040
+
+	// errorCancelled is the Windows error code returned by ShellExecuteEx
+	// when the user denies the UAC prompt.
+	errorCancelled = 1223
+
 	// pathActionMove is used to indicate the shims directory needs to be moved to the beginning of PATH
 	pathActionMove = "move"
 	// pathActionAdd is used to indicate the shims directory needs to be added to PATH
 	pathActionAdd = "add"
 )
+
+var (
+	modShell32          = syscall.NewLazyDLL("shell32.dll")
+	procShellExecuteExW = modShell32.NewProc("ShellExecuteExW")
+)
+
+// shellExecuteInfo mirrors the Win32 SHELLEXECUTEINFOW structure.
+// See https://learn.microsoft.com/en-us/windows/win32/api/shellapi/ns-shellapi-shellexecuteinfow
+type shellExecuteInfo struct {
+	cbSize         uint32
+	fMask          uint32
+	hwnd           windows.HWND
+	lpVerb         *uint16
+	lpFile         *uint16
+	lpParameters   *uint16
+	lpDirectory    *uint16
+	nShow          int32
+	hInstApp       windows.Handle
+	lpIDList       uintptr
+	lpClass        *uint16
+	hkeyClass      windows.Handle
+	dwHotKey       uint32
+	hIconOrMonitor windows.Handle
+	hProcess       windows.Handle
+}
 
 // RuntimeConflict represents a system-installed runtime that may conflict with dtvem
 type RuntimeConflict struct {
@@ -230,11 +264,13 @@ func promptForElevation(shimsDir, action string, skipConfirmation bool) error {
 	}
 
 	// Re-launch with elevation
-	return relaunchElevated()
+	return relaunchElevated(shimsDir)
 }
 
-// relaunchElevated re-launches the current executable with administrator privileges
-func relaunchElevated() error {
+// relaunchElevated re-launches the current executable with administrator
+// privileges, waits for it to complete, and reports failure if the elevated
+// child either exits non-zero or fails to apply the PATH change.
+func relaunchElevated(shimsDir string) error {
 	exe, err := os.Executable()
 	if err != nil {
 		return fmt.Errorf("failed to get executable path: %w", err)
@@ -245,18 +281,68 @@ func relaunchElevated() error {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	// Use ShellExecute with "runas" verb to request elevation
-	verb := windows.StringToUTF16Ptr("runas")
-	exePath := windows.StringToUTF16Ptr(exe)
-	args := windows.StringToUTF16Ptr("init")
-	dir := windows.StringToUTF16Ptr(cwd)
-
-	err = windows.ShellExecute(0, verb, exePath, args, dir, windows.SW_SHOWNORMAL)
-	if err != nil {
-		return fmt.Errorf("failed to elevate: %w", err)
+	// Forward the original command-line args (e.g. "init --user", "init -y")
+	// to the elevated child so flag-driven behavior is preserved. Env vars
+	// like DTVEM_VERBOSE are inherited automatically by ShellExecuteEx.
+	params := strings.Join(os.Args[1:], " ")
+	if params == "" {
+		params = "init"
 	}
 
-	ui.Info("Elevated process launched. Please complete the setup in the new window.")
+	info := &shellExecuteInfo{
+		fMask:        seeMaskNoCloseProcess,
+		lpVerb:       windows.StringToUTF16Ptr("runas"),
+		lpFile:       windows.StringToUTF16Ptr(exe),
+		lpParameters: windows.StringToUTF16Ptr(params),
+		lpDirectory:  windows.StringToUTF16Ptr(cwd),
+		nShow:        windows.SW_SHOWNORMAL,
+	}
+	info.cbSize = uint32(unsafe.Sizeof(*info))
+
+	ui.Info("Requesting administrator privileges...")
+
+	ret, _, callErr := procShellExecuteExW.Call(uintptr(unsafe.Pointer(info)))
+	if ret == 0 {
+		var errno syscall.Errno
+		if errors.As(callErr, &errno) && errno == errorCancelled {
+			return errors.New("administrator privileges denied (UAC prompt canceled)")
+		}
+		return fmt.Errorf("failed to launch elevated process: %w", callErr)
+	}
+
+	if info.hProcess == 0 {
+		return errors.New("elevation succeeded but no process handle was returned")
+	}
+	defer func() { _ = windows.CloseHandle(info.hProcess) }()
+
+	ui.Info("Waiting for elevated process to complete...")
+
+	if _, err := windows.WaitForSingleObject(info.hProcess, windows.INFINITE); err != nil {
+		return fmt.Errorf("failed to wait for elevated process: %w", err)
+	}
+
+	var exitCode uint32
+	if err := windows.GetExitCodeProcess(info.hProcess, &exitCode); err != nil {
+		return fmt.Errorf("failed to read elevated process exit code: %w", err)
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("elevated process exited with code %d", exitCode)
+	}
+
+	// Belt-and-suspenders: the child's Run() returns on error rather than
+	// calling os.Exit(1), so a non-zero exit code isn't guaranteed on
+	// failure. Re-check the System PATH directly to confirm the change
+	// landed.
+	stillNeedsUpdate, _, err := checkSystemPath(shimsDir)
+	if err != nil {
+		return fmt.Errorf("could not verify System PATH after elevation: %w", err)
+	}
+	if stillNeedsUpdate {
+		return errors.New("elevated process completed but System PATH was not updated")
+	}
+
+	ui.Success("System PATH configured via elevated process")
 	return nil
 }
 
