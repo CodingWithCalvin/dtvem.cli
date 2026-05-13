@@ -2,6 +2,7 @@
 package path
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +10,12 @@ import (
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 )
+
+// dtvemMarkerComment is the literal comment line dtvem writes above
+// every PATH export it adds to a Unix shell config. The stale-shims
+// fix removes a PATH export only when this exact marker is on the
+// line above, so we never touch lines the user wrote themselves.
+const dtvemMarkerComment = "# Added by dtvem"
 
 // IsInPath checks if a directory is in the system PATH
 func IsInPath(dir string) bool {
@@ -71,33 +78,195 @@ func IsDtvemShimsPath(path string) bool {
 //
 // Comparison against currentShimsDir is case-insensitive on Windows.
 func FindStaleShimsEntries(pathEntries []string, currentShimsDir string) []string {
+	_, stale := PartitionStaleShimsEntries(pathEntries, currentShimsDir)
+	return stale
+}
+
+// PartitionStaleShimsEntries splits pathEntries into the entries to keep
+// and the stale dtvem-shims entries to remove. Order is preserved in
+// both slices, and the strings are the original (un-cleaned) entries so
+// callers can match them against registry-stored values verbatim.
+//
+// An empty string entry is treated as "drop silently" — it lands in
+// neither slice, which matches what callers want when rewriting PATH
+// (we don't want to preserve stray empty entries that arose from
+// trailing separators).
+//
+// When currentShimsDir is empty the entire input is returned as kept,
+// since without a "current" reference we can't decide which dtvem-shims
+// entries are stale and which are correct.
+func PartitionStaleShimsEntries(pathEntries []string, currentShimsDir string) (kept, stale []string) {
 	if currentShimsDir == "" {
-		return nil
+		kept = make([]string, 0, len(pathEntries))
+		for _, entry := range pathEntries {
+			if strings.TrimSpace(entry) == "" {
+				continue
+			}
+			kept = append(kept, entry)
+		}
+		return kept, nil
 	}
 	currentClean := filepath.Clean(currentShimsDir)
 
-	var stale []string
 	for _, entry := range pathEntries {
 		trimmed := strings.TrimSpace(entry)
 		if trimmed == "" {
 			continue
 		}
 		if !IsDtvemShimsPath(trimmed) {
+			kept = append(kept, entry)
 			continue
 		}
 		entryClean := filepath.Clean(trimmed)
+		matches := entryClean == currentClean
 		if runtime.GOOS == constants.OSWindows {
-			if strings.EqualFold(entryClean, currentClean) {
-				continue
-			}
-		} else {
-			if entryClean == currentClean {
-				continue
-			}
+			matches = strings.EqualFold(entryClean, currentClean)
+		}
+		if matches {
+			kept = append(kept, entry)
+			continue
 		}
 		stale = append(stale, entry)
 	}
-	return stale
+	return kept, stale
+}
+
+// RemoveStaleShimsFromShellConfig removes "marker + export" blocks
+// from a single shell config file when the export references a dtvem
+// shims directory that doesn't match currentShimsDir. The file is
+// rewritten in place; the returned slice lists the stale paths whose
+// blocks were dropped, in source order.
+//
+// Only pairs of lines where the first line is exactly the dtvem
+// marker comment are touched. That keeps the fix safe against user-
+// edited configs: a PATH export the user wrote themselves won't have
+// the marker above it and will be left alone even if it happens to
+// reference an old dtvem path.
+//
+// If the file doesn't exist or contains nothing to remove, the file
+// is left alone and the returned slice is empty. The function is
+// safe to call on Windows but won't normally find anything there
+// because the Windows install path stores PATH in the registry, not
+// in a config file — the doctor command's Windows fix routes through
+// RemoveStaleShimsFromUserPath instead.
+func RemoveStaleShimsFromShellConfig(configFile, currentShimsDir string) ([]string, error) {
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read %s: %w", configFile, err)
+	}
+
+	newContent, removed := removeDtvemMarkerBlocks(string(data), currentShimsDir)
+	if len(removed) == 0 {
+		return nil, nil
+	}
+
+	if err := os.WriteFile(configFile, []byte(newContent), 0644); err != nil {
+		return nil, fmt.Errorf("write %s: %w", configFile, err)
+	}
+	return removed, nil
+}
+
+// removeDtvemMarkerBlocks scans configContent line by line, dropping
+// each pair of (marker comment, following export line) whose export
+// line references a dtvem shims path that doesn't match
+// currentShimsDir. Returns the rewritten content and the stale paths
+// that were dropped, in source order.
+//
+// Behavior intentionally errs on the side of keeping content:
+//   - A marker comment that isn't followed by anything is preserved.
+//   - A marker comment followed by an export that doesn't look like a
+//     dtvem shims path is preserved (some user wrote something
+//     unrelated under our marker).
+//   - A marker comment followed by an export pointing at the current
+//     shims dir is preserved (it's not stale).
+func removeDtvemMarkerBlocks(configContent, currentShimsDir string) (string, []string) {
+	lines := strings.Split(configContent, "\n")
+	out := make([]string, 0, len(lines))
+	var removed []string
+
+	for i := 0; i < len(lines); i++ {
+		line := lines[i]
+		if strings.TrimSpace(line) != dtvemMarkerComment || i+1 >= len(lines) {
+			out = append(out, line)
+			continue
+		}
+
+		next := lines[i+1]
+		stale := extractStaleShimsPath(next, currentShimsDir)
+		if stale == "" {
+			out = append(out, line)
+			continue
+		}
+
+		// Drop both the marker and the export, recording what we
+		// removed so the caller can report it to the user.
+		removed = append(removed, stale)
+		i++
+	}
+
+	return strings.Join(out, "\n"), removed
+}
+
+// extractStaleShimsPath returns the dtvem shims path referenced in a
+// PATH-export line if and only if that path is non-empty, looks like a
+// dtvem shims dir, and is not currentShimsDir. Returns "" when the
+// line isn't a stale-referencing export.
+//
+// The matcher is permissive across bash/zsh ("export PATH=...") and
+// fish ("set -gx PATH ...") because the dtvem shims path appears
+// inside double quotes in both cases. We pull every quoted substring,
+// split each on the path separator to drop the trailing $PATH the
+// bash export concatenates, and check the first segment against
+// IsDtvemShimsPath.
+func extractStaleShimsPath(line, currentShimsDir string) string {
+	currentClean := filepath.Clean(currentShimsDir)
+
+	for _, quoted := range quotedSubstrings(line) {
+		// Bash-style "<dir>:$PATH" — keep the part before the first
+		// colon. Fish-style "<dir>" — the whole quoted string is the
+		// path, so the no-colon case is a no-op.
+		candidate := quoted
+		if idx := strings.Index(candidate, ":"); idx >= 0 {
+			candidate = candidate[:idx]
+		}
+		candidate = strings.TrimSpace(candidate)
+		if !IsDtvemShimsPath(candidate) {
+			continue
+		}
+		if filepath.Clean(candidate) == currentClean {
+			// References the current shims dir — that's the active
+			// export we want to leave in place.
+			continue
+		}
+		return candidate
+	}
+	return ""
+}
+
+// quotedSubstrings returns every substring of s that is enclosed in
+// double quotes, in source order. We deliberately only match "..."
+// (not '...' or backticks) because every dtvem-written PATH export
+// uses double quotes; accepting other styles would broaden the match
+// surface for user-written lines we don't want to touch.
+func quotedSubstrings(s string) []string {
+	var out []string
+	i := 0
+	for {
+		start := strings.IndexByte(s[i:], '"')
+		if start < 0 {
+			return out
+		}
+		start += i + 1
+		end := strings.IndexByte(s[start:], '"')
+		if end < 0 {
+			return out
+		}
+		out = append(out, s[start:start+end])
+		i = start + end + 1
+	}
 }
 
 // SplitPath splits the PATH environment variable using the OS-appropriate separator.

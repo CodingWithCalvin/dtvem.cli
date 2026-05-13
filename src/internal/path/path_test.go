@@ -581,3 +581,256 @@ func TestFindExecutableInDir(t *testing.T) {
 		}
 	})
 }
+
+func TestPartitionStaleShimsEntries(t *testing.T) {
+	// Use the platform-native separators so the case-insensitive
+	// comparison on Windows is exercised against realistic strings.
+	current := filepath.Join("C:", "Users", "u", ".local", "share", "dtvem", "shims")
+	stale1 := filepath.Join("C:", "Users", "u", ".dtvem", "shims")
+	stale2 := filepath.Join("C:", "Users", "u", "old", "dtvem", "shims")
+	unrelated := filepath.Join("C:", "Windows", "System32")
+
+	tests := []struct {
+		name        string
+		entries     []string
+		current     string
+		wantKept    []string
+		wantRemoved []string
+	}{
+		{
+			name:        "current shims dir is kept, stale ones removed",
+			entries:     []string{current, stale1, unrelated, stale2},
+			current:     current,
+			wantKept:    []string{current, unrelated},
+			wantRemoved: []string{stale1, stale2},
+		},
+		{
+			name:        "empty entries are dropped from kept too",
+			entries:     []string{"", current, "  ", stale1},
+			current:     current,
+			wantKept:    []string{current},
+			wantRemoved: []string{stale1},
+		},
+		{
+			name:        "empty current returns everything as kept",
+			entries:     []string{current, stale1, unrelated},
+			current:     "",
+			wantKept:    []string{current, stale1, unrelated},
+			wantRemoved: nil,
+		},
+		{
+			name:        "no entries means no kept and no removed",
+			entries:     nil,
+			current:     current,
+			wantKept:    nil,
+			wantRemoved: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kept, removed := PartitionStaleShimsEntries(tt.entries, tt.current)
+			if !stringSliceEqual(kept, tt.wantKept) {
+				t.Errorf("kept = %v, want %v", kept, tt.wantKept)
+			}
+			if !stringSliceEqual(removed, tt.wantRemoved) {
+				t.Errorf("removed = %v, want %v", removed, tt.wantRemoved)
+			}
+		})
+	}
+}
+
+func TestRemoveDtvemMarkerBlocks(t *testing.T) {
+	current := "/home/u/.local/share/dtvem/shims"
+
+	tests := []struct {
+		name        string
+		input       string
+		current     string
+		wantOut     string
+		wantRemoved []string
+	}{
+		{
+			name: "bash export with stale path is removed",
+			input: `# some user line
+# Added by dtvem
+export PATH="/home/u/.dtvem/shims:$PATH"
+# another user line`,
+			current:     current,
+			wantRemoved: []string{"/home/u/.dtvem/shims"},
+			wantOut: `# some user line
+# another user line`,
+		},
+		{
+			name: "fish set -gx with stale path is removed",
+			input: `# Added by dtvem
+set -gx PATH "/home/u/.dtvem/shims" $PATH`,
+			current:     current,
+			wantRemoved: []string{"/home/u/.dtvem/shims"},
+			wantOut:     ``,
+		},
+		{
+			name: "current shims dir is kept (not stale)",
+			input: `# Added by dtvem
+export PATH="/home/u/.local/share/dtvem/shims:$PATH"`,
+			current: current,
+			wantOut: `# Added by dtvem
+export PATH="/home/u/.local/share/dtvem/shims:$PATH"`,
+			wantRemoved: nil,
+		},
+		{
+			name: "user-written export without marker is preserved",
+			input: `export PATH="/home/u/.dtvem/shims:$PATH"
+# Added by dtvem
+export PATH="/home/u/.dtvem/shims:$PATH"`,
+			current:     current,
+			wantRemoved: []string{"/home/u/.dtvem/shims"},
+			wantOut:     `export PATH="/home/u/.dtvem/shims:$PATH"`,
+		},
+		{
+			name:        "marker with no following line is preserved",
+			input:       `# Added by dtvem`,
+			current:     current,
+			wantOut:     `# Added by dtvem`,
+			wantRemoved: nil,
+		},
+		{
+			name: "multiple stale blocks are all removed",
+			input: `# Added by dtvem
+export PATH="/home/u/.dtvem/shims:$PATH"
+some_user_content=1
+# Added by dtvem
+export PATH="/home/u/old/dtvem/shims:$PATH"`,
+			current:     current,
+			wantRemoved: []string{"/home/u/.dtvem/shims", "/home/u/old/dtvem/shims"},
+			wantOut:     `some_user_content=1`,
+		},
+		{
+			name: "marker followed by non-dtvem export is preserved",
+			input: `# Added by dtvem
+echo hello`,
+			current: current,
+			wantOut: `# Added by dtvem
+echo hello`,
+			wantRemoved: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotOut, gotRemoved := removeDtvemMarkerBlocks(tt.input, tt.current)
+			if gotOut != tt.wantOut {
+				t.Errorf("out = %q\nwant %q", gotOut, tt.wantOut)
+			}
+			if !stringSliceEqual(gotRemoved, tt.wantRemoved) {
+				t.Errorf("removed = %v, want %v", gotRemoved, tt.wantRemoved)
+			}
+		})
+	}
+}
+
+func TestRemoveStaleShimsFromShellConfig_MissingFileIsNoop(t *testing.T) {
+	// Calling on a non-existent file should be a silent no-op, since
+	// "this user doesn't have a config file at all" is a valid state
+	// and not a problem doctor should escalate.
+	removed, err := RemoveStaleShimsFromShellConfig(filepath.Join(t.TempDir(), "no-such-file"), "/anything")
+	if err != nil {
+		t.Errorf("expected nil error for missing file, got %v", err)
+	}
+	if len(removed) != 0 {
+		t.Errorf("expected no removed entries, got %v", removed)
+	}
+}
+
+func TestRemoveStaleShimsFromShellConfig_RewritesFile(t *testing.T) {
+	dir := t.TempDir()
+	configFile := filepath.Join(dir, ".bashrc")
+	content := `# user line
+# Added by dtvem
+export PATH="/home/u/.dtvem/shims:$PATH"
+# another user line
+`
+	if err := os.WriteFile(configFile, []byte(content), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	removed, err := RemoveStaleShimsFromShellConfig(configFile, "/home/u/.local/share/dtvem/shims")
+	if err != nil {
+		t.Fatalf("RemoveStaleShimsFromShellConfig: %v", err)
+	}
+	if len(removed) != 1 || removed[0] != "/home/u/.dtvem/shims" {
+		t.Errorf("removed: got %v, want [/home/u/.dtvem/shims]", removed)
+	}
+
+	got, err := os.ReadFile(configFile)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	want := `# user line
+# another user line
+`
+	if string(got) != want {
+		t.Errorf("rewritten file:\n got %q\nwant %q", got, want)
+	}
+}
+
+func TestRemoveStaleShimsFromShellConfig_LeavesFileAloneWhenNothingToDo(t *testing.T) {
+	dir := t.TempDir()
+	configFile := filepath.Join(dir, ".bashrc")
+	original := `# user line only`
+	if err := os.WriteFile(configFile, []byte(original), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	// Read mtime so we can assert we didn't rewrite the file.
+	before, _ := os.Stat(configFile)
+
+	removed, err := RemoveStaleShimsFromShellConfig(configFile, "/home/u/.local/share/dtvem/shims")
+	if err != nil {
+		t.Fatalf("RemoveStaleShimsFromShellConfig: %v", err)
+	}
+	if len(removed) != 0 {
+		t.Errorf("expected no removed entries, got %v", removed)
+	}
+	after, _ := os.Stat(configFile)
+	// On some filesystems mtime resolution is coarse, so equality is
+	// the right check rather than "after >= before".
+	if !before.ModTime().Equal(after.ModTime()) {
+		t.Errorf("file was rewritten when there was nothing to remove (mtime changed)")
+	}
+}
+
+func TestQuotedSubstrings(t *testing.T) {
+	tests := []struct {
+		in   string
+		want []string
+	}{
+		{`export PATH="/a:$PATH"`, []string{`/a:$PATH`}},
+		{`set -gx PATH "/a" $PATH`, []string{`/a`}},
+		{`a "b" c "d"`, []string{`b`, `d`}},
+		{`no quotes here`, nil},
+		{`unterminated "ohno`, nil},
+		{`empty "" here`, []string{``}},
+	}
+	for _, tt := range tests {
+		got := quotedSubstrings(tt.in)
+		if !stringSliceEqual(got, tt.want) {
+			t.Errorf("quotedSubstrings(%q) = %v, want %v", tt.in, got, tt.want)
+		}
+	}
+}
+
+// stringSliceEqual returns true when a and b have the same length and
+// identical elements. Defined locally because reflect.DeepEqual treats
+// nil and []string{} as different and that distinction is noise in
+// these tests.
+func stringSliceEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
