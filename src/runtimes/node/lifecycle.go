@@ -1,3 +1,8 @@
+//go:build !shim
+
+// Lifecycle computation is only used by the dtvem CLI (e.g., `list-all`) and
+// embeds ~50KB of schedule.json. Tagged !shim so neither the code nor the
+// embedded data is linked into the shim binary.
 package node
 
 import (
