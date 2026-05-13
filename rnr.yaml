@@ -28,7 +28,7 @@ build-cli:
 
 build-shim:
   description: Build the shim executable
-  cmd: go build -v -ldflags="-s -w" -trimpath -o dist/dtvem-shim.exe ./src/cmd/shim
+  cmd: go build -v -ldflags="-s -w" -trimpath -tags shim -o dist/dtvem-shim.exe ./src/cmd/shim
 
 # Deployment (Windows)
 deploy-local:
