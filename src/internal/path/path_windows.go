@@ -618,3 +618,53 @@ func IsSetxAvailable() bool {
 	_, err := exec.LookPath("setx")
 	return err == nil
 }
+
+// RemoveStaleShimsFromUserPath removes any stale dtvem shims entries
+// from the current user's PATH registry value, preserving every other
+// entry (and the current shims dir itself if present) in their original
+// order. Returns the list of entries that were actually removed.
+//
+// This is the surgical counterpart to modifyUserPath, which is scoped
+// to the "set up dtvem from scratch" flow and bundles removal with
+// re-ordering plus re-adding the current shims dir at the front. The
+// doctor command needs a targeted "just delete the stale entries"
+// operation, and re-using modifyUserPath would re-prioritize PATH in
+// ways the user didn't ask for.
+//
+// Operates on User PATH only. Stale entries in System PATH require
+// administrator privileges and aren't touched here; doctor surfaces
+// that case separately in its resolution text.
+func RemoveStaleShimsFromUserPath(currentShimsDir string) ([]string, error) {
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open User PATH registry key: %w", err)
+	}
+	defer func() { _ = key.Close() }()
+
+	currentPath, _, err := key.GetStringValue("Path")
+	if err != nil && !errors.Is(err, registry.ErrNotExist) {
+		return nil, fmt.Errorf("failed to read User PATH: %w", err)
+	}
+	if errors.Is(err, registry.ErrNotExist) || currentPath == "" {
+		// No User PATH set at all means there can't be any stale
+		// entries to remove.
+		return nil, nil
+	}
+
+	entries := strings.Split(currentPath, ";")
+	kept, removed := PartitionStaleShimsEntries(entries, currentShimsDir)
+	if len(removed) == 0 {
+		return nil, nil
+	}
+
+	if err := key.SetStringValue("Path", strings.Join(kept, ";")); err != nil {
+		return nil, fmt.Errorf("failed to update User PATH in registry: %w", err)
+	}
+
+	// Tell the shell that PATH changed so newly-spawned processes pick
+	// up the new value; running shells still need to be restarted to
+	// see it, which we surface in the doctor resolution text.
+	broadcastSettingChange()
+
+	return removed, nil
+}
