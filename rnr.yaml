@@ -24,11 +24,11 @@ build:
 
 build-cli:
   description: Build the main CLI executable
-  cmd: go build -v -ldflags="-s -w" -o dist/dtvem.exe ./src
+  cmd: go build -v -ldflags="-s -w" -trimpath -o dist/dtvem.exe ./src
 
 build-shim:
   description: Build the shim executable
-  cmd: go build -v -ldflags="-s -w" -o dist/dtvem-shim.exe ./src/cmd/shim
+  cmd: go build -v -ldflags="-s -w" -trimpath -o dist/dtvem-shim.exe ./src/cmd/shim
 
 # Deployment (Windows)
 deploy-local:
