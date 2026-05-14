@@ -207,11 +207,15 @@ func (p *Provider) createShims(version string) error {
 
 // installPip ensures pip is properly installed with working executables.
 // This handles two scenarios:
-// 1. python.org embeddable packages: pip is not included, needs ensurepip
-// 2. python-build-standalone: pip module exists but pip.exe has broken paths
+//  1. python.org embeddable packages: pip is not included, needs ensurepip
+//  2. python-build-standalone: pip module is pre-installed but no console
+//     scripts exist in Scripts/, so we must force-reinstall the bundled
+//     wheel to materialize pip.exe / pip3.exe / pip3.X.exe.
 //
-// Running "python -m ensurepip --default-pip --upgrade" handles both cases
-// by (re)installing pip and creating working pip/pip3/pipX.Y executables.
+// The two-step order matters: ensurepip first guarantees the pip module
+// is importable, then the force-reinstall guarantees the .exe scripts
+// exist. Either step alone is insufficient for python-build-standalone
+// on Windows.
 func (p *Provider) installPip(version string) error {
 	pythonPath, err := p.ExecutablePath(version)
 	if err != nil {
@@ -225,7 +229,12 @@ func (p *Provider) installPip(version string) error {
 	pthFile := filepath.Join(installPath, fmt.Sprintf("python%s._pth", strings.Join(strings.Split(version, ".")[:2], "")))
 	_ = p.enableSitePackages(pthFile) // Best effort - ignore errors
 
-	// Run ensurepip to install/reinstall pip with working executables.
+	// Step 1: ensurepip bootstraps the pip module on distributions that
+	// ship without one (python.org embeddable). It's a no-op on python-
+	// build-standalone because pip is already in site-packages with a
+	// matching version — pip's "already satisfied" short-circuit
+	// silently skips the install AND the .exe entry-point generation,
+	// which is why a separate force-reinstall step is needed below.
 	cmd := exec.Command(pythonPath, "-m", "ensurepip", "--default-pip", "--upgrade")
 	cmd.Dir = installPath
 	output, err := cmd.CombinedOutput()
@@ -234,7 +243,76 @@ func (p *Provider) installPip(version string) error {
 		return p.installPipWithGetPip(version, pythonPath, installPath)
 	}
 
+	// Step 2: Force-reinstall pip from the bundled wheel so the .exe
+	// entry-point scripts land in Scripts/. ensurepip doesn't expose a
+	// --force flag, so we bypass it and feed the wheel directly to pip
+	// with --force-reinstall. Offline (--no-index) and self-contained
+	// (--no-deps), so no network access and no surprise upgrades.
+	//
+	// Best-effort: if the bundled wheel isn't where we expect (some
+	// minimal distributions strip ensurepip's _bundled/ directory),
+	// fall through with whatever ensurepip produced. The user-facing
+	// installPipIfNeeded warns anyway when the eventual Scripts/ scan
+	// turns up nothing.
+	if err := p.materializePipScripts(pythonPath, installPath); err != nil {
+		ui.Debug("force-reinstall of bundled pip wheel failed: %v", err)
+	}
+
 	return nil
+}
+
+// materializePipScripts force-reinstalls pip from the bundled wheel that
+// ships under Lib/ensurepip/_bundled. This is the step that actually
+// creates Scripts/pip.exe, Scripts/pip3.exe, and Scripts/pip3.X.exe.
+//
+// Why this is necessary: ensurepip --upgrade internally runs
+// `pip install --upgrade --no-index --find-links <tmpdir>` against the
+// bundled wheel. When the installed pip version equals the bundled
+// version (the default state of every python-build-standalone Windows
+// install), pip prints "Requirement already satisfied" and skips —
+// including skipping the entry-point .exe script generation, even
+// though that's what the caller actually wanted. ensurepip exposes no
+// --force flag, so we have to feed the wheel directly to pip with
+// --force-reinstall to bypass the short-circuit.
+//
+// Returns an error only if the bundled wheel can't be found or the pip
+// invocation itself failed; the caller treats this as best-effort.
+func (p *Provider) materializePipScripts(pythonPath, installPath string) error {
+	bundledDir := filepath.Join(installPath, "Lib", "ensurepip", "_bundled")
+	wheel, err := findBundledPipWheel(bundledDir)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(pythonPath, "-m", "pip", "install",
+		"--no-index", "--no-deps", "--force-reinstall", wheel)
+	cmd.Dir = installPath
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("pip install --force-reinstall %s: %w\nOutput: %s",
+			wheel, err, string(output))
+	}
+	return nil
+}
+
+// findBundledPipWheel returns the path to the pip wheel that ships
+// alongside ensurepip (Lib/ensurepip/_bundled/pip-*.whl). The directory
+// is part of the CPython stdlib distribution and is present on every
+// build the upstream project produces, including python-build-standalone
+// and the official Windows installers, but minimal redistributions
+// (e.g., python.org embeddable) may strip it.
+//
+// Returns an error when the directory is missing or contains no
+// pip-*.whl entry so callers can fall back cleanly.
+func findBundledPipWheel(bundledDir string) (string, error) {
+	matches, err := filepath.Glob(filepath.Join(bundledDir, "pip-*.whl"))
+	if err != nil {
+		return "", fmt.Errorf("glob bundled pip wheel: %w", err)
+	}
+	if len(matches) == 0 {
+		return "", fmt.Errorf("no bundled pip wheel found in %s", bundledDir)
+	}
+	return matches[0], nil
 }
 
 // installPipWithGetPip is a fallback method that downloads and runs get-pip.py.
