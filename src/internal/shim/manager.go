@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
@@ -282,33 +283,16 @@ func (m *Manager) RehashWithCallback(callback RehashCallback) (*RehashResult, er
 			version := versionEntry.Name()
 			versionDir := filepath.Join(runtimeVersionsDir, version)
 
-			// Scan the directories where runtime and package executables
-			// live. Anything found is recorded as a shim provided by this
-			// version. We deliberately do NOT pre-populate the provider's
-			// declared core shims (e.g. python3, pip3) without checking
-			// the filesystem: an embeddable Windows install may ship only
-			// python.exe, and asserting that 3.8.9 "provides pip" when it
-			// doesn't would corrupt the version-coverage data the shim
-			// uses to give users an informed error.
-			if execs, err := findExecutables(filepath.Join(versionDir, "bin")); err == nil {
-				for _, exec := range execs {
-					recordShim(exec, version)
-				}
-			}
-
-			// On Windows, also check the root version directory for .cmd/.bat files
-			// and Scripts directory for Python packages
-			if runtime.GOOS == constants.OSWindows {
-				if execs, err := findExecutables(versionDir); err == nil {
-					for _, exec := range execs {
-						recordShim(exec, version)
-					}
-				}
-				if execs, err := findExecutables(filepath.Join(versionDir, "Scripts")); err == nil {
-					for _, exec := range execs {
-						recordShim(exec, version)
-					}
-				}
+			// Anything found on disk is recorded as a shim provided by
+			// this version. We deliberately do NOT pre-populate the
+			// provider's declared core shims (e.g. python3, pip3)
+			// without checking the filesystem: an embeddable Windows
+			// install may ship only python.exe, and asserting that
+			// 3.8.9 "provides pip" when it doesn't would corrupt the
+			// version-coverage data the shim uses to give users an
+			// informed error.
+			for _, exec := range DiscoverShimsForVersion(versionDir) {
+				recordShim(exec, version)
 			}
 		}
 	}
@@ -389,6 +373,50 @@ func RuntimeShims(runtimeName string) []string {
 
 	// Return the provider's shims
 	return provider.Shims()
+}
+
+// DiscoverShimsForVersion scans an installed runtime version's directory tree
+// and returns the executable base names that should be shimmed.
+//
+// versionDir is the absolute path to a single version's install directory
+// (e.g., ~/.dtvem/versions/python/3.14.2). The same directories `Rehash`
+// walks are scanned here: `bin/` always, plus the root and `Scripts/` on
+// Windows. Missing directories are not an error — they just contribute no
+// names — so callers can use this on any layout without pre-checking.
+//
+// The intersection-with-provider-declarations is deliberately omitted:
+// reshim registers every executable it finds (pip-installed tools, npm-
+// installed binaries, version-suffixed names like pip3.14), and install
+// should match that policy so reshim doesn't surprise the user by adding
+// or removing shims that the install command didn't.
+//
+// Returns names sorted alphabetically so callers get stable output across
+// runs (filesystem iteration order is not guaranteed).
+func DiscoverShimsForVersion(versionDir string) []string {
+	seen := make(map[string]struct{})
+	scan := func(dir string) {
+		execs, err := findExecutables(dir)
+		if err != nil {
+			return
+		}
+		for _, e := range execs {
+			seen[e] = struct{}{}
+		}
+	}
+
+	scan(filepath.Join(versionDir, "bin"))
+
+	if runtime.GOOS == constants.OSWindows {
+		scan(versionDir)
+		scan(filepath.Join(versionDir, "Scripts"))
+	}
+
+	out := make([]string, 0, len(seen))
+	for name := range seen {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // findExecutables scans a directory for executable files and returns their base names

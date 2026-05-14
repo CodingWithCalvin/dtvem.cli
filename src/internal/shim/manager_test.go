@@ -438,6 +438,147 @@ func TestListShims_SkipsCmdFiles(t *testing.T) {
 	}
 }
 
+// writeExecutable writes a file with the executable bit set on Unix. The
+// content is irrelevant — findExecutables only looks at extension (Windows)
+// or the exec bit (Unix) — but a non-zero body keeps file readers happy.
+func writeExecutable(t *testing.T, path string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte("x"), 0755); err != nil {
+		t.Fatalf("Failed to write %s: %v", path, err)
+	}
+}
+
+// platformExeName returns name with the OS-appropriate executable extension.
+// On Windows the .exe suffix is required for findExecutables to recognize
+// the file; on Unix the bare name is used and the exec bit drives detection.
+func platformExeName(name string) string {
+	if runtime.GOOS == constants.OSWindows {
+		return name + constants.ExtExe
+	}
+	return name
+}
+
+func TestDiscoverShimsForVersion_EmptyDir(t *testing.T) {
+	versionDir := t.TempDir()
+
+	got := DiscoverShimsForVersion(versionDir)
+	if len(got) != 0 {
+		t.Errorf("DiscoverShimsForVersion(empty) = %v, want []", got)
+	}
+}
+
+func TestDiscoverShimsForVersion_MissingVersionDir(t *testing.T) {
+	// Caller may pass a path that doesn't exist (e.g., when called before
+	// the install has moved files into place). The helper must not panic
+	// or surface an error — it just returns no names.
+	got := DiscoverShimsForVersion(filepath.Join(t.TempDir(), "does-not-exist"))
+	if len(got) != 0 {
+		t.Errorf("DiscoverShimsForVersion(missing) = %v, want []", got)
+	}
+}
+
+func TestDiscoverShimsForVersion_BinDir(t *testing.T) {
+	versionDir := t.TempDir()
+	binDir := filepath.Join(versionDir, "bin")
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		t.Fatalf("mkdir bin: %v", err)
+	}
+
+	writeExecutable(t, filepath.Join(binDir, platformExeName("node")))
+	writeExecutable(t, filepath.Join(binDir, platformExeName("npm")))
+
+	got := DiscoverShimsForVersion(versionDir)
+	want := []string{"node", "npm"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("DiscoverShimsForVersion(bin) = %v, want %v", got, want)
+	}
+}
+
+// TestDiscoverShimsForVersion_PythonWindowsOnlyRoot models the python-build-
+// standalone Windows tarball before ensurepip runs: python.exe and
+// pythonw.exe live in the version root and Scripts/ is either absent or
+// only contains the upstream .empty placeholder. The discover helper must
+// not invent pip / python3 entries that don't exist on disk — that was
+// the root cause of issue #269 where install-time shim creation used a
+// static provider declaration instead of disk truth.
+func TestDiscoverShimsForVersion_PythonWindowsOnlyRoot(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Windows-specific layout (root .exe files)")
+	}
+
+	versionDir := t.TempDir()
+	writeExecutable(t, filepath.Join(versionDir, "python.exe"))
+	writeExecutable(t, filepath.Join(versionDir, "pythonw.exe"))
+	// Upstream ships an empty Scripts/.empty placeholder; recreate it
+	// here so the test reflects the exact layout users see and proves
+	// the helper does not surface the placeholder as a shim.
+	if err := os.MkdirAll(filepath.Join(versionDir, "Scripts"), 0755); err != nil {
+		t.Fatalf("mkdir Scripts: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(versionDir, "Scripts", ".empty"), nil, 0644); err != nil {
+		t.Fatalf("write .empty: %v", err)
+	}
+
+	got := DiscoverShimsForVersion(versionDir)
+	want := []string{"python", "pythonw"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestDiscoverShimsForVersion_PythonWindowsAfterEnsurepip models the
+// post-ensurepip state: root has python.exe/pythonw.exe, Scripts/ has
+// pip.exe, pip3.exe, and the versioned pip3.14.exe. All five should be
+// discovered and the result should be sorted+deduplicated.
+func TestDiscoverShimsForVersion_PythonWindowsAfterEnsurepip(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Windows-specific layout (Scripts/*.exe)")
+	}
+
+	versionDir := t.TempDir()
+	writeExecutable(t, filepath.Join(versionDir, "python.exe"))
+	writeExecutable(t, filepath.Join(versionDir, "pythonw.exe"))
+
+	scriptsDir := filepath.Join(versionDir, "Scripts")
+	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
+		t.Fatalf("mkdir Scripts: %v", err)
+	}
+	writeExecutable(t, filepath.Join(scriptsDir, "pip.exe"))
+	writeExecutable(t, filepath.Join(scriptsDir, "pip3.exe"))
+	writeExecutable(t, filepath.Join(scriptsDir, "pip3.14.exe"))
+
+	got := DiscoverShimsForVersion(versionDir)
+	want := []string{"pip", "pip3", "pip3.14", "python", "pythonw"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+// TestDiscoverShimsForVersion_DedupesAcrossDirs proves the helper unions
+// names across bin/ root/ and Scripts/ rather than double-counting. This
+// matters because some runtimes (e.g., Ruby on Windows) place the same
+// command name in multiple search locations.
+func TestDiscoverShimsForVersion_DedupesAcrossDirs(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Multi-dir Windows scan (root + Scripts)")
+	}
+
+	versionDir := t.TempDir()
+	writeExecutable(t, filepath.Join(versionDir, "tool.exe"))
+
+	scriptsDir := filepath.Join(versionDir, "Scripts")
+	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
+		t.Fatalf("mkdir Scripts: %v", err)
+	}
+	writeExecutable(t, filepath.Join(scriptsDir, "tool.exe"))
+
+	got := DiscoverShimsForVersion(versionDir)
+	want := []string{"tool"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func TestRuntimeShims_AllKnownRuntimes(t *testing.T) {
 	// Verify all known runtimes have shim mappings
 	knownRuntimes := []string{"python", "node", "ruby", "go"}

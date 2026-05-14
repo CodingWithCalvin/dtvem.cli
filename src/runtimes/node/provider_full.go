@@ -124,13 +124,21 @@ func (p *Provider) getDownloadURL(version string) (string, string, error) {
 // than falling back to the provider registry. The version is recorded in the
 // cache so the shim can detect when an active runtime version is one that
 // does not provide a given executable.
+//
+// The shim list is derived from disk (the same scan reshim uses), not from
+// the provider's static Shims() declaration, so install and reshim stay in
+// sync and only register executables that actually exist for this version.
 func (p *Provider) createShims(version string) error {
 	manager, err := shim.NewManager()
 	if err != nil {
 		return err
 	}
 
-	shimNames := shim.RuntimeShims("node")
+	versionDir := config.RuntimeVersionPath("node", version)
+	shimNames := shim.DiscoverShimsForVersion(versionDir)
+	if len(shimNames) == 0 {
+		return fmt.Errorf("no executables found in %s", versionDir)
+	}
 
 	return manager.CreateShimsForRuntime("node", version, shimNames)
 }
