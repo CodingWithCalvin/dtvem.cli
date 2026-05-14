@@ -283,3 +283,57 @@ func TestPythonProvider_Shims(t *testing.T) {
 		}
 	})
 }
+
+// TestFindBundledPipWheel exercises the glob-based discovery used by
+// materializePipScripts. The wheel filename varies across Python versions
+// (pip-25.3-py3-none-any.whl on 3.14, pip-24.x on older), so the test
+// confirms the helper finds whatever pip-*.whl is present and surfaces a
+// clear error when the bundled directory is empty or absent.
+func TestFindBundledPipWheel(t *testing.T) {
+	t.Run("finds wheel when present", func(t *testing.T) {
+		bundledDir := t.TempDir()
+		wheelPath := filepath.Join(bundledDir, "pip-25.3-py3-none-any.whl")
+		if err := os.WriteFile(wheelPath, []byte("PK\x03\x04"), 0644); err != nil {
+			t.Fatalf("write wheel: %v", err)
+		}
+
+		got, err := findBundledPipWheel(bundledDir)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != wheelPath {
+			t.Errorf("got %q, want %q", got, wheelPath)
+		}
+	})
+
+	t.Run("errors when bundled dir empty", func(t *testing.T) {
+		bundledDir := t.TempDir()
+		_, err := findBundledPipWheel(bundledDir)
+		if err == nil {
+			t.Error("expected error for empty bundled dir, got nil")
+		}
+	})
+
+	t.Run("errors when bundled dir missing", func(t *testing.T) {
+		_, err := findBundledPipWheel(filepath.Join(t.TempDir(), "does-not-exist"))
+		if err == nil {
+			t.Error("expected error for missing bundled dir, got nil")
+		}
+	})
+
+	t.Run("ignores non-pip wheels", func(t *testing.T) {
+		bundledDir := t.TempDir()
+		// ensurepip historically also bundled setuptools alongside pip
+		// (removed in Python 3.12). The glob targets pip specifically
+		// so a stray non-pip wheel must not be selected.
+		other := filepath.Join(bundledDir, "setuptools-65.5.0-py3-none-any.whl")
+		if err := os.WriteFile(other, []byte("PK\x03\x04"), 0644); err != nil {
+			t.Fatalf("write decoy: %v", err)
+		}
+
+		_, err := findBundledPipWheel(bundledDir)
+		if err == nil {
+			t.Error("expected error when only non-pip wheel is present")
+		}
+	})
+}
