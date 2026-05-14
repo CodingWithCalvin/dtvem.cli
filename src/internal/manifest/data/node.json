@@ -16366,6 +16366,48 @@
         "sha256_source": "upstream"
       }
     },
+    "22.22.3": {
+      "darwin-amd64": {
+        "url": "https://builds.dtvem.io/node/22.22.3/darwin-amd64.tar.gz",
+        "sha256": "45830ba752fa0d892c6dcd640946669801293cac820a33591ded40ac075198ec",
+        "sha256_source": "upstream"
+      },
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/node/22.22.3/darwin-arm64.tar.gz",
+        "sha256": "0da7ff74ef8611328c8212f17943368713a2ad953fb7d89a8c8a0eae87c23207",
+        "sha256_source": "upstream"
+      },
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/node/22.22.3/linux-amd64.tar.gz",
+        "sha256": "c7a10d6816da8eaaa7534dd73c71c6e2b2c391dbbf845e364902d156615dd1b8",
+        "sha256_source": "upstream"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/node/22.22.3/linux-arm64.tar.gz",
+        "sha256": "cc8bc82b2dd0b595c3b95a4c3c9c8c350907cff011afbdee3d1379e812e1e3e3",
+        "sha256_source": "upstream"
+      },
+      "linux-armv7": {
+        "url": "https://builds.dtvem.io/node/22.22.3/linux-armv7.tar.gz",
+        "sha256": "18fbe1bfdd42045af15f02256ae3e59490d1b9ff93dfc27a223acc2c92740250",
+        "sha256_source": "upstream"
+      },
+      "windows-386": {
+        "url": "https://builds.dtvem.io/node/22.22.3/windows-386.zip",
+        "sha256": "7ba4260f69e16ba9626d077cb1124f3fb01f60421af2a6c7396aeb4e2d0d8dae",
+        "sha256_source": "upstream"
+      },
+      "windows-amd64": {
+        "url": "https://builds.dtvem.io/node/22.22.3/windows-amd64.zip",
+        "sha256": "6c8d54f635feff4df76c2ca80f45332eb2ff57d25226edce36592e51a177ee33",
+        "sha256_source": "upstream"
+      },
+      "windows-arm64": {
+        "url": "https://builds.dtvem.io/node/22.22.3/windows-arm64.zip",
+        "sha256": "00be129a09e8872cd52d3bb8bba12412c5733d2224123a482a2dca4a6fbf2586",
+        "sha256_source": "upstream"
+      }
+    },
     "22.3.0": {
       "darwin-amd64": {
         "url": "https://builds.dtvem.io/node/22.3.0/darwin-amd64.tar.gz",
