@@ -2592,6 +2592,12 @@
       }
     },
     "3.4.10": {
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/ruby/3.4.10/darwin-arm64.tar.gz",
+        "sha256": "d5349066dbae22af15a79dd8ad5bdf07b4ac083e36a40e3939e9e4fa2fb44974",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
       "linux-amd64": {
         "url": "https://builds.dtvem.io/ruby/3.4.10/linux-amd64.tar.gz",
         "sha256": "8afc99b4a54cce139bb5c01aaee03b2201ef9eb49ceab69eab13c9170cdb3cae",
