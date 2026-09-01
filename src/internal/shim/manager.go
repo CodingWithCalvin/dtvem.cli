@@ -196,6 +196,21 @@ type RehashResult struct {
 	ShimsByRuntime map[string][]string
 	// TotalShims is the total number of shims created
 	TotalShims int
+	// RemovedShims lists the orphan shim files deleted during the rehash,
+	// sorted alphabetically. An orphan is a shim binary in shims/ whose
+	// name no installed runtime version provides any more.
+	RemovedShims []string
+	// PruneFailures lists orphan shims that could not be deleted. These
+	// are reported rather than fatal — see pruneOrphanShims.
+	PruneFailures []PruneFailure
+}
+
+// PruneFailure records an orphan shim file that could not be deleted.
+type PruneFailure struct {
+	// Name is the bare shim name (no .exe / .cmd suffix).
+	Name string
+	// Err is the error returned by the removal attempt.
+	Err error
 }
 
 // RuntimeShimInfo contains shim information for a single runtime
@@ -313,10 +328,87 @@ func (m *Manager) RehashWithCallback(callback RehashCallback) (*RehashResult, er
 		}
 	}
 
+	// Delete shim files the scan above did not produce. This is only
+	// reached when the scan found at least one executable: the
+	// len(shimMap) == 0 check above returns early, so an empty scan —
+	// which is the signal that something is wrong rather than that
+	// everything was uninstalled — never wipes the shims directory.
+	removed, pruneFailures := m.pruneOrphanShims(shimMap)
+
 	return &RehashResult{
 		ShimsByRuntime: shimsByRuntime,
 		TotalShims:     len(shimMap),
+		RemovedShims:   removed,
+		PruneFailures:  pruneFailures,
 	}, nil
+}
+
+// protectedShimNames are files that can legitimately live in the shims
+// directory without being runtime shims, and so must never be pruned.
+// Installs prior to 0.4 placed dtvem-shim itself in shims/ rather than
+// bin/; deleting it would break every remaining shim on the machine.
+var protectedShimNames = map[string]bool{
+	"dtvem":      true,
+	"dtvem-shim": true,
+}
+
+// pruneOrphanShims deletes shim files whose names are absent from the
+// freshly-scanned shim map, returning the names removed and any that
+// could not be.
+//
+// Reshim rebuilds the shim-map cache from the executables found in the
+// installed runtime versions, but it used to only ever *add* shim files.
+// A shim whose backing executable disappeared — a pip- or npm-installed
+// tool that was later uninstalled, a runtime version that was removed,
+// or a phantom shim created by an older dtvem that trusted the provider's
+// static Shims() list over what shipped on disk — stayed in shims/
+// forever. That left two user-visible failures: `dtvem doctor` reporting
+// cache/disk drift that `dtvem reshim` could never resolve, and dead
+// shims sitting early on PATH shadowing perfectly good system tools.
+//
+// Removal failures are collected rather than returned as an error. On
+// Windows a shim that is currently executing cannot be deleted, and
+// failing an entire reshim over one locked file would be a worse outcome
+// than reporting it; doctor's shim-map check re-reports whatever drift
+// remains.
+func (m *Manager) pruneOrphanShims(keep ShimMap) (removed []string, failures []PruneFailure) {
+	existing, err := m.ListShims()
+	if err != nil {
+		// The shims directory is unreadable. Rehash has already
+		// recreated the shims it knows about, so leave the rest alone
+		// rather than guessing at what is safe to delete.
+		return nil, nil
+	}
+
+	for _, name := range existing {
+		if _, wanted := keep[name]; wanted || protectedShimNames[name] {
+			continue
+		}
+
+		// Only delete a file that is actually a shim binary, so an
+		// unrelated file dropped into shims/ survives. On Windows that
+		// means an .exe at the shim path: ListShims derives bare names
+		// by trimming a trailing extension, so notes.txt surfaces as
+		// "notes" and no notes.exe exists. On Unix, require the
+		// executable bit — the same test findExecutables uses to decide
+		// what is shimmable in the first place.
+		info, statErr := os.Stat(config.ShimPath(name))
+		if statErr != nil || info.IsDir() {
+			continue
+		}
+		if runtime.GOOS != constants.OSWindows && info.Mode()&0111 == 0 {
+			continue
+		}
+
+		if err := m.RemoveShim(name); err != nil {
+			failures = append(failures, PruneFailure{Name: name, Err: err})
+			continue
+		}
+		removed = append(removed, name)
+	}
+
+	sort.Strings(removed)
+	return removed, failures
 }
 
 // Rehash regenerates all shims by scanning installed versions (no progress callback)
