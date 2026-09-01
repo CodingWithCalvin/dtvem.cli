@@ -5,8 +5,10 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"testing"
 
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 	runtimepkg "github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 )
@@ -456,6 +458,230 @@ func platformExeName(name string) string {
 		return name + constants.ExtExe
 	}
 	return name
+}
+
+// newShimsTestManager points dtvem at a temp root, creates the shims
+// directory, and returns a Manager backed by a stub dtvem-shim source
+// along with the shims directory path.
+//
+// Both config.DefaultPaths and the shim-map cache memoize on first use,
+// so each is dropped on the way in (to pick up DTVEM_ROOT) and again on
+// the way out (so the next test isn't left pointing at this temp root).
+func newShimsTestManager(t *testing.T) (*Manager, string) {
+	t.Helper()
+
+	tmpRoot := t.TempDir()
+	t.Setenv("HOME", tmpRoot)
+	t.Setenv("USERPROFILE", tmpRoot)
+	t.Setenv("DTVEM_ROOT", tmpRoot)
+
+	config.ResetPathsCache()
+	t.Cleanup(config.ResetPathsCache)
+	ResetShimMapCache()
+	t.Cleanup(ResetShimMapCache)
+
+	shimsDir := config.DefaultPaths().Shims
+	if err := os.MkdirAll(shimsDir, 0755); err != nil {
+		t.Fatalf("Failed to create shims directory: %v", err)
+	}
+
+	shimSource := filepath.Join(tmpRoot, platformExeName("dtvem-shim"))
+	writeExecutable(t, shimSource)
+
+	return &Manager{shimSource: shimSource}, shimsDir
+}
+
+func TestPruneOrphanShims_RemovesUnbackedShims(t *testing.T) {
+	m, shimsDir := newShimsTestManager(t)
+
+	for _, name := range []string{"python", "pip", "ruff", "pytest"} {
+		writeExecutable(t, filepath.Join(shimsDir, platformExeName(name)))
+	}
+
+	keep := ShimMap{
+		"python": {Runtime: "python", Versions: []string{"3.13.11"}},
+		"pip":    {Runtime: "python", Versions: []string{"3.13.11"}},
+	}
+
+	removed, failures := m.pruneOrphanShims(keep)
+
+	if len(failures) != 0 {
+		t.Fatalf("pruneOrphanShims() failures = %v, want none", failures)
+	}
+	want := []string{"pytest", "ruff"}
+	if !reflect.DeepEqual(removed, want) {
+		t.Errorf("pruneOrphanShims() removed = %v, want %v", removed, want)
+	}
+
+	for _, name := range want {
+		if _, err := os.Stat(filepath.Join(shimsDir, platformExeName(name))); !os.IsNotExist(err) {
+			t.Errorf("orphan shim %q should have been deleted", name)
+		}
+	}
+	for name := range keep {
+		if _, err := os.Stat(filepath.Join(shimsDir, platformExeName(name))); err != nil {
+			t.Errorf("backed shim %q should have been kept: %v", name, err)
+		}
+	}
+}
+
+// TestPruneOrphanShims_RemovesCmdCompanion covers the Windows pairing:
+// CreateShim writes both name.exe and a name.cmd wrapper, so pruning has
+// to take the wrapper with it or `where.exe` keeps reporting a shim that
+// no longer resolves.
+func TestPruneOrphanShims_RemovesCmdCompanion(t *testing.T) {
+	if runtime.GOOS != constants.OSWindows {
+		t.Skip("Only Windows shims have a .cmd companion")
+	}
+
+	m, shimsDir := newShimsTestManager(t)
+	writeExecutable(t, filepath.Join(shimsDir, "python.exe"))
+	writeExecutable(t, filepath.Join(shimsDir, "ruff.exe"))
+	writeExecutable(t, filepath.Join(shimsDir, "ruff.cmd"))
+
+	removed, failures := m.pruneOrphanShims(ShimMap{"python": {Runtime: "python"}})
+
+	if len(failures) != 0 {
+		t.Fatalf("pruneOrphanShims() failures = %v, want none", failures)
+	}
+	if !reflect.DeepEqual(removed, []string{"ruff"}) {
+		t.Fatalf("pruneOrphanShims() removed = %v, want [ruff]", removed)
+	}
+	for _, file := range []string{"ruff.exe", "ruff.cmd"} {
+		if _, err := os.Stat(filepath.Join(shimsDir, file)); !os.IsNotExist(err) {
+			t.Errorf("%s should have been deleted", file)
+		}
+	}
+}
+
+// TestPruneOrphanShims_ProtectsDtvemBinaries guards the worst possible
+// prune: installs before 0.4 kept dtvem-shim in shims/ rather than bin/,
+// and deleting it would break every other shim on the machine.
+func TestPruneOrphanShims_ProtectsDtvemBinaries(t *testing.T) {
+	m, shimsDir := newShimsTestManager(t)
+
+	protected := []string{"dtvem", "dtvem-shim"}
+	for _, name := range protected {
+		writeExecutable(t, filepath.Join(shimsDir, platformExeName(name)))
+	}
+
+	removed, failures := m.pruneOrphanShims(ShimMap{"python": {Runtime: "python"}})
+
+	if len(removed) != 0 || len(failures) != 0 {
+		t.Fatalf("pruneOrphanShims() removed = %v, failures = %v; want both empty", removed, failures)
+	}
+	for _, name := range protected {
+		if _, err := os.Stat(filepath.Join(shimsDir, platformExeName(name))); err != nil {
+			t.Errorf("%q must never be pruned: %v", name, err)
+		}
+	}
+}
+
+// TestPruneOrphanShims_LeavesNonShimFilesAlone checks that a stray file
+// in shims/ survives. ListShims derives bare names by trimming a trailing
+// extension, so notes.txt surfaces as "notes" and would otherwise look
+// like an orphan shim.
+func TestPruneOrphanShims_LeavesNonShimFilesAlone(t *testing.T) {
+	m, shimsDir := newShimsTestManager(t)
+
+	notes := filepath.Join(shimsDir, "notes.txt")
+	if err := os.WriteFile(notes, []byte("not a shim"), 0644); err != nil {
+		t.Fatalf("Failed to write notes.txt: %v", err)
+	}
+
+	removed, failures := m.pruneOrphanShims(ShimMap{"python": {Runtime: "python"}})
+
+	if len(removed) != 0 || len(failures) != 0 {
+		t.Fatalf("pruneOrphanShims() removed = %v, failures = %v; want both empty", removed, failures)
+	}
+	if _, err := os.Stat(notes); err != nil {
+		t.Errorf("notes.txt should not have been deleted: %v", err)
+	}
+}
+
+// TestRehashWithCallback_PrunesOrphans is the regression test for #273.
+// Reshim used to only ever add shim files, so a shim whose backing
+// executable was gone stayed on disk forever — leaving `dtvem doctor`
+// reporting cache/disk drift that `dtvem reshim` could never clear.
+func TestRehashWithCallback_PrunesOrphans(t *testing.T) {
+	m, shimsDir := newShimsTestManager(t)
+
+	// One installed Python, providing only `python`.
+	versionDir := filepath.Join(config.DefaultPaths().Versions, "python", "3.13.11")
+	execDir := versionDir
+	if runtime.GOOS != constants.OSWindows {
+		execDir = filepath.Join(versionDir, "bin")
+	}
+	if err := os.MkdirAll(execDir, 0755); err != nil {
+		t.Fatalf("Failed to create version directory: %v", err)
+	}
+	writeExecutable(t, filepath.Join(execDir, platformExeName("python")))
+
+	// A shim left behind by a pip package that has since been removed.
+	writeExecutable(t, filepath.Join(shimsDir, platformExeName("ruff")))
+
+	result, err := m.RehashWithCallback(nil)
+	if err != nil {
+		t.Fatalf("RehashWithCallback() error: %v", err)
+	}
+
+	if !reflect.DeepEqual(result.RemovedShims, []string{"ruff"}) {
+		t.Errorf("RemovedShims = %v, want [ruff]", result.RemovedShims)
+	}
+	if len(result.PruneFailures) != 0 {
+		t.Errorf("PruneFailures = %v, want none", result.PruneFailures)
+	}
+	if _, err := os.Stat(filepath.Join(shimsDir, platformExeName("ruff"))); !os.IsNotExist(err) {
+		t.Error("orphan shim ruff should have been deleted")
+	}
+	if _, err := os.Stat(filepath.Join(shimsDir, platformExeName("python"))); err != nil {
+		t.Errorf("python shim should have been created: %v", err)
+	}
+
+	// The cache and the shims directory must now agree — exactly the
+	// condition doctor checks, and the one reshim could not reach.
+	cache, err := loadShimMapFromDisk()
+	if err != nil {
+		t.Fatalf("loadShimMapFromDisk() error: %v", err)
+	}
+	onDisk, err := m.ListShims()
+	if err != nil {
+		t.Fatalf("ListShims() error: %v", err)
+	}
+	sort.Strings(onDisk)
+
+	if len(cache) != len(onDisk) {
+		t.Errorf("cache (%d entries) and disk (%v) disagree", len(cache), onDisk)
+	}
+	for _, name := range onDisk {
+		if _, ok := cache[name]; !ok {
+			t.Errorf("shim %q on disk is missing from the cache", name)
+		}
+	}
+}
+
+// TestRehashWithCallback_EmptyScanKeepsShims verifies the guard around
+// pruning: when the scan finds nothing, that signals a broken or
+// unreadable versions tree rather than "everything was uninstalled", and
+// wiping every shim on that signal would turn a recoverable state into a
+// broken one.
+func TestRehashWithCallback_EmptyScanKeepsShims(t *testing.T) {
+	m, shimsDir := newShimsTestManager(t)
+
+	// A runtime directory with a version that contains no executables.
+	versionDir := filepath.Join(config.DefaultPaths().Versions, "python", "3.13.11")
+	if err := os.MkdirAll(versionDir, 0755); err != nil {
+		t.Fatalf("Failed to create version directory: %v", err)
+	}
+	writeExecutable(t, filepath.Join(shimsDir, platformExeName("python")))
+
+	if _, err := m.RehashWithCallback(nil); err == nil {
+		t.Fatal("RehashWithCallback() should error when no executables are found")
+	}
+
+	if _, err := os.Stat(filepath.Join(shimsDir, platformExeName("python"))); err != nil {
+		t.Errorf("existing shim should survive an empty scan: %v", err)
+	}
 }
 
 func TestDiscoverShimsForVersion_EmptyDir(t *testing.T) {

@@ -19,6 +19,10 @@ var reshimCmd = &cobra.Command{
 	Long: `Regenerate shim binaries for all installed runtime versions.
 
 This command scans all installed runtimes and creates shims for their executables.
+It also removes orphan shims — leftover shims whose executable is no longer
+provided by any installed version, such as a pip or npm package that has since
+been uninstalled.
+
 Run this command after installing new versions or if shims become corrupted.
 
 Example:
@@ -91,6 +95,18 @@ Example:
 		fmt.Println(table.Render())
 		fmt.Println()
 		ui.Success("Created %d shims for %d runtime(s)", result.TotalShims, len(result.ShimsByRuntime))
+
+		if len(result.RemovedShims) > 0 {
+			ui.Info("Removed %d orphan shim(s): %s",
+				len(result.RemovedShims), strings.Join(result.RemovedShims, ", "))
+		}
+
+		// A shim that is running right now can't be deleted on Windows.
+		// Name each one so the user knows what to retry rather than
+		// seeing doctor keep reporting drift with no explanation.
+		for _, failure := range result.PruneFailures {
+			ui.Warning("Could not remove orphan shim '%s': %v", failure.Name, failure.Err)
+		}
 	},
 }
 
