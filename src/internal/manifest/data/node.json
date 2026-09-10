@@ -19305,6 +19305,38 @@
         "sha256_source": "upstream"
       }
     },
+    "26.8.2": {
+      "darwin-amd64": {
+        "url": "https://builds.dtvem.io/node/26.8.2/darwin-amd64.tar.gz",
+        "sha256": "adb8feb2d4987df3d72d2ec46f4fc4b58039c859b8c3f0e3cc2d3c6cbaf8629c",
+        "sha256_source": "upstream"
+      },
+      "darwin-arm64": {
+        "url": "https://builds.dtvem.io/node/26.8.2/darwin-arm64.tar.gz",
+        "sha256": "974b6d5fb2fc7c33ff2354db0902b4e91c2de01ec8acc6de48e543c97e18c9e1",
+        "sha256_source": "upstream"
+      },
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/node/26.8.2/linux-amd64.tar.gz",
+        "sha256": "badb3fe6a61b85e1352ca6564dc56b8b7bd5ecd5c474c52acc21dd0cdd586f35",
+        "sha256_source": "upstream"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/node/26.8.2/linux-arm64.tar.gz",
+        "sha256": "746cdbf21565b4ea06f77642bb0e85466de8bb722242be2c5e006f272c361c63",
+        "sha256_source": "upstream"
+      },
+      "windows-amd64": {
+        "url": "https://builds.dtvem.io/node/26.8.2/windows-amd64.zip",
+        "sha256": "cf02f5d0c06c794b84f277177d5cf3743d0924ca49f6641cd435dd7cb6ee9085",
+        "sha256_source": "upstream"
+      },
+      "windows-arm64": {
+        "url": "https://builds.dtvem.io/node/26.8.2/windows-arm64.zip",
+        "sha256": "a4e8362e268f1fcf1735f046e0adb088b28eeb400fb1c33fe5cc94d1a3d42570",
+        "sha256_source": "upstream"
+      }
+    },
     "4.0.0": {
       "darwin-amd64": {
         "url": "https://builds.dtvem.io/node/4.0.0/darwin-amd64.tar.gz",
