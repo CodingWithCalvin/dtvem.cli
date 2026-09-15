@@ -3121,6 +3121,25 @@
         "sha256": "328d7a86bea2f4c432783025050c9ffa1c36fcfc54ebccc466b63450ec3af223",
         "sha256_source": "dtvem"
       }
+    },
+    "4.0.7": {
+      "linux-amd64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.7/linux-amd64.tar.gz",
+        "sha256": "b883d4cbd5b10dcb65c92bb258273e14701cd88483c79129d1c6b8c0fff5eb7f",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "linux-arm64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.7/linux-arm64.tar.gz",
+        "sha256": "f09946e576860f4568030efd02ca3bbf0d1bce77df768b1eeed1c860d526ec26",
+        "sha256_source": "dtvem",
+        "source": "built-from-source"
+      },
+      "windows-amd64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.7/windows-amd64.7z",
+        "sha256": "7a9be96d3448ecbd9a81eccae1f619131dfcc761f2c98dded03ece6c05d0474f",
+        "sha256_source": "dtvem"
+      }
     }
   }
 }
