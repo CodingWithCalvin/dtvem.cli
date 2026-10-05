@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -120,17 +121,20 @@ func main() {
 		}
 	}
 
-	// Collect all jobs from upstream sources
+	// Collect all jobs from upstream sources. A failing source is reported at
+	// the end rather than aborting, so jobs from healthy sources still mirror.
 	var jobs []MirrorJob
+	var fetchErrs []error
 	for _, rt := range runtimes {
 		fmt.Printf("Discovering %s versions from upstream...\n", rt)
 		rtJobs, err := fetchJobsFromUpstream(rt)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error fetching upstream versions for %s: %v\n", rt, err)
-			os.Exit(1)
+			fetchErrs = append(fetchErrs, err)
 		}
 		jobs = append(jobs, rtJobs...)
 	}
+	fetchErr := errors.Join(fetchErrs...)
 
 	fmt.Printf("Total jobs to process: %d\n", len(jobs))
 
@@ -150,6 +154,7 @@ func main() {
 		}
 		fmt.Printf("\nTotal: %d files (%d with upstream checksum, %d will generate)\n",
 			len(jobs), withChecksum, withoutChecksum)
+		exitOnFetchError(fetchErr)
 		return
 	}
 
@@ -172,6 +177,7 @@ func main() {
 
 	if len(jobs) == 0 {
 		fmt.Println("No files to mirror")
+		exitOnFetchError(fetchErr)
 		return
 	}
 
@@ -188,7 +194,18 @@ func main() {
 	fmt.Printf("Upstream checksums: %d\n", stats.UpstreamChecksum)
 	fmt.Printf("Generated checksums: %d\n", stats.GeneratedChecksum)
 
+	exitOnFetchError(fetchErr)
 	if stats.Failed > 0 {
+		os.Exit(1)
+	}
+}
+
+// exitOnFetchError exits non-zero when any upstream source failed to fetch.
+// Without this a broken source mirrors nothing while the workflow still
+// reports success, hiding missing versions indefinitely.
+func exitOnFetchError(err error) {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "\nUpstream fetch failed: %v\n", err)
 		os.Exit(1)
 	}
 }

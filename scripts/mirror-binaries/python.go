@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"regexp"
 	"strings"
 )
@@ -33,22 +34,22 @@ var pythonStandalonePattern = regexp.MustCompile(
 	`^cpython-(\d+\.\d+\.\d+)\+\d+-([^-]+-[^-]+-[^-]+(?:-[^-]+)?)-install_only\.(tar\.gz|tar\.zst)$`,
 )
 
+const (
+	pythonStandaloneReleasesURL = "https://api.github.com/repos/astral-sh/python-build-standalone/releases"
+
+	// pythonStandalonePageSize is kept small because each release lists ~900
+	// assets (~2MB of JSON). Pages of 50 or more make the GitHub API time out
+	// with HTTP 504.
+	pythonStandalonePageSize = 10
+
+	// pythonStandaloneMaxReleases bounds how far back in release history to look.
+	pythonStandaloneMaxReleases = 100
+)
+
 func (s *PythonStandaloneSource) FetchVersions() ([]MirrorJob, error) {
-	// Fetch releases from GitHub API with retries
-	url := "https://api.github.com/repos/astral-sh/python-build-standalone/releases?per_page=100"
-	resp, err := httpGetWithRetry(url, 3)
+	releases, err := fetchGitHubReleases(pythonStandaloneReleasesURL, pythonStandalonePageSize, pythonStandaloneMaxReleases)
 	if err != nil {
-		return nil, fmt.Errorf("fetching releases: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("fetching releases: HTTP %d", resp.StatusCode)
-	}
-
-	var releases []githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		return nil, fmt.Errorf("parsing releases: %w", err)
+		return nil, err
 	}
 
 	var jobs []MirrorJob
@@ -96,6 +97,75 @@ func (s *PythonStandaloneSource) FetchVersions() ([]MirrorJob, error) {
 	}
 
 	return jobs, nil
+}
+
+// fetchGitHubReleases fetches up to maxReleases releases (newest first) from a
+// GitHub releases API URL, following the Link header across pages of pageSize.
+func fetchGitHubReleases(releasesURL string, pageSize, maxReleases int) ([]githubRelease, error) {
+	var releases []githubRelease
+	url := fmt.Sprintf("%s?per_page=%d", releasesURL, pageSize)
+
+	for page := 1; url != "" && len(releases) < maxReleases; page++ {
+		pageReleases, next, err := fetchGitHubReleasesPage(url)
+		if err != nil {
+			return nil, fmt.Errorf("page %d: %w", page, err)
+		}
+
+		releases = append(releases, pageReleases...)
+		url = next
+	}
+
+	if len(releases) > maxReleases {
+		releases = releases[:maxReleases]
+	}
+
+	return releases, nil
+}
+
+// fetchGitHubReleasesPage fetches a single page of releases and returns it
+// along with the URL of the next page ("" on the last page).
+func fetchGitHubReleasesPage(url string) ([]githubRelease, string, error) {
+	resp, err := httpGetWithRetry(url, 3)
+	if err != nil {
+		return nil, "", fmt.Errorf("fetching releases: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("fetching releases: HTTP %d", resp.StatusCode)
+	}
+
+	var releases []githubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+		return nil, "", fmt.Errorf("parsing releases: %w", err)
+	}
+
+	return releases, nextPageURL(resp.Header.Get("Link")), nil
+}
+
+// nextPageURL extracts the rel="next" target from a GitHub Link header, e.g.
+// `<https://api.github.com/...&page=2>; rel="next", <...>; rel="last"`.
+// It returns "" on the last page.
+func nextPageURL(linkHeader string) string {
+	for _, link := range strings.Split(linkHeader, ",") {
+		target, params, found := strings.Cut(link, ";")
+		if !found {
+			continue
+		}
+
+		target = strings.TrimSpace(target)
+		if !strings.HasPrefix(target, "<") || !strings.HasSuffix(target, ">") {
+			continue
+		}
+
+		for _, param := range strings.Split(params, ";") {
+			if strings.TrimSpace(param) == `rel="next"` {
+				return target[1 : len(target)-1]
+			}
+		}
+	}
+
+	return ""
 }
 
 func (s *PythonStandaloneSource) fetchShasums(release githubRelease) map[string]string {
