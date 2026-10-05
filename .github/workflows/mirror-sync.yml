@@ -48,6 +48,7 @@ jobs:
           R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUILDS_BUCKET }}
           R2_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           R2_SECRET_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./scripts/mirror-binaries/mirror-binaries \
             --runtime=${{ matrix.runtime }} \
