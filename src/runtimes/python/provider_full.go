@@ -29,8 +29,8 @@ import (
 func (p *Provider) downloadAndExtract(version, downloadURL, archiveName string) (extractDir string, cleanup func(), err error) {
 	ui.Progress("Downloading from %s", downloadURL)
 
-	tempDir := filepath.Join(os.TempDir(), fmt.Sprintf("dtvem-python-%s", version))
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
+	tempDir, err := config.CreateStagingDir("python", version)
+	if err != nil {
 		return "", nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 

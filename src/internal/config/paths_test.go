@@ -48,6 +48,96 @@ func TestGetPaths(t *testing.T) {
 	if !strings.HasPrefix(paths.Config, paths.Root) {
 		t.Errorf("Config path %q should be under Root %q", paths.Config, paths.Root)
 	}
+	if !strings.HasPrefix(paths.Temp, paths.Root) {
+		t.Errorf("Temp path %q should be under Root %q", paths.Temp, paths.Root)
+	}
+}
+
+// useTempRoot points DTVEM_ROOT at a fresh temp directory for the duration of
+// the test and returns it.
+func useTempRoot(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	t.Setenv("DTVEM_ROOT", root)
+	resetPathsForTesting()
+	t.Cleanup(resetPathsForTesting)
+	return root
+}
+
+func TestStagingPath(t *testing.T) {
+	root := useTempRoot(t)
+
+	got := StagingPath("node", "24.22.0")
+	want := filepath.Join(root, "tmp", "node-24.22.0")
+	if got != want {
+		t.Errorf("StagingPath(%q, %q) = %q, want %q", "node", "24.22.0", got, want)
+	}
+}
+
+func TestStagingPath_SameVolumeAsVersions(t *testing.T) {
+	// Installs finish with os.Rename from the staging path to the version
+	// path, which fails across drives on Windows (issue #278). Both must
+	// resolve under the dtvem root, never the OS temp directory.
+	root := useTempRoot(t)
+
+	staging := StagingPath("python", "3.12.0")
+	install := RuntimeVersionPath("python", "3.12.0")
+
+	if filepath.VolumeName(staging) != filepath.VolumeName(install) {
+		t.Errorf("StagingPath volume %q differs from RuntimeVersionPath volume %q",
+			filepath.VolumeName(staging), filepath.VolumeName(install))
+	}
+	if !strings.HasPrefix(staging, root) {
+		t.Errorf("StagingPath() = %q, should be under root %q", staging, root)
+	}
+	if strings.HasPrefix(staging, DefaultPaths().Versions) {
+		t.Errorf("StagingPath() = %q, should not be under the versions directory", staging)
+	}
+}
+
+func TestCreateStagingDir(t *testing.T) {
+	useTempRoot(t)
+
+	dir, err := CreateStagingDir("ruby", "3.3.0")
+	if err != nil {
+		t.Fatalf("CreateStagingDir() error: %v", err)
+	}
+	if want := StagingPath("ruby", "3.3.0"); dir != want {
+		t.Errorf("CreateStagingDir() = %q, want %q", dir, want)
+	}
+
+	info, err := os.Stat(dir)
+	if err != nil {
+		t.Fatalf("staging directory was not created: %v", err)
+	}
+	if !info.IsDir() {
+		t.Errorf("staging path %q is not a directory", dir)
+	}
+}
+
+func TestCreateStagingDir_RemovesLeftovers(t *testing.T) {
+	useTempRoot(t)
+
+	stale := filepath.Join(StagingPath("node", "22.0.0"), "extracted", "node.exe")
+	if err := os.MkdirAll(filepath.Dir(stale), 0755); err != nil {
+		t.Fatalf("failed to create stale directory: %v", err)
+	}
+	if err := os.WriteFile(stale, []byte("stale"), 0644); err != nil {
+		t.Fatalf("failed to create stale file: %v", err)
+	}
+
+	dir, err := CreateStagingDir("node", "22.0.0")
+	if err != nil {
+		t.Fatalf("CreateStagingDir() error: %v", err)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("failed to read staging directory: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("CreateStagingDir() left %d stale entries in %q", len(entries), dir)
+	}
 }
 
 func TestRuntimeVersionPath(t *testing.T) {

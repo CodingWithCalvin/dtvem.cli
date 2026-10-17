@@ -17,6 +17,7 @@ type Paths struct {
 	Versions string // Versions directory (~/.dtvem/versions)
 	Config   string // Config directory (~/.dtvem/config)
 	Cache    string // Cache directory (~/.dtvem/cache)
+	Temp     string // Staging directory for in-progress installs (~/.dtvem/tmp)
 }
 
 var (
@@ -42,6 +43,7 @@ func initPaths() *Paths {
 		Versions: filepath.Join(root, "versions"),
 		Config:   filepath.Join(root, "config"),
 		Cache:    filepath.Join(root, "cache"),
+		Temp:     filepath.Join(root, "tmp"),
 	}
 }
 
@@ -109,6 +111,31 @@ func getXDGDataPath(home string) string {
 func RuntimeVersionPath(runtimeName, version string) string {
 	paths := DefaultPaths()
 	return filepath.Join(paths.Versions, runtimeName, version)
+}
+
+// StagingPath returns the scratch directory used to download and extract a
+// runtime version before it is moved into the versions directory.
+//
+// It lives under the dtvem root rather than the OS temp directory so the final
+// move is a same-volume rename: os.Rename cannot move a directory across drives
+// on Windows, or across filesystems on Unix (e.g. a tmpfs-backed /tmp).
+func StagingPath(runtimeName, version string) string {
+	paths := DefaultPaths()
+	return filepath.Join(paths.Temp, runtimeName+"-"+version)
+}
+
+// CreateStagingDir creates an empty staging directory for a runtime version
+// and returns its path. Leftovers from an earlier interrupted install are
+// removed first, since nothing else cleans up the dtvem root.
+func CreateStagingDir(runtimeName, version string) (string, error) {
+	dir := StagingPath(runtimeName, version)
+	if err := os.RemoveAll(dir); err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	return dir, nil
 }
 
 // GlobalConfigPath returns the path to the global config file
