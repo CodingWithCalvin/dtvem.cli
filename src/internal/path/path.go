@@ -314,33 +314,94 @@ func ShimsDir() string {
 // This prevents detecting our own shims as "system" installations during migration detection.
 // Returns the full path to the executable, or empty string if not found.
 func LookPathExcludingShims(execName string) string {
-	// Get the shims directory to exclude it from search
-	shimsDir := ShimsDir()
+	return lookPathExcluding(execName, "")
+}
 
-	// Get PATH environment variable
+// LookPathExcludingSelf searches PATH like LookPathExcludingShims, and also
+// skips the directory containing self and any candidate that is the same
+// file as self.
+//
+// A shim uses this for its PATH fallback. ShimsDir is computed from the
+// environment (DTVEM_ROOT, otherwise the home directory), so when a process
+// runs with a different home than the one the shims on PATH were installed
+// under, ShimsDir names some other directory and the shim would find
+// itself. Excluding the shim's own location holds whatever the environment
+// says.
+func LookPathExcludingSelf(execName, self string) string {
+	return lookPathExcluding(execName, self)
+}
+
+// lookPathExcluding searches PATH for execName, skipping the shims directory
+// and, when self is set, self's directory and any candidate that is self.
+func lookPathExcluding(execName, self string) string {
 	pathEnv := os.Getenv("PATH")
 	if pathEnv == "" {
 		return ""
 	}
 
-	// Split PATH into directories
-	pathDirs := filepath.SplitList(pathEnv)
+	skipDirs := []string{ShimsDir()}
+	if self != "" {
+		skipDirs = append(skipDirs, filepath.Dir(self))
+	}
 
-	// Search each directory
-	for _, dir := range pathDirs {
-		// Skip the dtvem shims directory (case-insensitive on Windows)
-		if strings.EqualFold(dir, shimsDir) {
+	for _, dir := range filepath.SplitList(pathEnv) {
+		if isAnyDir(dir, skipDirs) {
 			continue
 		}
 
-		// Try to find the executable in this directory
 		candidatePath := findExecutableInDir(dir, execName)
-		if candidatePath != "" {
-			return candidatePath
+		if candidatePath == "" {
+			continue
 		}
+		if self != "" && SameFile(candidatePath, self) {
+			continue
+		}
+		return candidatePath
 	}
 
 	return ""
+}
+
+// isAnyDir reports whether dir names the same directory as any of dirs.
+func isAnyDir(dir string, dirs []string) bool {
+	for _, d := range dirs {
+		if isSameDir(dir, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// isSameDir reports whether a and b name the same directory. Paths that
+// differ only in case or cleaning (a trailing separator, "." segments) match
+// without touching the disk; otherwise both are stat'ed so that different
+// spellings of one directory, such as a Windows 8.3 short name or a
+// symlinked path, still match.
+func isSameDir(a, b string) bool {
+	if a == "" || b == "" {
+		return false
+	}
+	if strings.EqualFold(filepath.Clean(a), filepath.Clean(b)) {
+		return true
+	}
+	return SameFile(a, b)
+}
+
+// SameFile reports whether a and b refer to the same file or directory on
+// disk. It returns false when either path is empty or cannot be stat'ed.
+func SameFile(a, b string) bool {
+	if a == "" || b == "" {
+		return false
+	}
+	infoA, err := os.Stat(a)
+	if err != nil {
+		return false
+	}
+	infoB, err := os.Stat(b)
+	if err != nil {
+		return false
+	}
+	return os.SameFile(infoA, infoB)
 }
 
 // findExecutableInDir looks for an executable with the given name in a directory.

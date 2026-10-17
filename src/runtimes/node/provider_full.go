@@ -43,8 +43,8 @@ func (p *Provider) Install(version string) error {
 
 	ui.Progress("Downloading from %s", downloadURL)
 
-	tempDir := filepath.Join(os.TempDir(), fmt.Sprintf("dtvem-node-%s", version))
-	if err := os.MkdirAll(tempDir, 0755); err != nil {
+	tempDir, err := config.CreateStagingDir("node", version)
+	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(tempDir) }()
