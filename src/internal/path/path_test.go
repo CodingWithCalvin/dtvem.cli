@@ -372,6 +372,163 @@ func TestLookPathExcludingShims_SkipsShimsDir(t *testing.T) {
 	})
 }
 
+// writeTestExecutable creates a dummy executable named name in dir, with the
+// .exe extension on Windows, and returns its path.
+func writeTestExecutable(t *testing.T, dir, name string) string {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("Failed to create %s: %v", dir, err)
+	}
+	if runtime.GOOS == constants.OSWindows {
+		name += constants.ExtExe
+	}
+	p := filepath.Join(dir, name)
+	if err := os.WriteFile(p, []byte(dir), 0755); err != nil {
+		t.Fatalf("Failed to create %s: %v", p, err)
+	}
+	return p
+}
+
+func TestLookPathExcludingSelf(t *testing.T) {
+	tempDir := t.TempDir()
+	// ShimsDir() points at a different install than the one on PATH, as it
+	// does when a process runs with a redirected home directory.
+	t.Setenv("DTVEM_ROOT", filepath.Join(tempDir, "other-root"))
+
+	execName := "selftest"
+	shimsDir := filepath.Join(tempDir, "install", "shims")
+	systemDir := filepath.Join(tempDir, "system")
+	self := writeTestExecutable(t, shimsDir, execName)
+	systemExec := writeTestExecutable(t, systemDir, execName)
+
+	t.Run("skips its own directory and finds the system install", func(t *testing.T) {
+		t.Setenv("PATH", strings.Join([]string{shimsDir, systemDir}, string(os.PathListSeparator)))
+
+		if got := LookPathExcludingSelf(execName, self); got != systemExec {
+			t.Errorf("LookPathExcludingSelf(%q, %q) = %q, want %q", execName, self, got, systemExec)
+		}
+	})
+
+	t.Run("returns empty when only its own directory has the executable", func(t *testing.T) {
+		t.Setenv("PATH", shimsDir)
+
+		if got := LookPathExcludingSelf(execName, self); got != "" {
+			t.Errorf("LookPathExcludingSelf(%q, %q) = %q, want empty", execName, self, got)
+		}
+	})
+
+	t.Run("skips a hard link to itself in another directory", func(t *testing.T) {
+		linkDir := filepath.Join(tempDir, "linked")
+		if err := os.MkdirAll(linkDir, 0755); err != nil {
+			t.Fatalf("Failed to create link dir: %v", err)
+		}
+		link := filepath.Join(linkDir, filepath.Base(self))
+		if err := os.Link(self, link); err != nil {
+			t.Skipf("hard links not supported here: %v", err)
+		}
+		t.Setenv("PATH", strings.Join([]string{linkDir, systemDir}, string(os.PathListSeparator)))
+
+		if got := LookPathExcludingSelf(execName, self); got != systemExec {
+			t.Errorf("LookPathExcludingSelf(%q, %q) = %q, want %q", execName, self, got, systemExec)
+		}
+	})
+
+	t.Run("without a self path the mismatched shims directory is not skipped", func(t *testing.T) {
+		t.Setenv("PATH", strings.Join([]string{shimsDir, systemDir}, string(os.PathListSeparator)))
+
+		// This is the lookup that made a shim launch itself.
+		if got := LookPathExcludingSelf(execName, ""); got != self {
+			t.Errorf("LookPathExcludingSelf(%q, \"\") = %q, want %q", execName, got, self)
+		}
+	})
+}
+
+func TestLookPathExcludingShims_SkipsShimsDirSpelledDifferently(t *testing.T) {
+	tempDir := t.TempDir()
+	root := filepath.Join(tempDir, "root")
+	t.Setenv("DTVEM_ROOT", root)
+
+	execName := "spelltest"
+	shimsDir := filepath.Join(root, "shims")
+	systemDir := filepath.Join(tempDir, "system")
+	writeTestExecutable(t, shimsDir, execName)
+	systemExec := writeTestExecutable(t, systemDir, execName)
+
+	tests := []struct {
+		name     string
+		shimsDir string
+	}{
+		{name: "trailing separator", shimsDir: shimsDir + string(os.PathSeparator)},
+		{name: "dot segment", shimsDir: filepath.Join(root, ".") + string(os.PathSeparator) + "." + string(os.PathSeparator) + "shims"},
+	}
+
+	if runtime.GOOS == constants.OSWindows {
+		tests = append(tests, struct {
+			name     string
+			shimsDir string
+		}{name: "different case", shimsDir: strings.ToUpper(shimsDir)})
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PATH", strings.Join([]string{tt.shimsDir, systemDir}, string(os.PathListSeparator)))
+
+			if got := LookPathExcludingShims(execName); got != systemExec {
+				t.Errorf("LookPathExcludingShims(%q) with PATH entry %q = %q, want %q", execName, tt.shimsDir, got, systemExec)
+			}
+		})
+	}
+
+	t.Run("symlinked directory", func(t *testing.T) {
+		alias := filepath.Join(tempDir, "alias")
+		if err := os.Symlink(shimsDir, alias); err != nil {
+			t.Skipf("symlinks not supported here: %v", err)
+		}
+		t.Setenv("PATH", strings.Join([]string{alias, systemDir}, string(os.PathListSeparator)))
+
+		if got := LookPathExcludingShims(execName); got != systemExec {
+			t.Errorf("LookPathExcludingShims(%q) with PATH entry %q = %q, want %q", execName, alias, got, systemExec)
+		}
+	})
+}
+
+func TestSameFile(t *testing.T) {
+	tempDir := t.TempDir()
+	a := writeTestExecutable(t, filepath.Join(tempDir, "a"), "file")
+	b := writeTestExecutable(t, filepath.Join(tempDir, "b"), "file")
+
+	tests := []struct {
+		name string
+		x, y string
+		want bool
+	}{
+		{name: "same path", x: a, y: a, want: true},
+		{name: "same file spelled differently", x: a, y: filepath.Join(tempDir, "b", "..", "a", filepath.Base(a)), want: true},
+		{name: "same directory", x: filepath.Join(tempDir, "a"), y: filepath.Join(tempDir, "a") + string(os.PathSeparator), want: true},
+		{name: "different files", x: a, y: b, want: false},
+		{name: "missing file", x: a, y: filepath.Join(tempDir, "missing"), want: false},
+		{name: "empty path", x: a, y: "", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := SameFile(tt.x, tt.y); got != tt.want {
+				t.Errorf("SameFile(%q, %q) = %v, want %v", tt.x, tt.y, got, tt.want)
+			}
+		})
+	}
+
+	t.Run("hard link", func(t *testing.T) {
+		link := filepath.Join(tempDir, "link")
+		if err := os.Link(a, link); err != nil {
+			t.Skipf("hard links not supported here: %v", err)
+		}
+		if !SameFile(a, link) {
+			t.Errorf("SameFile(%q, %q) = false, want true", a, link)
+		}
+	})
+}
+
 func TestIsDtvemShimsPath(t *testing.T) {
 	// Platform-specific path separator handling: filepath.Join produces
 	// backslashes on Windows and forward slashes on Unix, which matches what

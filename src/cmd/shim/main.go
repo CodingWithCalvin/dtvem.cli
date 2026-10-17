@@ -33,11 +33,25 @@ func main() {
 	}
 }
 
+// fallbackEnvVar names the environment variable a shim sets before handing
+// off to an executable found on PATH. Its value is the path being launched,
+// which lets a shim tell that it was itself the target of that hand-off.
+const fallbackEnvVar = "DTVEM_SHIM_FALLBACK"
+
 func runShim() error {
 	// Get the name of this shim (e.g., "python", "node", "npm")
 	shimName := getShimName()
 	ui.Debug("Shim invoked: %s", shimName)
 	ui.Debug("Arguments: %v", os.Args[1:])
+
+	// Stop if a shim's PATH fallback launched this shim. Running on would
+	// fail to resolve the same way and fall back again, one process per
+	// hop, without end.
+	if target := os.Getenv(fallbackEnvVar); target != "" {
+		if self := selfPath(); path.SameFile(target, self) {
+			return fallbackLoopError(shimName, self)
+		}
+	}
 
 	// Determine which runtime this shim belongs to
 	runtimeName, known := mapShimToRuntime(shimName)
@@ -147,7 +161,7 @@ func runShim() error {
 // It attempts to fallback to system PATH or prompts for installation
 func handleNoConfiguredVersion(shimName, runtimeName string, provider runtime.ShimProvider) error {
 	// Try to find the executable deeper in PATH (system installation)
-	systemPath := path.LookPathExcludingShims(shimName)
+	systemPath := path.LookPathExcludingSelf(shimName, selfPath())
 
 	if systemPath != "" {
 		// Found system installation - use it
@@ -158,7 +172,7 @@ func handleNoConfiguredVersion(shimName, runtimeName string, provider runtime.Sh
 		fmt.Fprintln(os.Stderr) // Empty line for spacing
 
 		// Execute the system version (no provider env needed for system installations)
-		if err := executeCommand(systemPath, os.Args[1:], nil); err != nil {
+		if err := executeFallback(systemPath); err != nil {
 			return fmt.Errorf("failed to execute system %s: %w", shimName, err)
 		}
 		return nil
@@ -266,7 +280,7 @@ func mapShimToRuntime(shimName string) (string, bool) {
 // piping, and it names the fix so the state is visible rather than
 // silently permanent.
 func handleUnknownShim(shimName string) error {
-	systemPath := path.LookPathExcludingShims(shimName)
+	systemPath := path.LookPathExcludingSelf(shimName, selfPath())
 	if systemPath == "" {
 		ui.Error("'%s' is not managed by dtvem and was not found in PATH", shimName)
 		ui.Info("This is a leftover dtvem shim. Run 'dtvem reshim' to remove it.")
@@ -277,10 +291,50 @@ func handleUnknownShim(shimName string) error {
 	ui.Info("Run 'dtvem reshim' to remove it.")
 	fmt.Fprintln(os.Stderr) // Empty line for spacing
 
-	if err := executeCommand(systemPath, os.Args[1:], nil); err != nil {
+	if err := executeFallback(systemPath); err != nil {
 		return fmt.Errorf("failed to execute %s: %w", systemPath, err)
 	}
 	return nil
+}
+
+// selfPath returns the path of the running shim executable with symlinks
+// resolved, or "" if it cannot be determined.
+func selfPath() string {
+	self, err := os.Executable()
+	if err != nil {
+		ui.Debug("Could not determine shim path: %v", err)
+		return ""
+	}
+	if resolved, err := filepath.EvalSymlinks(self); err == nil {
+		return resolved
+	}
+	return self
+}
+
+// executeFallback runs an executable found on PATH in place of a dtvem
+// version. It records the target in fallbackEnvVar first, so that if the
+// target turns out to be a dtvem shim after all, that shim recognizes it
+// was launched as its own fallback and stops instead of looping.
+//
+// The marker names a file rather than a shim name on purpose: a real
+// executable reached this way may legitimately start the same command
+// again (node running a script that spawns node), and that shim must not
+// mistake itself for the loop.
+func executeFallback(systemPath string) error {
+	if err := os.Setenv(fallbackEnvVar, systemPath); err != nil {
+		return fmt.Errorf("could not set %s: %w", fallbackEnvVar, err)
+	}
+	return executeCommand(systemPath, os.Args[1:], nil)
+}
+
+// fallbackLoopError reports that a shim was launched by another shim's PATH
+// fallback, and explains the usual cause.
+func fallbackLoopError(shimName, self string) error {
+	ui.Error("Refusing to run '%s': it was launched as a dtvem shim's PATH fallback (%s)", shimName, self)
+	ui.Info("dtvem could not resolve '%s' in this environment and found another dtvem shim further down PATH.", shimName)
+	ui.Info("This usually means HOME/USERPROFILE or DTVEM_ROOT points somewhere other than the dtvem install whose shims are on PATH.")
+	ui.Info("Set DTVEM_ROOT to that install, or put a real '%s' ahead of the dtvem shims on PATH.", shimName)
+	return fmt.Errorf("%s shim was launched as its own PATH fallback", shimName)
 }
 
 // secondaryExecutableError formats a user-facing error explaining that a
