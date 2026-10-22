@@ -223,11 +223,11 @@ The shim mappings are automatically registered via `Shims()`.
 ## Version Resolution
 
 **Priority order:**
-1. **Local**: Walk up from `pwd` to the filesystem root; the nearest directory that sets a version wins. Within one directory, `.dtvem/runtimes.json` comes first, then the runtime's ecosystem version files (`versionFiles` in `internal/config/versionfile.go`; Node.js: `.node-version`, then `.nvmrc`)
+1. **Local**: Walk up from `pwd` to the filesystem root; the nearest directory that sets a version wins. Within one directory, `.dtvem/runtimes.json` comes first, then the runtime's ecosystem version files (`versionFiles` in `internal/config/versionfile.go`; Node.js: `.node-version`, then `.nvmrc`; Python: `.python-version`)
 2. **Global**: `~/.dtvem/config/runtimes.json`
 3. **Error**: No version configured (`config.ErrNoVersion`; the shim falls back to the system PATH)
 
-**Ecosystem version files** hold an exact (`22.12.0`) or partial (`22`, `22.12`) version, with an optional leading `v`; blank lines and `#` comments are skipped. A partial version resolves to the highest installed match. Anything else (e.g. `.nvmrc` aliases like `lts/*`), or an empty file, is a `*config.VersionFileError`: the shim reports it instead of falling back to another version. `config.Resolve` returns the version and the file that set it (`dtvem current` shows it).
+**Ecosystem version files** hold an exact (`22.12.0`) or partial (`22`, `22.12`) version, with the runtime's optional prefix (`v` for Node.js, `python-` for Python); blank lines and `#` comments are skipped, and the first word of the first remaining line is used (as pyenv and rbenv do). A partial version resolves to the highest installed match. Anything else (e.g. `.nvmrc` aliases like `lts/*`, pyenv's `system` or virtualenv names), or an empty file, is a `*config.VersionFileError`: the shim reports it instead of falling back to another version. `config.Resolve` returns the version and the file that set it (`dtvem current` shows it).
 
 **Config format** (both local and global):
 ```json
