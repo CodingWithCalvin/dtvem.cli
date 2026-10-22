@@ -96,10 +96,31 @@ func sortVersionsDesc(versions []string) {
 
 // compareVersionStrings compares two version strings semantically.
 // Returns >0 if a > b, <0 if a < b, 0 if equal.
+//
+// A pre-release sorts below the release it precedes ("4.0.0-preview2" <
+// "4.0.0"), so a partial version never picks a pre-release over a release.
 func compareVersionStrings(a, b string) int {
-	aParts := parseVersionParts(a)
-	bParts := parseVersionParts(b)
+	aRelease, aPre, _ := strings.Cut(strings.TrimPrefix(a, "v"), "-")
+	bRelease, bPre, _ := strings.Cut(strings.TrimPrefix(b, "v"), "-")
 
+	if c := compareReleaseParts(parseVersionParts(aRelease), parseVersionParts(bRelease)); c != 0 {
+		return c
+	}
+
+	switch {
+	case aPre == bPre:
+		return 0
+	case aPre == "":
+		return 1
+	case bPre == "":
+		return -1
+	}
+	return strings.Compare(aPre, bPre)
+}
+
+// compareReleaseParts compares two numeric version part lists, treating
+// missing trailing parts as zero.
+func compareReleaseParts(aParts, bParts []int) int {
 	maxLen := len(aParts)
 	if len(bParts) > maxLen {
 		maxLen = len(bParts)

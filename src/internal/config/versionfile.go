@@ -14,6 +14,7 @@ import (
 var versionFiles = map[string]versionFileRules{
 	"node":   {names: []string{".node-version", ".nvmrc"}, prefix: "v"},
 	"python": {names: []string{".python-version"}, prefix: "python-"},
+	"ruby":   {names: []string{".ruby-version"}, prefix: "ruby-", prereleases: true},
 }
 
 // versionFileRules describes a runtime's version files and how versions are
@@ -25,6 +26,9 @@ type versionFileRules struct {
 	// prefix is an optional prefix written before a version, such as the
 	// "v" in "v22.12.0" or the "python-" in "python-3.12.4".
 	prefix string
+	// prereleases allows an exact version to name a pre-release, such as
+	// Ruby's "4.0.0-preview2" or "3.4.0-rc1".
+	prereleases bool
 }
 
 // VersionFileError reports a version file whose contents dtvem cannot use.
@@ -69,12 +73,19 @@ func parseVersionSpec(path, content string, rules versionFileRules) (string, err
 }
 
 // version returns the version raw asks for, without the runtime's prefix:
-// an exact ("22.12.0") or partial ("22", "22.12") version number. Anything
-// else, such as an .nvmrc alias like "lts/*" or pyenv's "system", is a
-// *VersionFileError for the file at path.
+// an exact ("22.12.0") or partial ("22", "22.12") version number, or, if
+// the runtime allows them, an exact pre-release ("4.0.0-preview2").
+// Anything else, such as an .nvmrc alias like "lts/*" or pyenv's "system",
+// is a *VersionFileError for the file at path.
 func (r versionFileRules) version(path, raw string) (string, error) {
 	spec := strings.TrimPrefix(raw, r.prefix)
-	if !isVersionNumber(spec) {
+
+	release, pre, isPre := strings.Cut(spec, "-")
+	valid := isVersionNumber(release)
+	if isPre {
+		valid = valid && r.prereleases && strings.Count(release, ".") == 2 && isPrerelease(pre)
+	}
+	if !valid {
 		return "", &VersionFileError{Path: path, Value: raw}
 	}
 	return spec, nil
@@ -88,13 +99,32 @@ func isVersionNumber(s string) bool {
 		return false
 	}
 	for _, part := range parts {
-		if part == "" {
+		if !isDigits(part) {
 			return false
 		}
-		for _, c := range part {
-			if c < '0' || c > '9' {
-				return false
-			}
+	}
+	return true
+}
+
+// isPrerelease reports whether s names a pre-release the way Ruby does:
+// "preview" or "rc" followed by a number.
+func isPrerelease(s string) bool {
+	for _, tag := range []string{"preview", "rc"} {
+		if n, ok := strings.CutPrefix(s, tag); ok && isDigits(n) {
+			return true
+		}
+	}
+	return false
+}
+
+// isDigits reports whether s is a non-empty run of ASCII digits.
+func isDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
 		}
 	}
 	return true

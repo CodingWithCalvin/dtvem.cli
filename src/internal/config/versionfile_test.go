@@ -148,6 +148,76 @@ func TestParseVersionSpec_PythonUnsupported(t *testing.T) {
 	}
 }
 
+func TestParseVersionSpec_Ruby(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{name: "exact version", content: "3.3.6\n", want: "3.3.6"},
+		{name: "ruby- prefix", content: "ruby-3.3.6", want: "3.3.6"},
+		{name: "partial version", content: "3.3", want: "3.3"},
+		{name: "preview", content: "4.0.0-preview2", want: "4.0.0-preview2"},
+		{name: "release candidate with ruby- prefix", content: "ruby-3.4.0-rc1", want: "3.4.0-rc1"},
+		{name: "comment and blank lines", content: "# CI pin\n\n3.3.6\n", want: "3.3.6"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseVersionSpec(".ruby-version", tt.content, versionFiles["ruby"])
+			if err != nil {
+				t.Fatalf("parseVersionSpec(%q) unexpected error: %v", tt.content, err)
+			}
+			if got != tt.want {
+				t.Errorf("parseVersionSpec(%q) = %q, want %q", tt.content, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseVersionSpec_RubyUnsupported(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{name: "JRuby", content: "jruby-9.4.5.0"},
+		{name: "TruffleRuby", content: "truffleruby-24.1.0"},
+		{name: "engine-only ruby", content: "ruby"},
+		{name: "engine-only truffleruby", content: "truffleruby"},
+		{name: "system", content: "system"},
+		{name: "partial pre-release", content: "4.0-preview2"},
+		{name: "unknown pre-release tag", content: "3.4.0-beta1"},
+		{name: "pre-release without a number", content: "3.4.0-preview"},
+		{name: "old patch level", content: "2.0.0-p648"},
+		{name: "v prefix is not Ruby's", content: "v3.3.6"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseVersionSpec(".ruby-version", tt.content, versionFiles["ruby"])
+
+			var fileErr *VersionFileError
+			if !errors.As(err, &fileErr) {
+				t.Fatalf("parseVersionSpec(%q) error = %v, want *VersionFileError", tt.content, err)
+			}
+			if fileErr.Value != tt.content {
+				t.Errorf("VersionFileError.Value = %q, want %q", fileErr.Value, tt.content)
+			}
+		})
+	}
+}
+
+func TestParseVersionSpec_PrereleasesAreRubyOnly(t *testing.T) {
+	for _, runtimeName := range []string{"node", "python"} {
+		_, err := parseVersionSpec("version-file", "4.0.0-preview2", versionFiles[runtimeName])
+
+		var fileErr *VersionFileError
+		if !errors.As(err, &fileErr) {
+			t.Errorf("parseVersionSpec(%s rules, pre-release) error = %v, want *VersionFileError", runtimeName, err)
+		}
+	}
+}
+
 // versionFixture is a dtvem root and a project directory to resolve from.
 type versionFixture struct {
 	t       *testing.T
@@ -491,6 +561,66 @@ func TestResolve_PythonVersionFile(t *testing.T) {
 		t.Fatalf("Resolve() error: %v", err)
 	}
 	assertResolution(t, res, "3.12.12", source)
+}
+
+func TestResolve_RubyVersionFile(t *testing.T) {
+	tests := []struct {
+		name string
+		spec string
+		want string
+	}{
+		{name: "exact", spec: "3.3.9", want: "3.3.9"},
+		{name: "ruby- prefix", spec: "ruby-3.3.9", want: "3.3.9"},
+		{name: "partial picks highest installed", spec: "3.4", want: "3.4.7"},
+		{name: "partial picks release over its preview", spec: "4.0", want: "4.0.0"},
+		{name: "major picks release over its preview", spec: "4", want: "4.0.0"},
+		{name: "partial with only a preview installed", spec: "3.5", want: "3.5.0-preview1"},
+		{name: "exact preview", spec: "4.0.0-preview2", want: "4.0.0-preview2"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := newVersionFixture(t)
+			f.install("ruby", "3.3.9", "3.4.1", "3.4.7", "3.5.0-preview1", "4.0.0-preview2", "4.0.0")
+			source := f.write(".ruby-version", tt.spec+"\n")
+			f.chdir("lib")
+
+			res, err := Resolve("ruby")
+			if err != nil {
+				t.Fatalf("Resolve() error: %v", err)
+			}
+			assertResolution(t, res, tt.want, source)
+		})
+	}
+}
+
+func TestResolve_RubyPrecedence(t *testing.T) {
+	t.Run("runtimes.json before .ruby-version", func(t *testing.T) {
+		f := newVersionFixture(t)
+		source := f.write(filepath.Join(".dtvem", "runtimes.json"), `{"ruby": "3.3.9"}`)
+		f.write(".ruby-version", "3.4.7")
+		f.chdir(".")
+
+		res, err := Resolve("ruby")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "3.3.9", source)
+	})
+
+	t.Run("unsupported .ruby-version does not fall back to the global version", func(t *testing.T) {
+		f := newVersionFixture(t)
+		if err := SetGlobalVersion("ruby", "3.4.7"); err != nil {
+			t.Fatalf("SetGlobalVersion() error: %v", err)
+		}
+		f.write(".ruby-version", "jruby-9.4.5.0")
+		f.chdir(".")
+
+		var fileErr *VersionFileError
+		if _, err := Resolve("ruby"); !errors.As(err, &fileErr) {
+			t.Errorf("Resolve() error = %v, want *VersionFileError", err)
+		}
+	})
 }
 
 func TestResolve_PythonPrecedence(t *testing.T) {

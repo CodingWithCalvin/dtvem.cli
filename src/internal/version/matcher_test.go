@@ -252,18 +252,51 @@ func TestSortVersionsDesc(t *testing.T) {
 	}
 }
 
+func TestResolvePartialVersion_PrefersReleaseOverPrerelease(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     string
+		available []string
+		expected  string
+	}{
+		{name: "release listed first", input: "4.0", available: []string{"4.0.0", "4.0.0-preview2"}, expected: "4.0.0"},
+		{name: "pre-release listed first", input: "4.0", available: []string{"4.0.0-preview2", "4.0.0"}, expected: "4.0.0"},
+		{name: "major only", input: "4", available: []string{"4.0.0-preview2", "3.4.7", "4.0.0"}, expected: "4.0.0"},
+		{name: "only a pre-release matches", input: "3.5", available: []string{"3.4.7", "3.5.0-preview1"}, expected: "3.5.0-preview1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ResolvePartialVersion(tt.input, tt.available)
+			if err != nil {
+				t.Fatalf("ResolvePartialVersion(%q) returned error: %v", tt.input, err)
+			}
+			if result != tt.expected {
+				t.Errorf("ResolvePartialVersion(%q, %v) = %q, want %q", tt.input, tt.available, result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestCompareVersionStrings(t *testing.T) {
 	tests := []struct {
 		a        string
 		b        string
 		expected int // >0, <0, or 0
 	}{
-		{"22.15.1", "22.15.0", 1},  // a > b
-		{"22.15.0", "22.15.1", -1}, // a < b
-		{"22.15.0", "22.15.0", 0},  // equal
-		{"22.15.0", "22.5.0", 1},   // 15 > 5
-		{"3.10.0", "3.9.0", 1},     // 10 > 9
-		{"22.0.0", "21.99.99", 1},  // major takes precedence
+		{"22.15.1", "22.15.0", 1},               // a > b
+		{"22.15.0", "22.15.1", -1},              // a < b
+		{"22.15.0", "22.15.0", 0},               // equal
+		{"22.15.0", "22.5.0", 1},                // 15 > 5
+		{"3.10.0", "3.9.0", 1},                  // 10 > 9
+		{"22.0.0", "21.99.99", 1},               // major takes precedence
+		{"4.0.0", "4.0.0-preview2", 1},          // release above its pre-release
+		{"4.0.0-preview2", "4.0.0", -1},         // pre-release below its release
+		{"4.0.1", "4.0.0-preview2", 1},          // numeric parts still come first
+		{"4.0.0-preview2", "3.4.7", 1},          // pre-release above older releases
+		{"3.5.0-preview2", "3.5.0-preview1", 1}, // later pre-release first
+		{"3.5.0-rc1", "3.5.0-preview3", 1},      // rc after preview
+		{"23.0.0", "23.0.0-rc.1", 1},            // digits in the pre-release are not a fourth part
 	}
 
 	for _, tt := range tests {
