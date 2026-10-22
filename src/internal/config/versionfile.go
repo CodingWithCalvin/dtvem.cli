@@ -14,7 +14,7 @@ import (
 // ecosystem use to pin a project's version.
 var versionFiles = map[string]versionFileRules{
 	"node":   {names: []string{".node-version", ".nvmrc"}, toolNames: []string{"nodejs", "node"}, prefix: "v"},
-	"python": {names: []string{".python-version"}, toolNames: []string{"python"}, prefix: "python-"},
+	"python": {names: []string{".python-version"}, toolNames: []string{"python"}, prefix: "python-", venv: true},
 	"ruby":   {names: []string{".ruby-version"}, toolNames: []string{"ruby"}, prefix: "ruby-", prereleases: true},
 }
 
@@ -38,6 +38,9 @@ type versionFileRules struct {
 	// prereleases allows an exact version to name a pre-release, such as
 	// Ruby's "4.0.0-preview2" or "3.4.0-rc1".
 	prereleases bool
+	// venv reads the version a project's .venv was built from (see
+	// resolveVenv) when nothing else in the directory sets one.
+	venv bool
 }
 
 // VersionFileError reports a version file whose contents dtvem cannot use.

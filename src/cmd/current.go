@@ -32,8 +32,9 @@ The active version is determined by checking local settings first, then global s
 Local settings are read from .dtvem/runtimes.json, asdf/mise .tool-versions,
 and each runtime's own version files (Node.js: .node-version and .nvmrc;
 Python: .python-version; Ruby: .ruby-version), in the current directory or
-the nearest parent that has one. The Source column shows which file set each
-version.
+the nearest parent that has one. For Python, a project's .venv also counts:
+when nothing else in its directory sets a version, the Python the venv was
+built from is used. The Source column shows which file set each version.
 
 Examples:
   dtvem current           # Show all active versions

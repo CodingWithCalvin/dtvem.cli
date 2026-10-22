@@ -79,11 +79,11 @@ func findLocal(runtimeName string) (Resolution, bool, error) {
 
 // resolveInDir returns the version dir sets for runtimeName, if any. It
 // checks .dtvem/runtimes.json first, then .tool-versions, then the
-// runtime's own version files (see versionFiles). A runtimes.json that is
-// unreadable or lacks the runtime, or a .tool-versions without a line for
-// it, is passed over; a version file that names a version dtvem cannot use
-// is an error, so a project's pin is never silently replaced by another
-// version.
+// runtime's own version files (see versionFiles), and for Python finally
+// the version a .venv was built from. A runtimes.json that is unreadable or
+// lacks the runtime, or a .tool-versions without a line for it, is passed
+// over; a version file that names a version dtvem cannot use is an error,
+// so a project's pin is never silently replaced by another version.
 func resolveInDir(dir, runtimeName string) (Resolution, bool, error) {
 	runtimesFile := filepath.Join(dir, LocalConfigDirName, RuntimesFileName)
 	if version, err := readVersionFile(runtimesFile, runtimeName); err == nil && version != "" {
@@ -114,6 +114,9 @@ func resolveInDir(dir, runtimeName string) (Resolution, bool, error) {
 		return Resolution{Version: resolveSpec(runtimeName, spec), Source: path}, true, nil
 	}
 
+	if rules.venv {
+		return resolveVenv(dir, runtimeName)
+	}
 	return Resolution{}, false, nil
 }
 
