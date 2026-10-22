@@ -31,7 +31,7 @@ Managing multiple versions of Python, Node.js, Ruby, and other runtimes across d
 
 ✅ **Migration Tool**: Import existing installations from nvm, pyenv, etc.
 
-✅ **Per-Directory Versions**: `.dtvem/runtimes.json` for project-specific versions, plus `.node-version` / `.nvmrc` for Node.js, `.python-version` for Python, and `.ruby-version` for Ruby
+✅ **Per-Directory Versions**: `.dtvem/runtimes.json` for project-specific versions, plus asdf/mise `.tool-versions`, `.node-version` / `.nvmrc` for Node.js, `.python-version` for Python, and `.ruby-version` for Ruby
 
 ✅ **No Shell Hooks**: Works in cmd.exe, PowerShell, bash, zsh, fish, etc.
 

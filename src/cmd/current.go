@@ -29,10 +29,11 @@ var currentCmd = &cobra.Command{
 	Short: "Show the currently active version(s)",
 	Long: `Show the currently active version for a specific runtime or all runtimes.
 The active version is determined by checking local settings first, then global settings.
-Local settings are read from .dtvem/runtimes.json and from each runtime's own
-version files (Node.js: .node-version and .nvmrc; Python: .python-version;
-Ruby: .ruby-version), in the current directory or the nearest parent that has
-one. The Source column shows which file set each version.
+Local settings are read from .dtvem/runtimes.json, asdf/mise .tool-versions,
+and each runtime's own version files (Node.js: .node-version and .nvmrc;
+Python: .python-version; Ruby: .ruby-version), in the current directory or
+the nearest parent that has one. The Source column shows which file set each
+version.
 
 Examples:
   dtvem current           # Show all active versions

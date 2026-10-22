@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/version"
@@ -12,17 +13,25 @@ import (
 // versionFiles describes, for each runtime, the files other tools in its
 // ecosystem use to pin a project's version.
 var versionFiles = map[string]versionFileRules{
-	"node":   {names: []string{".node-version", ".nvmrc"}, prefix: "v"},
-	"python": {names: []string{".python-version"}, prefix: "python-"},
-	"ruby":   {names: []string{".ruby-version"}, prefix: "ruby-", prereleases: true},
+	"node":   {names: []string{".node-version", ".nvmrc"}, toolNames: []string{"nodejs", "node"}, prefix: "v"},
+	"python": {names: []string{".python-version"}, toolNames: []string{"python"}, prefix: "python-"},
+	"ruby":   {names: []string{".ruby-version"}, toolNames: []string{"ruby"}, prefix: "ruby-", prereleases: true},
 }
+
+// toolVersionsFile is the file asdf writes and mise reads to pin several
+// tools at once, one "<tool> <version>..." line per tool.
+const toolVersionsFile = ".tool-versions"
 
 // versionFileRules describes a runtime's version files and how versions are
 // written in them.
 type versionFileRules struct {
-	// names are the files, consulted after .dtvem/runtimes.json in the
-	// order listed when several are in one directory.
+	// names are the runtime's own files, consulted after
+	// .dtvem/runtimes.json and .tool-versions in the order listed when
+	// several are in one directory.
 	names []string
+	// toolNames are the names a .tool-versions line may give the runtime,
+	// such as asdf's "nodejs" and mise's "node".
+	toolNames []string
 	// prefix is an optional prefix written before a version, such as the
 	// "v" in "v22.12.0" or the "python-" in "python-3.12.4".
 	prefix string
@@ -34,14 +43,22 @@ type versionFileRules struct {
 // VersionFileError reports a version file whose contents dtvem cannot use.
 type VersionFileError struct {
 	Path  string // the version file
+	Tool  string // the tool whose line is at fault in a .tool-versions file; "" otherwise
 	Value string // the version it asks for; "" when it names none
 }
 
 func (e *VersionFileError) Error() string {
-	if e.Value == "" {
+	const supported = "dtvem supports only version numbers (x, x.y or x.y.z)"
+	switch {
+	case e.Tool != "" && e.Value == "":
+		return fmt.Sprintf("%s lists %s without a version", e.Path, e.Tool)
+	case e.Tool != "":
+		return fmt.Sprintf("%s asks for %s %q: %s", e.Path, e.Tool, e.Value, supported)
+	case e.Value == "":
 		return fmt.Sprintf("%s does not contain a version", e.Path)
+	default:
+		return fmt.Sprintf("%s asks for %q: %s", e.Path, e.Value, supported)
 	}
-	return fmt.Sprintf("%s asks for %q: dtvem supports only version numbers (x, x.y or x.y.z)", e.Path, e.Value)
 }
 
 // readVersionSpec reads a version file such as .node-version or
@@ -70,6 +87,48 @@ func parseVersionSpec(path, content string, rules versionFileRules) (string, err
 	}
 
 	return "", &VersionFileError{Path: path}
+}
+
+// readToolVersion reads the version a .tool-versions file pins for the
+// runtime rules describe. The bool is false when no line names the
+// runtime. The error satisfies errors.Is(err, fs.ErrNotExist) when the file
+// does not exist.
+func readToolVersion(path string, rules versionFileRules) (string, bool, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", false, fmt.Errorf("could not read %s: %w", path, err)
+	}
+	return parseToolVersion(path, string(data), rules)
+}
+
+// parseToolVersion finds the runtime's line in the contents of the
+// .tool-versions file at path. It skips blank lines and # comments, ignores
+// lines for tools dtvem does not manage, and takes the first version on the
+// first line that names the runtime; asdf treats any further versions as
+// fallbacks. The version must pass the same rules as the runtime's own
+// version files.
+func parseToolVersion(path, content string, rules versionFileRules) (string, bool, error) {
+	for _, line := range strings.Split(content, "\n") {
+		if i := strings.IndexByte(line, '#'); i >= 0 {
+			line = line[:i]
+		}
+		fields := strings.Fields(line)
+		if len(fields) == 0 || !slices.Contains(rules.toolNames, fields[0]) {
+			continue
+		}
+
+		tool := fields[0]
+		if len(fields) < 2 {
+			return "", true, &VersionFileError{Path: path, Tool: tool}
+		}
+		spec, err := rules.version(path, fields[1])
+		if err != nil {
+			return "", true, &VersionFileError{Path: path, Tool: tool, Value: fields[1]}
+		}
+		return spec, true, nil
+	}
+
+	return "", false, nil
 }
 
 // version returns the version raw asks for, without the runtime's prefix:

@@ -218,6 +218,111 @@ func TestParseVersionSpec_PrereleasesAreRubyOnly(t *testing.T) {
 	}
 }
 
+func TestParseToolVersion(t *testing.T) {
+	tests := []struct {
+		name        string
+		runtimeName string
+		content     string
+		want        string
+	}{
+		{name: "asdf nodejs", runtimeName: "node", content: "nodejs 22.12.0\n", want: "22.12.0"},
+		{name: "mise node", runtimeName: "node", content: "node 22\n", want: "22"},
+		{name: "node v prefix", runtimeName: "node", content: "nodejs v22.12.0", want: "22.12.0"},
+		{name: "python among other tools", runtimeName: "python", content: "golang 1.22.0\npython 3.12.4\nruby 3.3.6\n", want: "3.12.4"},
+		{name: "first of several versions", runtimeName: "python", content: "python 3.12.4 3.11.9 system\n", want: "3.12.4"},
+		{name: "ruby with inline comment", runtimeName: "ruby", content: "ruby 3.3.6 # This is a comment\n", want: "3.3.6"},
+		{name: "ruby preview", runtimeName: "ruby", content: "ruby 4.0.0-preview2", want: "4.0.0-preview2"},
+		{name: "tabs, CRLF and comment lines", runtimeName: "node", content: "# tools\r\n\r\nnodejs\t\t22.12.0\r\n", want: "22.12.0"},
+		{name: "first line for the runtime wins", runtimeName: "node", content: "nodejs 22.12.0\nnode 20.0.0\n", want: "22.12.0"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, found, err := parseToolVersion(".tool-versions", tt.content, versionFiles[tt.runtimeName])
+			if err != nil {
+				t.Fatalf("parseToolVersion(%q) unexpected error: %v", tt.content, err)
+			}
+			if !found {
+				t.Fatalf("parseToolVersion(%q) found = false, want true", tt.content)
+			}
+			if got != tt.want {
+				t.Errorf("parseToolVersion(%q) = %q, want %q", tt.content, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseToolVersion_NoLineForRuntime(t *testing.T) {
+	tests := []struct {
+		name        string
+		runtimeName string
+		content     string
+	}{
+		{name: "empty file", runtimeName: "node", content: ""},
+		{name: "only other tools", runtimeName: "node", content: "golang 1.22.0\nterraform 1.7.0\n"},
+		{name: "other dtvem runtimes only", runtimeName: "python", content: "nodejs 22.12.0\nruby 3.3.6\n"},
+		{name: "commented-out line", runtimeName: "ruby", content: "# ruby 3.3.6\n"},
+		{name: "tool name is case-sensitive", runtimeName: "python", content: "Python 3.12.4\n"},
+		{name: "tool name must match exactly", runtimeName: "node", content: "nodejs-lts 22.12.0\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, found, err := parseToolVersion(".tool-versions", tt.content, versionFiles[tt.runtimeName])
+			if err != nil || found || got != "" {
+				t.Errorf("parseToolVersion(%q) = (%q, %v, %v), want (\"\", false, nil)", tt.content, got, found, err)
+			}
+		})
+	}
+}
+
+func TestParseToolVersion_Unsupported(t *testing.T) {
+	tests := []struct {
+		name        string
+		runtimeName string
+		content     string
+		wantTool    string
+		wantValue   string
+	}{
+		{name: "system", runtimeName: "python", content: "python system\n", wantTool: "python", wantValue: "system"},
+		{name: "ref", runtimeName: "ruby", content: "ruby ref:v3_3_6\n", wantTool: "ruby", wantValue: "ref:v3_3_6"},
+		{name: "path", runtimeName: "node", content: "nodejs path:/opt/node\n", wantTool: "nodejs", wantValue: "path:/opt/node"},
+		{name: "alias", runtimeName: "node", content: "node lts\n", wantTool: "node", wantValue: "lts"},
+		{name: "runtime rules apply", runtimeName: "python", content: "python 3.13.0-rc1\n", wantTool: "python", wantValue: "3.13.0-rc1"},
+		{name: "no version", runtimeName: "ruby", content: "ruby\n", wantTool: "ruby", wantValue: ""},
+		{name: "unsupported first version is not skipped", runtimeName: "python", content: "python system 3.12.4\n", wantTool: "python", wantValue: "system"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, found, err := parseToolVersion(".tool-versions", tt.content, versionFiles[tt.runtimeName])
+
+			var fileErr *VersionFileError
+			if !errors.As(err, &fileErr) {
+				t.Fatalf("parseToolVersion(%q) error = %v, want *VersionFileError", tt.content, err)
+			}
+			if !found {
+				t.Error("parseToolVersion() found = false, want true for a line that names the runtime")
+			}
+			if fileErr.Tool != tt.wantTool || fileErr.Value != tt.wantValue {
+				t.Errorf("VersionFileError{Tool: %q, Value: %q}, want {Tool: %q, Value: %q}", fileErr.Tool, fileErr.Value, tt.wantTool, tt.wantValue)
+			}
+		})
+	}
+}
+
+func TestVersionFileError_ToolMessage(t *testing.T) {
+	unsupported := (&VersionFileError{Path: ".tool-versions", Tool: "python", Value: "system"}).Error()
+	if want := `.tool-versions asks for python "system": dtvem supports only version numbers (x, x.y or x.y.z)`; unsupported != want {
+		t.Errorf("Error() = %q, want %q", unsupported, want)
+	}
+
+	missing := (&VersionFileError{Path: ".tool-versions", Tool: "ruby"}).Error()
+	if want := ".tool-versions lists ruby without a version"; missing != want {
+		t.Errorf("Error() = %q, want %q", missing, want)
+	}
+}
+
 // versionFixture is a dtvem root and a project directory to resolve from.
 type versionFixture struct {
 	t       *testing.T
@@ -621,6 +726,120 @@ func TestResolve_RubyPrecedence(t *testing.T) {
 			t.Errorf("Resolve() error = %v, want *VersionFileError", err)
 		}
 	})
+}
+
+func TestResolve_ToolVersions(t *testing.T) {
+	f := newVersionFixture(t)
+	f.install("node", "22.1.0", "22.12.0")
+	f.install("ruby", "3.3.9")
+	source := f.write(".tool-versions", "nodejs 22\npython 3.12.4\nruby ruby-3.3.9\ngolang 1.22.0\n")
+	f.chdir(filepath.Join("packages", "app"))
+
+	tests := []struct {
+		runtimeName string
+		want        string
+	}{
+		{runtimeName: "node", want: "22.12.0"},
+		{runtimeName: "python", want: "3.12.4"},
+		{runtimeName: "ruby", want: "3.3.9"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.runtimeName, func(t *testing.T) {
+			res, err := Resolve(tt.runtimeName)
+			if err != nil {
+				t.Fatalf("Resolve(%q) error: %v", tt.runtimeName, err)
+			}
+			assertResolution(t, res, tt.want, source)
+		})
+	}
+}
+
+func TestResolve_ToolVersionsPrecedence(t *testing.T) {
+	t.Run("runtimes.json before .tool-versions", func(t *testing.T) {
+		f := newVersionFixture(t)
+		source := f.write(filepath.Join(".dtvem", "runtimes.json"), `{"node": "20.0.0"}`)
+		f.write(".tool-versions", "nodejs 22.12.0\n")
+		f.chdir(".")
+
+		res, err := Resolve("node")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "20.0.0", source)
+	})
+
+	t.Run(".tool-versions before the runtime's own files", func(t *testing.T) {
+		f := newVersionFixture(t)
+		source := f.write(".tool-versions", "nodejs 22.12.0\n")
+		f.write(".node-version", "20.0.0")
+		f.write(".nvmrc", "18.0.0")
+		f.chdir(".")
+
+		res, err := Resolve("node")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "22.12.0", source)
+	})
+
+	t.Run("no line for the runtime falls through to its own file", func(t *testing.T) {
+		f := newVersionFixture(t)
+		f.write(".tool-versions", "ruby 3.3.9\n")
+		source := f.write(".python-version", "3.12.4")
+		f.chdir(".")
+
+		res, err := Resolve("python")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "3.12.4", source)
+	})
+
+	t.Run("no line for the runtime does not hide a parent's pin", func(t *testing.T) {
+		f := newVersionFixture(t)
+		source := f.write(".tool-versions", "nodejs 22.12.0\n")
+		f.write(filepath.Join("ruby-app", ".tool-versions"), "ruby 3.3.9\n")
+		f.chdir("ruby-app")
+
+		res, err := Resolve("node")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "22.12.0", source)
+	})
+
+	t.Run("nearer runtime file over parent .tool-versions", func(t *testing.T) {
+		f := newVersionFixture(t)
+		f.write(".tool-versions", "nodejs 22.12.0\n")
+		source := f.write(filepath.Join("legacy", ".nvmrc"), "18.20.0")
+		f.chdir("legacy")
+
+		res, err := Resolve("node")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "18.20.0", source)
+	})
+}
+
+func TestResolve_ToolVersionsUnsupportedDoesNotFallBack(t *testing.T) {
+	f := newVersionFixture(t)
+	if err := SetGlobalVersion("python", "3.12.4"); err != nil {
+		t.Fatalf("SetGlobalVersion() error: %v", err)
+	}
+	f.write(".tool-versions", "python 3.7.2 2.7.15 system\nnodejs path:/opt/node\n")
+	// A valid .python-version in the same directory ranks below .tool-versions.
+	f.write(".python-version", "3.12.4")
+	f.chdir(".")
+
+	if res, err := Resolve("python"); err != nil || res.Version != "3.7.2" {
+		t.Errorf("Resolve(\"python\") = (%q, %v), want 3.7.2 from the first version on the line", res.Version, err)
+	}
+
+	var fileErr *VersionFileError
+	if _, err := Resolve("node"); !errors.As(err, &fileErr) || fileErr.Tool != "nodejs" {
+		t.Errorf("Resolve(\"node\") error = %v, want a *VersionFileError for the nodejs line", err)
+	}
 }
 
 func TestResolve_PythonPrecedence(t *testing.T) {

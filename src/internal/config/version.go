@@ -78,10 +78,12 @@ func findLocal(runtimeName string) (Resolution, bool, error) {
 }
 
 // resolveInDir returns the version dir sets for runtimeName, if any. It
-// checks .dtvem/runtimes.json first, then the runtime's version files (see
-// versionFiles). A runtimes.json that is unreadable or lacks the runtime is
-// passed over; a version file that exists but cannot be used is an error,
-// so a project's pin is never silently replaced by another version.
+// checks .dtvem/runtimes.json first, then .tool-versions, then the
+// runtime's own version files (see versionFiles). A runtimes.json that is
+// unreadable or lacks the runtime, or a .tool-versions without a line for
+// it, is passed over; a version file that names a version dtvem cannot use
+// is an error, so a project's pin is never silently replaced by another
+// version.
 func resolveInDir(dir, runtimeName string) (Resolution, bool, error) {
 	runtimesFile := filepath.Join(dir, LocalConfigDirName, RuntimesFileName)
 	if version, err := readVersionFile(runtimesFile, runtimeName); err == nil && version != "" {
@@ -89,6 +91,17 @@ func resolveInDir(dir, runtimeName string) (Resolution, bool, error) {
 	}
 
 	rules := versionFiles[runtimeName]
+	if len(rules.toolNames) > 0 {
+		path := filepath.Join(dir, toolVersionsFile)
+		spec, found, err := readToolVersion(path, rules)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return Resolution{}, false, err
+		}
+		if found {
+			return Resolution{Version: resolveSpec(runtimeName, spec), Source: path}, true, nil
+		}
+	}
+
 	for _, name := range rules.names {
 		path := filepath.Join(dir, name)
 		spec, err := readVersionSpec(path, rules)
