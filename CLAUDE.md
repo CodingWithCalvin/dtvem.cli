@@ -223,11 +223,11 @@ The shim mappings are automatically registered via `Shims()`.
 ## Version Resolution
 
 **Priority order:**
-1. **Local**: Walk up from `pwd` to the filesystem root; the nearest directory that sets a version wins. Within one directory, `.dtvem/runtimes.json` comes first, then the runtime's ecosystem version files (`versionFiles` in `internal/config/versionfile.go`; Node.js: `.node-version`, then `.nvmrc`; Python: `.python-version`)
+1. **Local**: Walk up from `pwd` to the filesystem root; the nearest directory that sets a version wins. Within one directory, `.dtvem/runtimes.json` comes first, then the runtime's ecosystem version files (`versionFiles` in `internal/config/versionfile.go`; Node.js: `.node-version`, then `.nvmrc`; Python: `.python-version`; Ruby: `.ruby-version`)
 2. **Global**: `~/.dtvem/config/runtimes.json`
 3. **Error**: No version configured (`config.ErrNoVersion`; the shim falls back to the system PATH)
 
-**Ecosystem version files** hold an exact (`22.12.0`) or partial (`22`, `22.12`) version, with the runtime's optional prefix (`v` for Node.js, `python-` for Python); blank lines and `#` comments are skipped, and the first word of the first remaining line is used (as pyenv and rbenv do). A partial version resolves to the highest installed match. Anything else (e.g. `.nvmrc` aliases like `lts/*`, pyenv's `system` or virtualenv names), or an empty file, is a `*config.VersionFileError`: the shim reports it instead of falling back to another version. `config.Resolve` returns the version and the file that set it (`dtvem current` shows it).
+**Ecosystem version files** hold an exact (`22.12.0`) or partial (`22`, `22.12`) version, with the runtime's optional prefix (`v` for Node.js, `python-` for Python, `ruby-` for Ruby); Ruby also accepts an exact pre-release (`4.0.0-preview2`, `3.4.0-rc1`). Blank lines and `#` comments are skipped, and the first word of the first remaining line is used (as pyenv and rbenv do). A partial version resolves to the highest installed match; a release ranks above its own pre-releases (`internal/version`), so `4.0` picks `4.0.0` over `4.0.0-preview2`. Anything else (e.g. `.nvmrc` aliases like `lts/*`, pyenv's `system` or virtualenv names), or an empty file, is a `*config.VersionFileError`: the shim reports it instead of falling back to another version. `config.Resolve` returns the version and the file that set it (`dtvem current` shows it).
 
 **Config format** (both local and global):
 ```json
