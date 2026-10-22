@@ -25,11 +25,12 @@ func TestParseVersionSpec(t *testing.T) {
 		{name: "comment line before version", content: "# pinned for CI\n22.12.0\n", want: "22.12.0"},
 		{name: "inline comment", content: "22 # current LTS\n", want: "22"},
 		{name: "first version line wins", content: "22.12.0\n20.0.0\n", want: "22.12.0"},
+		{name: "first word of the line wins", content: "22.12.0 20.0.0\n", want: "22.12.0"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseVersionSpec(".node-version", tt.content)
+			got, err := parseVersionSpec(".node-version", tt.content, versionFiles["node"])
 			if err != nil {
 				t.Fatalf("parseVersionSpec(%q) unexpected error: %v", tt.content, err)
 			}
@@ -57,11 +58,12 @@ func TestParseVersionSpec_Unsupported(t *testing.T) {
 		{name: "empty component", content: "22..1", wantValue: "22..1"},
 		{name: "bare v", content: "v", wantValue: "v"},
 		{name: "prerelease", content: "23.0.0-rc.1", wantValue: "23.0.0-rc.1"},
+		{name: "another runtime's prefix", content: "python-22", wantValue: "python-22"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := parseVersionSpec(".nvmrc", tt.content)
+			_, err := parseVersionSpec(".nvmrc", tt.content, versionFiles["node"])
 
 			var fileErr *VersionFileError
 			if !errors.As(err, &fileErr) {
@@ -79,13 +81,70 @@ func TestParseVersionSpec_Unsupported(t *testing.T) {
 
 func TestVersionFileError_Message(t *testing.T) {
 	alias := (&VersionFileError{Path: ".nvmrc", Value: "lts/*"}).Error()
-	if want := `.nvmrc asks for "lts/*": only version numbers (x, x.y or x.y.z) are supported, not aliases`; alias != want {
+	if want := `.nvmrc asks for "lts/*": dtvem supports only version numbers (x, x.y or x.y.z)`; alias != want {
 		t.Errorf("Error() = %q, want %q", alias, want)
 	}
 
 	empty := (&VersionFileError{Path: ".node-version"}).Error()
 	if want := ".node-version does not contain a version"; empty != want {
 		t.Errorf("Error() = %q, want %q", empty, want)
+	}
+}
+
+func TestParseVersionSpec_Python(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    string
+	}{
+		{name: "exact version", content: "3.12.4\n", want: "3.12.4"},
+		{name: "partial version", content: "3.12", want: "3.12"},
+		{name: "python- prefix", content: "python-3.12.4", want: "3.12.4"},
+		{name: "comment and blank lines", content: "# pinned by uv\n\n3.12.4\n", want: "3.12.4"},
+		{name: "first of several versions", content: "3.12.4\n3.11.9\n", want: "3.12.4"},
+		{name: "CRLF line endings", content: "3.12.4\r\n", want: "3.12.4"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseVersionSpec(".python-version", tt.content, versionFiles["python"])
+			if err != nil {
+				t.Fatalf("parseVersionSpec(%q) unexpected error: %v", tt.content, err)
+			}
+			if got != tt.want {
+				t.Errorf("parseVersionSpec(%q) = %q, want %q", tt.content, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseVersionSpec_PythonUnsupported(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   string
+		wantValue string
+	}{
+		{name: "system", content: "system\n", wantValue: "system"},
+		{name: "pyenv-virtualenv pointer", content: "3.10/envs/venv", wantValue: "3.10/envs/venv"},
+		{name: "virtualenv name", content: "my-venv", wantValue: "my-venv"},
+		{name: "uv implementation request", content: "pypy", wantValue: "pypy"},
+		{name: "uv implementation@version request", content: "cpython@3.12", wantValue: "cpython@3.12"},
+		{name: "v prefix is not Python's", content: "v3.12.4", wantValue: "v3.12.4"},
+		{name: "empty file", content: "\n", wantValue: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseVersionSpec(".python-version", tt.content, versionFiles["python"])
+
+			var fileErr *VersionFileError
+			if !errors.As(err, &fileErr) {
+				t.Fatalf("parseVersionSpec(%q) error = %v, want *VersionFileError", tt.content, err)
+			}
+			if fileErr.Value != tt.wantValue {
+				t.Errorf("VersionFileError.Value = %q, want %q", fileErr.Value, tt.wantValue)
+			}
+		})
 	}
 }
 
@@ -400,12 +459,66 @@ func TestResolve_VersionFilesAreRuntimeSpecific(t *testing.T) {
 	f := newVersionFixture(t)
 	f.write(".node-version", "22.12.0")
 	f.write(".nvmrc", "lts/*")
+	f.write(".python-version", "system")
 	f.chdir(".")
 
-	_, err := Resolve("python")
-	if !errors.Is(err, ErrNoVersion) {
-		t.Errorf("Resolve(\"python\") error = %v, want ErrNoVersion", err)
+	if _, err := Resolve("ruby"); !errors.Is(err, ErrNoVersion) {
+		t.Errorf("Resolve(\"ruby\") error = %v, want ErrNoVersion", err)
 	}
+
+	res, err := Resolve("node")
+	if err != nil {
+		t.Fatalf("Resolve(\"node\") error: %v", err)
+	}
+	if res.Version != "22.12.0" {
+		t.Errorf("Resolve(\"node\") = %q, want %q", res.Version, "22.12.0")
+	}
+
+	var fileErr *VersionFileError
+	if _, err := Resolve("python"); !errors.As(err, &fileErr) || filepath.Base(fileErr.Path) != ".python-version" {
+		t.Errorf("Resolve(\"python\") error = %v, want a *VersionFileError for .python-version", err)
+	}
+}
+
+func TestResolve_PythonVersionFile(t *testing.T) {
+	f := newVersionFixture(t)
+	f.install("python", "3.11.9", "3.12.4", "3.12.12", "3.13.1")
+	source := f.write(".python-version", "3.12\n")
+	f.chdir(filepath.Join("src", "pkg"))
+
+	res, err := Resolve("python")
+	if err != nil {
+		t.Fatalf("Resolve() error: %v", err)
+	}
+	assertResolution(t, res, "3.12.12", source)
+}
+
+func TestResolve_PythonPrecedence(t *testing.T) {
+	t.Run("runtimes.json before .python-version", func(t *testing.T) {
+		f := newVersionFixture(t)
+		source := f.write(filepath.Join(".dtvem", "runtimes.json"), `{"python": "3.11.9"}`)
+		f.write(".python-version", "3.12.4")
+		f.chdir(".")
+
+		res, err := Resolve("python")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "3.11.9", source)
+	})
+
+	t.Run("nearer .python-version over parent runtimes.json", func(t *testing.T) {
+		f := newVersionFixture(t)
+		f.write(filepath.Join(".dtvem", "runtimes.json"), `{"python": "3.11.9"}`)
+		source := f.write(filepath.Join("app", ".python-version"), "python-3.12.4")
+		f.chdir("app")
+
+		res, err := Resolve("python")
+		if err != nil {
+			t.Fatalf("Resolve() error: %v", err)
+		}
+		assertResolution(t, res, "3.12.4", source)
+	})
 }
 
 func TestResolveVersion_UsesVersionFiles(t *testing.T) {

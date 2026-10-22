@@ -88,9 +88,10 @@ func resolveInDir(dir, runtimeName string) (Resolution, bool, error) {
 		return Resolution{Version: version, Source: runtimesFile}, true, nil
 	}
 
-	for _, name := range versionFiles[runtimeName] {
+	rules := versionFiles[runtimeName]
+	for _, name := range rules.names {
 		path := filepath.Join(dir, name)
-		spec, err := readVersionSpec(path)
+		spec, err := readVersionSpec(path, rules)
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
 		}
