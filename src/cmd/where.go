@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -39,6 +40,10 @@ Examples:
 		// If version not specified, use current version
 		if len(args) == 1 {
 			version, err = provider.CurrentVersion()
+			if err != nil && !errors.Is(err, config.ErrNoVersion) {
+				ui.Error("%v", err)
+				return
+			}
 			if err != nil {
 				ui.Error("No version configured for %s", runtimeName)
 				ui.Info("Set a version with: dtvem global %s <version>", runtimeName)

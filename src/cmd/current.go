@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/tui"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
@@ -18,6 +20,7 @@ var (
 type runtimeStatus struct {
 	provider  runtime.Provider
 	version   string
+	source    string // file that set the version
 	installed bool
 }
 
@@ -26,6 +29,9 @@ var currentCmd = &cobra.Command{
 	Short: "Show the currently active version(s)",
 	Long: `Show the currently active version for a specific runtime or all runtimes.
 The active version is determined by checking local settings first, then global settings.
+Local settings are read from .dtvem/runtimes.json and, for Node.js, from
+.node-version and .nvmrc, in the current directory or the nearest parent that
+has one. The Source column shows which file set each version.
 
 Examples:
   dtvem current           # Show all active versions
@@ -54,35 +60,44 @@ func showAllVersions(yes, noInstall bool) {
 
 	// Collect status for all configured runtimes
 	var configured []runtimeStatus
+	failed := false
 	for _, provider := range providers {
-		version, err := provider.CurrentVersion()
-		if err != nil {
+		res, err := config.Resolve(provider.Name())
+		if errors.Is(err, config.ErrNoVersion) {
 			// Not configured - skip it
 			continue
 		}
-		installed, _ := provider.IsInstalled(version)
+		if err != nil {
+			ui.Error("%s: %v", provider.DisplayName(), err)
+			failed = true
+			continue
+		}
+		installed, _ := provider.IsInstalled(res.Version)
 		configured = append(configured, runtimeStatus{
 			provider:  provider,
-			version:   version,
+			version:   res.Version,
+			source:    res.Source,
 			installed: installed,
 		})
 	}
 
 	if len(configured) == 0 {
-		ui.Info("No runtimes configured")
+		if !failed {
+			ui.Info("No runtimes configured")
+		}
 		return
 	}
 
 	// Display all configured versions
-	table := tui.NewTable("Runtime", "Version", "Status")
+	table := tui.NewTable("Runtime", "Version", "Status", "Source")
 	table.SetTitle("Active Versions")
 	var missing []runtimeStatus
 
 	for _, rs := range configured {
 		if rs.installed {
-			table.AddActiveRow(rs.provider.DisplayName(), rs.version, tui.CheckMark+" installed")
+			table.AddActiveRow(rs.provider.DisplayName(), rs.version, tui.CheckMark+" installed", rs.source)
 		} else {
-			table.AddRow(rs.provider.DisplayName(), rs.version, tui.CrossMark+" not installed")
+			table.AddRow(rs.provider.DisplayName(), rs.version, tui.CrossMark+" not installed", rs.source)
 			missing = append(missing, rs)
 		}
 	}
@@ -100,12 +115,7 @@ func showAllVersions(yes, noInstall bool) {
 		shouldInstall := yes || ui.PromptInstallMissing(missing)
 		if shouldInstall {
 			for _, rs := range missing {
-				ui.Info("Installing %s %s...", rs.provider.DisplayName(), rs.version)
-				if err := rs.provider.Install(rs.version); err != nil {
-					ui.Error("Failed to install %s %s: %v", rs.provider.DisplayName(), rs.version, err)
-				} else {
-					ui.Success("%s %s installed successfully", rs.provider.DisplayName(), rs.version)
-				}
+				installVersion(rs.provider, rs.version)
 			}
 		}
 	}
@@ -122,23 +132,24 @@ func showSingleVersion(runtimeName string, yes, noInstall bool) {
 		return
 	}
 
-	version, err := provider.CurrentVersion()
+	res, err := config.Resolve(provider.Name())
 	if err != nil {
 		ui.Error("%v", err)
 		return
 	}
+	version := res.Version
 
 	installed, _ := provider.IsInstalled(version)
 
-	table := tui.NewTable("Runtime", "Version", "Status")
+	table := tui.NewTable("Runtime", "Version", "Status", "Source")
 	if installed {
-		table.AddActiveRow(provider.DisplayName(), version, tui.CheckMark+" installed")
+		table.AddActiveRow(provider.DisplayName(), version, tui.CheckMark+" installed", res.Source)
 		fmt.Println(table.Render())
 		return
 	}
 
 	// Not installed - show with warning and prompt
-	table.AddRow(provider.DisplayName(), version, tui.CrossMark+" not installed")
+	table.AddRow(provider.DisplayName(), version, tui.CrossMark+" not installed", res.Source)
 	fmt.Println(table.Render())
 
 	// Skip install prompts if --no-install flag is set
@@ -149,12 +160,26 @@ func showSingleVersion(runtimeName string, yes, noInstall bool) {
 	fmt.Println()
 	shouldInstall := yes || ui.PromptInstall(provider.DisplayName(), version)
 	if shouldInstall {
-		if err := provider.Install(version); err != nil {
-			ui.Error("Failed to install %s %s: %v", provider.DisplayName(), version, err)
-			return
-		}
-		ui.Success("%s %s installed successfully", provider.DisplayName(), version)
+		installVersion(provider, version)
 	}
+}
+
+// installVersion installs a configured version that is not installed yet.
+// A version file can ask for a partial version ("22"), which is resolved to
+// the latest available match first.
+func installVersion(provider runtime.Provider, version string) {
+	resolved, err := resolveVersionForProvider(provider, version)
+	if err != nil {
+		ui.Error("Failed to install %s %s: %v", provider.DisplayName(), version, err)
+		return
+	}
+
+	ui.Info("Installing %s %s...", provider.DisplayName(), resolved)
+	if err := provider.Install(resolved); err != nil {
+		ui.Error("Failed to install %s %s: %v", provider.DisplayName(), resolved, err)
+		return
+	}
+	ui.Success("%s %s installed successfully", provider.DisplayName(), resolved)
 }
 
 func init() {

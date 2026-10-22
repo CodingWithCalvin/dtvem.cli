@@ -17,6 +17,7 @@ type mockProvider struct {
 	setGlobalCalls    []string
 	availableVersions []runtime.AvailableVersion
 	listAvailableErr  error
+	installCalls      []string
 }
 
 func (m *mockProvider) Name() string                                          { return m.name }
@@ -25,8 +26,11 @@ func (m *mockProvider) Shims() []string                                       { 
 func (m *mockProvider) ExecutablePath(version string) (string, error)         { return "", nil }
 func (m *mockProvider) IsInstalled(version string) (bool, error)              { return false, nil }
 func (m *mockProvider) ShouldReshimAfter(shimName string, args []string) bool { return false }
-func (m *mockProvider) Install(version string) error                          { return nil }
-func (m *mockProvider) Uninstall(version string) error                        { return nil }
+func (m *mockProvider) Install(version string) error {
+	m.installCalls = append(m.installCalls, version)
+	return nil
+}
+func (m *mockProvider) Uninstall(version string) error { return nil }
 func (m *mockProvider) ListInstalled() ([]runtime.InstalledVersion, error) {
 	return nil, nil
 }
