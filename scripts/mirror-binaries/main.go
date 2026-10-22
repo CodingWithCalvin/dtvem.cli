@@ -42,6 +42,11 @@ type MirrorJob struct {
 	UpstreamSHA256 string // Checksum from upstream manifest (may be empty)
 	R2Key          string
 	MetaKey        string
+
+	// Build, when set, produces the binary to upload in place of
+	// downloading URL, for archives dtvem assembles from upstream files.
+	// URL then records where those files came from.
+	Build func() ([]byte, error)
 }
 
 // Stats tracks mirroring statistics
@@ -144,7 +149,10 @@ func main() {
 		withoutChecksum := 0
 		for _, job := range jobs {
 			checksumStatus := "(will generate checksum)"
-			if job.UpstreamSHA256 != "" {
+			if job.Build != nil {
+				checksumStatus = "(assembled by dtvem)"
+				withoutChecksum++
+			} else if job.UpstreamSHA256 != "" {
 				checksumStatus = "(has upstream checksum)"
 				withChecksum++
 			} else {
@@ -158,18 +166,9 @@ func main() {
 		return
 	}
 
-	// Filter jobs if sync-only (check for .meta.json to determine if mirrored)
+	// Filter jobs if sync-only
 	if *syncOnly && existingKeys != nil {
-		var filtered []MirrorJob
-		for _, job := range jobs {
-			if !existingKeys[job.MetaKey] {
-				// Not yet mirrored
-				filtered = append(filtered, job)
-			} else if builtFromSourceKeys[job.MetaKey] {
-				// Exists but was built from source — re-mirror from upstream
-				filtered = append(filtered, job)
-			}
-		}
+		filtered := pendingJobs(jobs, existingKeys, builtFromSourceKeys)
 		skipped := len(jobs) - len(filtered)
 		fmt.Printf("Skipping %d files already in R2, %d remaining\n", skipped, len(filtered))
 		jobs = filtered
@@ -198,6 +197,27 @@ func main() {
 	if stats.Failed > 0 {
 		os.Exit(1)
 	}
+}
+
+// pendingJobs returns the jobs a sync-only run still has to mirror: those
+// without metadata in R2, and those whose metadata says built-from-source,
+// which are re-mirrored from upstream.
+//
+// A job dtvem assembles (Build set) is also pending until its archive
+// exists. Its archive can replace an older one under the same metadata, as
+// a full Windows Python .tar.gz replaces an embeddable .zip, so the
+// metadata alone does not show it was mirrored.
+func pendingJobs(jobs []MirrorJob, existingKeys, builtFromSourceKeys map[string]bool) []MirrorJob {
+	var pending []MirrorJob
+	for _, job := range jobs {
+		switch {
+		case !existingKeys[job.MetaKey], builtFromSourceKeys[job.MetaKey]:
+			pending = append(pending, job)
+		case job.Build != nil && !existingKeys[job.R2Key]:
+			pending = append(pending, job)
+		}
+	}
+	return pending
 }
 
 // exitOnFetchError exits non-zero when any upstream source failed to fetch.
@@ -331,12 +351,7 @@ func processJobs(client *s3.Client, jobs []MirrorJob) *Stats {
 		go func() {
 			defer wg.Done()
 			for job := range jobChan {
-				if err := mirrorFile(client, job, stats); err != nil {
-					fmt.Fprintf(os.Stderr, "Error mirroring %s: %v\n", job.R2Key, err)
-					atomic.AddInt64(&stats.Failed, 1)
-				} else {
-					atomic.AddInt64(&stats.Mirrored, 1)
-				}
+				recordResult(stats, job, mirrorFile(client, job, stats))
 			}
 		}()
 	}
@@ -361,8 +376,8 @@ func mirrorFile(client *s3.Client, job MirrorJob, stats *Stats) error {
 		}
 
 		err := doMirror(client, job, stats)
-		if err == nil {
-			return nil
+		if err == nil || errors.Is(err, errNotFullBuild) {
+			return err
 		}
 		lastErr = err
 	}
@@ -370,42 +385,77 @@ func mirrorFile(client *s3.Client, job MirrorJob, stats *Stats) error {
 	return lastErr
 }
 
-func doMirror(client *s3.Client, job MirrorJob, stats *Stats) error {
-	// Download file
+// recordResult counts a finished job. A job whose upstream build is not a
+// full install (errNotFullBuild) counts as skipped, not failed.
+func recordResult(stats *Stats, job MirrorJob, err error) {
+	switch {
+	case err == nil:
+		atomic.AddInt64(&stats.Mirrored, 1)
+	case errors.Is(err, errNotFullBuild):
+		fmt.Fprintf(os.Stderr, "Skipping %s: %v\n", job.R2Key, err)
+		atomic.AddInt64(&stats.Skipped, 1)
+	default:
+		fmt.Fprintf(os.Stderr, "Error mirroring %s: %v\n", job.R2Key, err)
+		atomic.AddInt64(&stats.Failed, 1)
+	}
+}
+
+// fetchBinary returns the binary for a job, its SHA-256 and where that
+// checksum comes from: "upstream" when it matched one the upstream
+// published, "dtvem" when dtvem computed it, including for archives a Build
+// step assembled.
+func fetchBinary(job MirrorJob, stats *Stats) (body []byte, checksum, checksumSource string, err error) {
+	if job.Build != nil {
+		body, err = job.Build()
+		if err != nil {
+			return nil, "", "", fmt.Errorf("build failed: %w", err)
+		}
+	} else {
+		body, err = downloadBinary(job.URL)
+		if err != nil {
+			return nil, "", "", err
+		}
+	}
+	atomic.AddInt64(&stats.BytesDown, int64(len(body)))
+
+	hash := sha256.Sum256(body)
+	checksum = hex.EncodeToString(hash[:])
+
+	if job.Build == nil && job.UpstreamSHA256 != "" {
+		if checksum != job.UpstreamSHA256 {
+			return nil, "", "", fmt.Errorf("checksum mismatch: expected %s, got %s", job.UpstreamSHA256, checksum)
+		}
+		atomic.AddInt64(&stats.UpstreamChecksum, 1)
+		return body, checksum, "upstream", nil
+	}
+	atomic.AddInt64(&stats.GeneratedChecksum, 1)
+	return body, checksum, "dtvem", nil
+}
+
+// downloadBinary downloads a binary to mirror.
+func downloadBinary(url string) ([]byte, error) {
 	httpClient := &http.Client{Timeout: 10 * time.Minute}
-	resp, err := httpClient.Get(job.URL)
+	resp, err := httpClient.Get(url)
 	if err != nil {
-		return fmt.Errorf("download failed: %w", err)
+		return nil, fmt.Errorf("download failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("download failed: HTTP %d", resp.StatusCode)
 	}
 
-	// Read body and calculate checksum
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("read failed: %w", err)
+		return nil, fmt.Errorf("read failed: %w", err)
 	}
+	return body, nil
+}
 
-	atomic.AddInt64(&stats.BytesDown, int64(len(body)))
-
-	// Calculate actual checksum
-	hash := sha256.Sum256(body)
-	actualChecksum := hex.EncodeToString(hash[:])
-
-	// Determine checksum source and verify if upstream provided one
-	var checksumSource string
-	if job.UpstreamSHA256 != "" {
-		if actualChecksum != job.UpstreamSHA256 {
-			return fmt.Errorf("checksum mismatch: expected %s, got %s", job.UpstreamSHA256, actualChecksum)
-		}
-		checksumSource = "upstream"
-		atomic.AddInt64(&stats.UpstreamChecksum, 1)
-	} else {
-		checksumSource = "dtvem"
-		atomic.AddInt64(&stats.GeneratedChecksum, 1)
+func doMirror(client *s3.Client, job MirrorJob, stats *Stats) error {
+	body, actualChecksum, checksumSource, err := fetchBinary(job, stats)
+	if err != nil {
+		return err
 	}
 
 	// Determine content type

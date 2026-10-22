@@ -84,7 +84,10 @@ func getUpstreamSources(runtime string) ([]UpstreamSource, error) {
 	case "python":
 		return []UpstreamSource{
 			&PythonStandaloneSource{},
-			&PythonOfficialSource{},
+			// Full Windows builds for versions python-build-standalone
+			// lacks, in place of python.org's embeddable zips.
+			&PythonMSISource{},
+			&PythonNuGetSource{},
 		}, nil
 	case "ruby":
 		return []UpstreamSource{

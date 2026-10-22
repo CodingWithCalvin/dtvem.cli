@@ -37,6 +37,11 @@ jobs:
         with:
           go-version-file: 'go.mod'
 
+      - name: Install msitools
+        # Full Windows Python builds are assembled from python.org's MSIs
+        if: matrix.runtime == 'python'
+        run: sudo apt-get update && sudo apt-get install -y msitools
+
       - name: Build mirror tool
         run: |
           cd scripts/mirror-binaries

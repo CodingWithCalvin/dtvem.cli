@@ -324,7 +324,10 @@ cd src && go test -cover ./...    # With coverage
 | `generate-manifests-from-r2.yml` | Manual/scheduled | Generate version manifests from R2 mirror |
 | `deploy-manifests.yml` | Push to main (manifests/) | Deploy manifest files to R2 |
 | `mirror-all.yml` | Manual dispatch | Mirror all runtime binaries to R2 |
-| `mirror-sync.yml` | Scheduled | Sync new versions to R2 mirror |
+| `mirror-sync.yml` | Scheduled | Sync new versions to R2 mirror (installs msitools for Python) |
+| `mirror-tool.yml` | PR, push to main (`scripts/mirror-binaries/`) | Vet and test the mirror tool, a separate Go module |
+
+**Windows Python builds in the mirror**: python-build-standalone is the first source. For versions it lacks, the mirror assembles full builds instead of using python.org's embeddable zips (`scripts/mirror-binaries/python_winbuild.go`): `windows-amd64` from python.org's per-component MSIs (verified against the pinned Windows signing key in `keys/`, unpacked with `msiextract`), `windows-arm64` from python.org's `pythonarm64` NuGet packages (verified against nuget.org's SHA-512). Both are packed as a `.tar.gz` with everything under `python/`. Builds that turn out not to be full installs are skipped, not published. `MIRROR_NETWORK_TESTS=1 go test -run Network ./...` (needs msitools) builds real archives.
 
 ### Reusable Workflows (from `dtvem/.github` repo)
 

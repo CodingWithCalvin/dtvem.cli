@@ -138,3 +138,22 @@ func TestCollectJobs(t *testing.T) {
 		})
 	}
 }
+
+// The first source to offer a version and platform wins, so the order sets
+// which build a version gets: python-build-standalone where it has one, then
+// python.org's MSIs (full x64 builds with tkinter), then its NuGet packages.
+func TestGetUpstreamSources_PythonOrder(t *testing.T) {
+	sources, err := getUpstreamSources("python")
+	if err != nil {
+		t.Fatalf("getUpstreamSources(python) error: %v", err)
+	}
+
+	var got []string
+	for _, s := range sources {
+		got = append(got, s.Name())
+	}
+	want := []string{"python-build-standalone", "python.org MSIs", "python.org NuGet packages"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("python sources = %v, want %v", got, want)
+	}
+}

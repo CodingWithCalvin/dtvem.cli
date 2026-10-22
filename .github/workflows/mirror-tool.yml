@@ -1,0 +1,45 @@
+name: Mirror Tool
+
+# Tests for scripts/mirror-binaries, which is its own Go module and so is
+# not covered by the Build & Test workflow.
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'scripts/mirror-binaries/**'
+      - '.github/workflows/mirror-tool.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/mirror-binaries/**'
+      - '.github/workflows/mirror-tool.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test mirror tool
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: scripts/mirror-binaries
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'scripts/mirror-binaries/go.mod'
+          cache-dependency-path: 'scripts/mirror-binaries/go.sum'
+
+      - name: Vet
+        run: go vet ./...
+
+      # Network tests (python_winbuild_network_test.go) only run when
+      # MIRROR_NETWORK_TESTS=1, so this needs neither network nor msitools.
+      - name: Test
+        run: go test -race ./...
