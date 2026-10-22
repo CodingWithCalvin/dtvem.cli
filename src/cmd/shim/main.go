@@ -69,13 +69,21 @@ func runShim() error {
 	}
 
 	// Resolve which version to use
-	version, err := config.ResolveVersion(runtimeName)
-	if err != nil {
+	resolution, err := config.Resolve(runtimeName)
+	if errors.Is(err, config.ErrNoVersion) {
 		ui.Debug("Version resolution failed: %v", err)
 		// No dtvem version configured - try to fallback to system PATH
 		return handleNoConfiguredVersion(shimName, runtimeName, provider)
 	}
-	ui.Debug("Resolved version: %s", version)
+	if err != nil {
+		// A version file could not be read or asks for something dtvem
+		// cannot use. Running another version in its place would hide
+		// that the project's pin is not being honored.
+		ui.Error("%v", err)
+		return fmt.Errorf("could not resolve the %s version", provider.DisplayName())
+	}
+	version := resolution.Version
+	ui.Debug("Resolved version: %s (from %s)", version, resolution.Source)
 
 	// If this is a secondary executable (e.g. uv mapped to python) and the
 	// shim-map cache knows which versions provide it, verify the active
@@ -100,6 +108,7 @@ func runShim() error {
 	if !installed {
 		ui.Debug("Version %s is not installed", version)
 		ui.Error("%s %s is configured but not installed", provider.DisplayName(), version)
+		ui.Info("Set by: %s", resolution.Source)
 		ui.Info("To install, run: dtvem install %s %s", runtimeName, version)
 		return fmt.Errorf("version not installed")
 	}
