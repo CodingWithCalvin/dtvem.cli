@@ -170,6 +170,7 @@ Maps to runtime provider → Resolves version
 | `internal/download/` | File downloads with progress |
 | `internal/manifest/` | Version manifest fetching and caching |
 | `internal/migration/` | Migration detection and helpers |
+| `internal/pth/` | Turns off the `._pth` file of python.org's embeddable Windows Python (installer and `dtvem doctor`) |
 | `internal/testutil/` | Shared test utility functions |
 | `internal/constants/` | Platform constants |
 | `src/cmd/` | CLI commands (one file per command) |
