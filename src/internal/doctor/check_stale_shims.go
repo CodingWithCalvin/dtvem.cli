@@ -3,6 +3,7 @@ package doctor
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	goruntime "runtime"
 	"strings"
 
@@ -51,10 +52,12 @@ func (staleShimsCheck) Name() string { return "stale-shims-path" }
 
 func (c *staleShimsCheck) Run() Finding {
 	currentShims := c.currentShimsDir()
-	pathEntries := path.SplitPath(c.pathEnv())
-	stale := path.FindStaleShimsEntries(pathEntries, currentShims)
+	entries := path.ClassifyShimsEntries(path.SplitPath(c.pathEnv()), currentShims)
+	// The same directory often appears twice, from the System and the User
+	// PATH; report each once.
+	stale, others := uniqueDirs(entries.Stale), uniqueDirs(entries.OtherRoots)
 
-	if len(stale) == 0 {
+	if len(stale) == 0 && len(others) == 0 {
 		return Finding{OK: true, Title: "No stale dtvem shims entries in PATH"}
 	}
 
@@ -62,14 +65,60 @@ func (c *staleShimsCheck) Run() Finding {
 	for _, s := range stale {
 		details = append(details, Detail{Key: "Found", Value: s})
 	}
+	for _, o := range others {
+		details = append(details, Detail{Key: "Other install", Value: o})
+	}
+
+	if len(stale) == 0 {
+		return otherRootsFinding(others, details)
+	}
 
 	resolution, fix := c.fixOrInstructions(stale, currentShims)
+	if len(others) > 0 {
+		resolution += "\nShims directories of other dtvem installs (\"Other install\") still exist and are left in place."
+	}
 	return Finding{
 		Severity:   SeverityError,
 		Title:      fmt.Sprintf("Stale dtvem shims entr%s in PATH", plural(len(stale), "y", "ies")),
 		Details:    details,
 		Resolution: resolution,
 		Fix:        fix,
+	}
+}
+
+// uniqueDirs returns dirs without repeats, keeping the first spelling of
+// each. Comparison is case-insensitive on Windows.
+func uniqueDirs(dirs []string) []string {
+	seen := make(map[string]bool, len(dirs))
+	var unique []string
+	for _, d := range dirs {
+		key := filepath.Clean(strings.TrimSpace(d))
+		if goruntime.GOOS == constants.OSWindows {
+			key = strings.ToLower(key)
+		}
+		if !seen[key] {
+			seen[key] = true
+			unique = append(unique, d)
+		}
+	}
+	return unique
+}
+
+// otherRootsFinding reports PATH entries for another dtvem root's shims
+// directory that still exists: a second install, or the default install
+// while DTVEM_ROOT points elsewhere. That root may still be in use, so
+// doctor never removes these; it only says how to, if the install is gone.
+func otherRootsFinding(others []string, details []Detail) Finding {
+	return Finding{
+		Severity: SeverityWarning,
+		Title:    fmt.Sprintf("Another dtvem install's shims director%s in PATH", plural(len(others), "y is", "ies are")),
+		Details:  details,
+		Resolution: strings.Join([]string{
+			"These shims belong to a different dtvem root than the one this dtvem uses (\"Expected\").",
+			"If you use more than one dtvem root on purpose, nothing needs to change.",
+			"If that install is no longer used, remove its entry from your PATH (on Windows: your User or",
+			"System PATH; elsewhere: the export in your shell config), then restart your terminal.",
+		}, "\n"),
 	}
 }
 

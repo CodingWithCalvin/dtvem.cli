@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -94,7 +95,7 @@ func TestPrependShimsDir(t *testing.T) {
 		valType: registry.EXPAND_SZ,
 	}
 
-	removed, err := prependShimsDir(key, "User", shims)
+	removed, others, err := prependShimsDir(key, "User", shims)
 	if err != nil {
 		t.Fatalf("prependShimsDir() error: %v", err)
 	}
@@ -108,6 +109,60 @@ func TestPrependShimsDir(t *testing.T) {
 	}
 	if !reflect.DeepEqual(removed, []string{`C:\old\.dtvem\shims`}) {
 		t.Errorf("removed = %v, want the stale shims entry", removed)
+	}
+	if len(others) != 0 {
+		t.Errorf("others = %v, want none", others)
+	}
+}
+
+// otherRootShims creates a dtvem shims directory for another root and
+// returns its path.
+func otherRootShims(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "other", ".dtvem", "shims")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("creating %s: %v", dir, err)
+	}
+	return dir
+}
+
+func TestPrependShimsDir_KeepsOtherRoots(t *testing.T) {
+	const shims = `C:\Users\me\.dtvem\shims`
+	other := otherRootShims(t)
+	key := &fakePathKey{value: `C:\tools;` + other + `;C:\gone\.dtvem\shims`, valType: registry.EXPAND_SZ}
+
+	removed, others, err := prependShimsDir(key, "User", shims)
+	if err != nil {
+		t.Fatalf("prependShimsDir() error: %v", err)
+	}
+
+	if want := shims + `;C:\tools;` + other; key.value != want {
+		t.Errorf("PATH = %q, want %q", key.value, want)
+	}
+	if !reflect.DeepEqual(others, []string{other}) {
+		t.Errorf("others = %v, want [%s]", others, other)
+	}
+	if !reflect.DeepEqual(removed, []string{`C:\gone\.dtvem\shims`}) {
+		t.Errorf("removed = %v, want the missing shims entry", removed)
+	}
+}
+
+func TestPrependShimsDir_ExpandedSpellingOfShimsDir(t *testing.T) {
+	t.Setenv("USERPROFILE", `C:\Users\me`)
+	key := &fakePathKey{value: `%USERPROFILE%\.dtvem\shims;C:\tools`, valType: registry.EXPAND_SZ}
+
+	removed, others, err := prependShimsDir(key, "User", `C:\Users\me\.dtvem\shims`)
+	if err != nil {
+		t.Fatalf("prependShimsDir() error: %v", err)
+	}
+
+	// The %USERPROFILE% spelling is the current shims dir: moved to the
+	// front once, not kept as a second entry or reported as stale.
+	if want := `C:\Users\me\.dtvem\shims;C:\tools`; key.value != want {
+		t.Errorf("PATH = %q, want %q", key.value, want)
+	}
+	if len(removed) != 0 || len(others) != 0 {
+		t.Errorf("removed = %v, others = %v; want neither", removed, others)
 	}
 }
 
@@ -125,7 +180,7 @@ func TestPrependShimsDir_KeepsType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := prependShimsDir(tt.key, "User", shims); err != nil {
+			if _, _, err := prependShimsDir(tt.key, "User", shims); err != nil {
 				t.Fatalf("prependShimsDir() error: %v", err)
 			}
 			if tt.key.value != tt.value || tt.key.valType != tt.want {
@@ -138,7 +193,7 @@ func TestPrependShimsDir_KeepsType(t *testing.T) {
 func TestPrependShimsDir_ReadError(t *testing.T) {
 	key := &fakePathKey{readErr: errors.New("access denied")}
 
-	_, err := prependShimsDir(key, "System", `C:\shims`)
+	_, _, err := prependShimsDir(key, "System", `C:\shims`)
 	if err == nil || !strings.Contains(err.Error(), "System PATH") {
 		t.Errorf("prependShimsDir() error = %v, want a System PATH read error", err)
 	}
@@ -165,6 +220,29 @@ func TestRemoveStaleShims(t *testing.T) {
 	}
 	if !reflect.DeepEqual(removed, []string{`C:\old\.dtvem\shims`}) {
 		t.Errorf("removed = %v, want the stale shims entry", removed)
+	}
+}
+
+func TestRemoveStaleShims_KeepsOtherRootsAndCurrentSpelling(t *testing.T) {
+	t.Setenv("USERPROFILE", `C:\Users\me`)
+	other := otherRootShims(t)
+	key := &fakePathKey{
+		value:   `%USERPROFILE%\.dtvem\shims;` + other + `;C:\gone\.dtvem\shims;C:\tools`,
+		valType: registry.EXPAND_SZ,
+	}
+
+	removed, err := removeStaleShims(key, `C:\Users\me\.dtvem\shims`)
+	if err != nil {
+		t.Fatalf("removeStaleShims() error: %v", err)
+	}
+
+	// Only the missing directory goes. The %USERPROFILE% spelling of the
+	// current shims dir and the other root's existing shims dir stay.
+	if want := `%USERPROFILE%\.dtvem\shims;` + other + `;C:\tools`; key.value != want {
+		t.Errorf("PATH = %q, want %q", key.value, want)
+	}
+	if !reflect.DeepEqual(removed, []string{`C:\gone\.dtvem\shims`}) {
+		t.Errorf("removed = %v, want only the missing directory", removed)
 	}
 }
 
@@ -208,7 +286,7 @@ func TestPrependShimsDir_Registry(t *testing.T) {
 	if err := key.SetExpandStringValue("Path", `%SystemRoot%\system32;C:\tools`); err != nil {
 		t.Fatalf("seeding scratch Path: %v", err)
 	}
-	if _, err := prependShimsDir(key, "User", `C:\Users\me\.dtvem\shims`); err != nil {
+	if _, _, err := prependShimsDir(key, "User", `C:\Users\me\.dtvem\shims`); err != nil {
 		t.Fatalf("prependShimsDir() error: %v", err)
 	}
 

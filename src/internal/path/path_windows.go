@@ -365,7 +365,7 @@ func modifyPath(root registry.Key, keyPath, scope, shimsDir, action string) erro
 	}
 	defer func() { _ = key.Close() }()
 
-	removedStale, err := prependShimsDir(key, scope, shimsDir)
+	removedStale, otherRoots, err := prependShimsDir(key, scope, shimsDir)
 	if err != nil {
 		return err
 	}
@@ -375,6 +375,12 @@ func modifyPath(root registry.Key, keyPath, scope, shimsDir, action string) erro
 
 	for _, stale := range removedStale {
 		ui.Success("Removed stale dtvem shims entry from %s PATH: %s", scope, stale)
+	}
+	for _, other := range otherRoots {
+		ui.Warning("Left another dtvem install's shims on your %s PATH: %s", scope, other)
+	}
+	if len(otherRoots) > 0 {
+		ui.Info("If that install is no longer used, remove the entry from your %s PATH.", scope)
 	}
 
 	if action == pathActionMove {

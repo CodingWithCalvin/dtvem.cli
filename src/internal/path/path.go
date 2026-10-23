@@ -85,70 +85,101 @@ func IsDtvemShimsPath(path string) bool {
 	return leafEq(parent, "dtvem") || leafEq(parent, ".dtvem")
 }
 
-// FindStaleShimsEntries scans pathEntries for entries that look like dtvem
-// shims directories but do not match currentShimsDir. The returned slice
-// preserves the order of appearance in pathEntries and has the original
-// (un-cleaned) entry strings, so callers can match them against registry
-// or config-file content.
-//
-// Comparison against currentShimsDir is case-insensitive on Windows.
+// FindStaleShimsEntries scans pathEntries for dtvem shims directories that
+// are not currentShimsDir and no longer exist. See ClassifyShimsEntries.
+// The returned slice preserves order and has the original (un-cleaned)
+// entry strings, so callers can match them against registry or
+// config-file content.
 func FindStaleShimsEntries(pathEntries []string, currentShimsDir string) []string {
-	_, stale := PartitionStaleShimsEntries(pathEntries, currentShimsDir)
-	return stale
+	return ClassifyShimsEntries(pathEntries, currentShimsDir).Stale
+}
+
+// FindOtherRootShimsEntries scans pathEntries for dtvem shims directories
+// that are not currentShimsDir but still exist: another dtvem root, such
+// as a second install or the default install while DTVEM_ROOT points
+// elsewhere. Such entries are reported, never removed. The returned slice
+// preserves order and has the original entry strings.
+func FindOtherRootShimsEntries(pathEntries []string, currentShimsDir string) []string {
+	return ClassifyShimsEntries(pathEntries, currentShimsDir).OtherRoots
 }
 
 // PartitionStaleShimsEntries splits pathEntries into the entries to keep
-// and the stale dtvem-shims entries to remove. Order is preserved in
-// both slices, and the strings are the original (un-cleaned) entries so
-// callers can match them against registry-stored values verbatim.
-//
-// An empty string entry is treated as "drop silently" — it lands in
-// neither slice, which matches what callers want when rewriting PATH
-// (we don't want to preserve stray empty entries that arose from
-// trailing separators).
-//
-// When currentShimsDir is empty the entire input is returned as kept,
-// since without a "current" reference we can't decide which dtvem-shims
-// entries are stale and which are correct.
+// and the stale dtvem-shims entries to remove. See ClassifyShimsEntries;
+// another root's existing shims directory is kept.
 func PartitionStaleShimsEntries(pathEntries []string, currentShimsDir string) (kept, stale []string) {
-	if currentShimsDir == "" {
-		kept = make([]string, 0, len(pathEntries))
-		for _, entry := range pathEntries {
-			if strings.TrimSpace(entry) == "" {
-				continue
-			}
-			kept = append(kept, entry)
-		}
-		return kept, nil
-	}
-	currentClean := filepath.Clean(currentShimsDir)
+	entries := ClassifyShimsEntries(pathEntries, currentShimsDir)
+	return entries.Kept, entries.Stale
+}
 
+// ShimsEntries sorts PATH entries by how they relate to the current dtvem
+// shims directory. Each slice preserves order and holds the original
+// (un-cleaned) entry strings, so callers can match them against
+// registry-stored values and config files verbatim.
+type ShimsEntries struct {
+	// Kept holds every entry to keep: anything that isn't a dtvem shims
+	// directory, the current shims directory, and OtherRoots.
+	Kept []string
+	// Stale holds dtvem shims directories, other than the current one,
+	// that no longer exist: leftovers of a removed or moved install, such
+	// as a pre-XDG root or the other side of a system/user switch.
+	Stale []string
+	// OtherRoots holds dtvem shims directories, other than the current
+	// one, that still exist. They belong to another dtvem root that may
+	// still be in use, so they are kept as well.
+	OtherRoots []string
+}
+
+// ClassifyShimsEntries sorts pathEntries against currentShimsDir. Entries
+// are compared with environment references expanded (%USERPROFILE% on
+// Windows, $HOME elsewhere), so a registry or shell-config spelling of
+// the current shims directory is recognized as current.
+//
+// Empty entries land in no slice, which is what callers want when
+// rewriting PATH (stray empties come from trailing separators). When
+// currentShimsDir is empty every entry is kept, since without a current
+// reference no dtvem shims entry can be judged stale.
+func ClassifyShimsEntries(pathEntries []string, currentShimsDir string) ShimsEntries {
+	var entries ShimsEntries
 	for _, entry := range pathEntries {
 		trimmed := strings.TrimSpace(entry)
-		if trimmed == "" {
+		switch {
+		case trimmed == "":
 			continue
+		case currentShimsDir == "", !IsDtvemShimsPath(expandPathEntry(trimmed)), sameShimsDir(trimmed, currentShimsDir):
+			entries.Kept = append(entries.Kept, entry)
+		case shimsDirExists(trimmed):
+			entries.Kept = append(entries.Kept, entry)
+			entries.OtherRoots = append(entries.OtherRoots, entry)
+		default:
+			entries.Stale = append(entries.Stale, entry)
 		}
-		if !IsDtvemShimsPath(trimmed) {
-			kept = append(kept, entry)
-			continue
-		}
-		entryClean := filepath.Clean(trimmed)
-		matches := entryClean == currentClean
-		if runtime.GOOS == constants.OSWindows {
-			matches = strings.EqualFold(entryClean, currentClean)
-		}
-		if matches {
-			kept = append(kept, entry)
-			continue
-		}
-		stale = append(stale, entry)
 	}
-	return kept, stale
+	return entries
+}
+
+// sameShimsDir reports whether two shims directory spellings name the same
+// directory once environment references are expanded. Comparison is
+// case-insensitive on Windows.
+func sameShimsDir(a, b string) bool {
+	a = filepath.Clean(expandPathEntry(a))
+	b = filepath.Clean(expandPathEntry(b))
+	if runtime.GOOS == constants.OSWindows {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
+}
+
+// shimsDirExists reports whether a shims directory entry, with environment
+// references expanded, exists on disk.
+func shimsDirExists(entry string) bool {
+	info, err := os.Stat(expandPathEntry(entry))
+	return err == nil && info.IsDir()
 }
 
 // RemoveStaleShimsFromShellConfig removes "marker + export" blocks
-// from a single shell config file when the export references a dtvem
-// shims directory that doesn't match currentShimsDir. The file is
+// from a single shell config file when the export references a stale
+// dtvem shims directory: not currentShimsDir, and no longer on disk.
+// Another root's existing shims directory is left alone. The file is
 // rewritten in place; the returned slice lists the stale paths whose
 // blocks were dropped, in source order.
 //
@@ -186,8 +217,8 @@ func RemoveStaleShimsFromShellConfig(configFile, currentShimsDir string) ([]stri
 
 // removeDtvemMarkerBlocks scans configContent line by line, dropping
 // each pair of (marker comment, following export line) whose export
-// line references a dtvem shims path that doesn't match
-// currentShimsDir. Returns the rewritten content and the stale paths
+// line references a stale dtvem shims path (see
+// extractStaleShimsPath). Returns the rewritten content and the stale paths
 // that were dropped, in source order.
 //
 // Behavior intentionally errs on the side of keeping content:
@@ -227,8 +258,9 @@ func removeDtvemMarkerBlocks(configContent, currentShimsDir string) (string, []s
 
 // extractStaleShimsPath returns the dtvem shims path referenced in a
 // PATH-export line if and only if that path is non-empty, looks like a
-// dtvem shims dir, and is not currentShimsDir. Returns "" when the
-// line isn't a stale-referencing export.
+// dtvem shims dir, is not currentShimsDir, and no longer exists (see
+// ClassifyShimsEntries). Returns "" when the line isn't a
+// stale-referencing export.
 //
 // The matcher is permissive across bash/zsh ("export PATH=...") and
 // fish ("set -gx PATH ...") because the dtvem shims path appears
@@ -237,8 +269,6 @@ func removeDtvemMarkerBlocks(configContent, currentShimsDir string) (string, []s
 // bash export concatenates, and check the first segment against
 // IsDtvemShimsPath.
 func extractStaleShimsPath(line, currentShimsDir string) string {
-	currentClean := filepath.Clean(currentShimsDir)
-
 	for _, quoted := range quotedSubstrings(line) {
 		// Bash-style "<dir>:$PATH" — keep the part before the first
 		// colon. Fish-style "<dir>" — the whole quoted string is the
@@ -248,12 +278,16 @@ func extractStaleShimsPath(line, currentShimsDir string) string {
 			candidate = candidate[:idx]
 		}
 		candidate = strings.TrimSpace(candidate)
-		if !IsDtvemShimsPath(candidate) {
+		if !IsDtvemShimsPath(expandPathEntry(candidate)) {
 			continue
 		}
-		if filepath.Clean(candidate) == currentClean {
+		if sameShimsDir(candidate, currentShimsDir) {
 			// References the current shims dir — that's the active
 			// export we want to leave in place.
+			continue
+		}
+		if shimsDirExists(candidate) {
+			// Another dtvem root's shims, which may still be in use.
 			continue
 		}
 		return candidate

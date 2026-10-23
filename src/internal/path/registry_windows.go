@@ -53,34 +53,48 @@ func hasEnvReference(value string) bool {
 	return envReferencePattern.MatchString(value)
 }
 
+// expandPathEntry expands %VAR% references in a PATH entry, as Windows does
+// for a REG_EXPAND_SZ value. An entry that can't be expanded is returned as
+// is.
+func expandPathEntry(entry string) string {
+	expanded, err := registry.ExpandString(entry)
+	if err != nil {
+		return entry
+	}
+	return expanded
+}
+
 // prependShimsDir puts shimsDir first on the PATH under key, dropping any
-// other copy of it and any stale dtvem shims entries, and returns the
-// stale entries it removed. scope names the PATH ("User" or "System") in
-// errors.
-func prependShimsDir(key pathKey, scope, shimsDir string) ([]string, error) {
+// other spelling of it and any stale dtvem shims entries (see
+// ClassifyShimsEntries). It returns the stale entries it removed, and
+// other dtvem roots' existing shims entries, which it keeps. scope names
+// the PATH ("User" or "System") in errors.
+func prependShimsDir(key pathKey, scope, shimsDir string) (removedStale, otherRoots []string, err error) {
 	current, valType, err := readPathValue(key)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s PATH: %w", scope, err)
+		return nil, nil, fmt.Errorf("failed to read %s PATH: %w", scope, err)
 	}
 
+	classified := ClassifyShimsEntries(strings.Split(current, ";"), shimsDir)
 	entries := []string{shimsDir}
-	var removedStale []string
-	for _, p := range strings.Split(current, ";") {
-		trimmed := strings.TrimSpace(p)
-		switch {
-		case trimmed == "", strings.EqualFold(trimmed, shimsDir):
-			continue
-		case IsDtvemShimsPath(trimmed):
-			removedStale = append(removedStale, trimmed)
-		default:
+	for _, e := range classified.Kept {
+		if trimmed := strings.TrimSpace(e); !sameShimsDir(trimmed, shimsDir) {
 			entries = append(entries, trimmed)
 		}
 	}
 
 	if err := writePathValue(key, strings.Join(entries, ";"), valType); err != nil {
-		return nil, fmt.Errorf("failed to update %s PATH in registry: %w", scope, err)
+		return nil, nil, fmt.Errorf("failed to update %s PATH in registry: %w", scope, err)
 	}
-	return removedStale, nil
+	return trimAll(classified.Stale), trimAll(classified.OtherRoots), nil
+}
+
+func trimAll(entries []string) []string {
+	trimmed := make([]string, len(entries))
+	for i, e := range entries {
+		trimmed[i] = strings.TrimSpace(e)
+	}
+	return trimmed
 }
 
 // removeStaleShims removes stale dtvem shims entries from the PATH under
