@@ -348,127 +348,39 @@ func relaunchElevated(shimsDir string) error {
 
 // modifySystemPath modifies the System PATH (requires admin privileges)
 func modifySystemPath(shimsDir, action string) error {
-	key, err := registry.OpenKey(registry.LOCAL_MACHINE, `SYSTEM\CurrentControlSet\Control\Session Manager\Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
-	if err != nil {
-		return fmt.Errorf("failed to open System PATH registry key for writing: %w", err)
-	}
-	defer func() { _ = key.Close() }()
-
-	currentPath, _, err := key.GetStringValue("Path")
-	if err != nil && !errors.Is(err, registry.ErrNotExist) {
-		return fmt.Errorf("failed to read System PATH: %w", err)
-	}
-
-	// Parse and filter current PATH entries
-	paths := strings.Split(currentPath, ";")
-	var filteredPaths []string
-	var removedStale []string
-
-	for _, p := range paths {
-		trimmed := strings.TrimSpace(p)
-		if trimmed == "" {
-			continue
-		}
-		// Skip if it's the shims dir (we'll prepend it)
-		if strings.EqualFold(trimmed, shimsDir) {
-			continue
-		}
-		// Skip stale dtvem shims entries from prior installs
-		if IsDtvemShimsPath(trimmed) {
-			removedStale = append(removedStale, trimmed)
-			continue
-		}
-		filteredPaths = append(filteredPaths, trimmed)
-	}
-
-	// Build new PATH with shimsDir at the beginning
-	newPath := shimsDir
-	if len(filteredPaths) > 0 {
-		newPath += ";" + strings.Join(filteredPaths, ";")
-	}
-
-	// Write back to registry
-	err = key.SetStringValue("Path", newPath)
-	if err != nil {
-		return fmt.Errorf("failed to update System PATH in registry: %w", err)
-	}
-
-	// Broadcast WM_SETTINGCHANGE to notify running processes
-	broadcastSettingChange()
-
-	for _, stale := range removedStale {
-		ui.Success("Removed stale dtvem shims entry from System PATH: %s", stale)
-	}
-
-	if action == pathActionMove {
-		ui.Success("Moved %s to the beginning of your System PATH", shimsDir)
-	} else {
-		ui.Success("Added %s to your System PATH", shimsDir)
-	}
-	ui.Warning("Please restart your terminal for the changes to take effect")
-
-	return nil
+	return modifyPath(registry.LOCAL_MACHINE, systemEnvironmentKey, "System", shimsDir, action)
 }
 
 // modifyUserPath modifies the User PATH (no admin privileges required)
 func modifyUserPath(shimsDir, action string) error {
-	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	return modifyPath(registry.CURRENT_USER, userEnvironmentKey, "User", shimsDir, action)
+}
+
+// modifyPath puts shimsDir first on the System or User PATH (scope), held
+// in the registry under root\keyPath, and reports what changed.
+func modifyPath(root registry.Key, keyPath, scope, shimsDir, action string) error {
+	key, err := registry.OpenKey(root, keyPath, registry.QUERY_VALUE|registry.SET_VALUE)
 	if err != nil {
-		return fmt.Errorf("failed to open User PATH registry key for writing: %w", err)
+		return fmt.Errorf("failed to open %s PATH registry key for writing: %w", scope, err)
 	}
 	defer func() { _ = key.Close() }()
 
-	currentPath, _, err := key.GetStringValue("Path")
-	if err != nil && !errors.Is(err, registry.ErrNotExist) {
-		return fmt.Errorf("failed to read User PATH: %w", err)
-	}
-
-	// Parse and filter current PATH entries
-	var filteredPaths []string
-	var removedStale []string
-	if currentPath != "" {
-		paths := strings.Split(currentPath, ";")
-		for _, p := range paths {
-			trimmed := strings.TrimSpace(p)
-			if trimmed == "" {
-				continue
-			}
-			// Skip if it's the shims dir (we'll prepend it)
-			if strings.EqualFold(trimmed, shimsDir) {
-				continue
-			}
-			// Skip stale dtvem shims entries from prior installs
-			if IsDtvemShimsPath(trimmed) {
-				removedStale = append(removedStale, trimmed)
-				continue
-			}
-			filteredPaths = append(filteredPaths, trimmed)
-		}
-	}
-
-	// Build new PATH with shimsDir at the beginning
-	newPath := shimsDir
-	if len(filteredPaths) > 0 {
-		newPath += ";" + strings.Join(filteredPaths, ";")
-	}
-
-	// Write back to registry
-	err = key.SetStringValue("Path", newPath)
+	removedStale, err := prependShimsDir(key, scope, shimsDir)
 	if err != nil {
-		return fmt.Errorf("failed to update User PATH in registry: %w", err)
+		return err
 	}
 
 	// Broadcast WM_SETTINGCHANGE to notify running processes
 	broadcastSettingChange()
 
 	for _, stale := range removedStale {
-		ui.Success("Removed stale dtvem shims entry from User PATH: %s", stale)
+		ui.Success("Removed stale dtvem shims entry from %s PATH: %s", scope, stale)
 	}
 
 	if action == pathActionMove {
-		ui.Success("Moved %s to the beginning of your User PATH", shimsDir)
+		ui.Success("Moved %s to the beginning of your %s PATH", shimsDir, scope)
 	} else {
-		ui.Success("Added %s to your User PATH", shimsDir)
+		ui.Success("Added %s to your %s PATH", shimsDir, scope)
 	}
 	ui.Warning("Please restart your terminal for the changes to take effect")
 
@@ -635,30 +547,15 @@ func IsSetxAvailable() bool {
 // administrator privileges and aren't touched here; doctor surfaces
 // that case separately in its resolution text.
 func RemoveStaleShimsFromUserPath(currentShimsDir string) ([]string, error) {
-	key, err := registry.OpenKey(registry.CURRENT_USER, `Environment`, registry.QUERY_VALUE|registry.SET_VALUE)
+	key, err := registry.OpenKey(registry.CURRENT_USER, userEnvironmentKey, registry.QUERY_VALUE|registry.SET_VALUE)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open User PATH registry key: %w", err)
 	}
 	defer func() { _ = key.Close() }()
 
-	currentPath, _, err := key.GetStringValue("Path")
-	if err != nil && !errors.Is(err, registry.ErrNotExist) {
-		return nil, fmt.Errorf("failed to read User PATH: %w", err)
-	}
-	if errors.Is(err, registry.ErrNotExist) || currentPath == "" {
-		// No User PATH set at all means there can't be any stale
-		// entries to remove.
-		return nil, nil
-	}
-
-	entries := strings.Split(currentPath, ";")
-	kept, removed := PartitionStaleShimsEntries(entries, currentShimsDir)
-	if len(removed) == 0 {
-		return nil, nil
-	}
-
-	if err := key.SetStringValue("Path", strings.Join(kept, ";")); err != nil {
-		return nil, fmt.Errorf("failed to update User PATH in registry: %w", err)
+	removed, err := removeStaleShims(key, currentShimsDir)
+	if err != nil || len(removed) == 0 {
+		return nil, err
 	}
 
 	// Tell the shell that PATH changed so newly-spawned processes pick

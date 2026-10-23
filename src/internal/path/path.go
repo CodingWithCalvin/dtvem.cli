@@ -17,6 +17,21 @@ import (
 // line above, so we never touch lines the user wrote themselves.
 const dtvemMarkerComment = "# Added by dtvem"
 
+// RegistryPath describes how a PATH value is stored in the Windows
+// registry. See RegistryPaths.
+type RegistryPath struct {
+	Scope         string // "User" or "System"
+	Expandable    bool   // stored as REG_EXPAND_SZ
+	HasReferences bool   // contains %VAR% references
+}
+
+// Unexpanded reports whether the value's %VAR% references are left
+// literal, and so their directories are missing from PATH, because it is
+// stored as REG_SZ rather than REG_EXPAND_SZ.
+func (p RegistryPath) Unexpanded() bool {
+	return p.HasReferences && !p.Expandable
+}
+
 // IsInPath checks if a directory is in the system PATH
 func IsInPath(dir string) bool {
 	pathEnv := os.Getenv("PATH")
