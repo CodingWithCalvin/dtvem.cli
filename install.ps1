@@ -125,6 +125,46 @@ function Test-Checksum {
     return $true
 }
 
+function Send-EnvironmentChange {
+    # Tell running applications (Explorer, new terminals) that the
+    # environment changed, as [Environment]::SetEnvironmentVariable would.
+    $signature = '[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam, uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);'
+    $native = Add-Type -MemberDefinition $signature -Name 'NativeMethods' -Namespace 'DtvemInstaller' -PassThru
+    $result = [UIntPtr]::Zero
+    [void]$native::SendMessageTimeout([IntPtr]0xffff, 0x1A, [UIntPtr]::Zero, 'Environment', 2, 5000, [ref]$result)
+}
+
+function Add-ToUserPath {
+    param([string]$Directory)
+
+    # Edit the User PATH in the registry directly.
+    # [Environment]::GetEnvironmentVariable returns it with %VAR% entries
+    # expanded and SetEnvironmentVariable writes REG_SZ, which together would
+    # freeze entries like %USERPROFILE%\.dotnet\tools and change the value's
+    # type. Windows stores PATH as REG_EXPAND_SZ.
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+    if (-not $key) {
+        throw "Could not open HKCU\Environment"
+    }
+    try {
+        $userPath = $key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        $entries = [Environment]::ExpandEnvironmentVariables($userPath) -split ';'
+        if ($entries -contains $Directory) {
+            return $false
+        }
+
+        # Add to BEGINNING of PATH for priority over system versions
+        $newPath = if ($userPath) { "$Directory;$userPath" } else { $Directory }
+        $key.SetValue('Path', $newPath, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+    }
+    finally {
+        $key.Close()
+    }
+
+    Send-EnvironmentChange
+    return $true
+}
+
 function Main {
     param([switch]$UserInstall)
     Write-Host ""
@@ -250,24 +290,18 @@ function Main {
 
         # Add install directory to PATH
         Write-Host ""
-        $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-        if ($userPath -notlike "*$INSTALL_DIR*") {
-            Write-Info "Adding $INSTALL_DIR to PATH..."
-
-            try {
-                # Add to BEGINNING of PATH for priority over system versions
-                $newPath = if ($userPath) { "$INSTALL_DIR;$userPath" } else { $INSTALL_DIR }
-                [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-                Write-Success "Added to PATH (at beginning for priority)"
+        try {
+            if (Add-ToUserPath -Directory $INSTALL_DIR) {
+                Write-Success "Added $INSTALL_DIR to PATH (at beginning for priority)"
                 Write-Warning-Custom "Please restart your terminal for PATH changes to take effect"
             }
-            catch {
-                Write-Warning-Custom "Failed to add to PATH automatically: $_"
-                Write-Info "Please add manually: $INSTALL_DIR"
+            else {
+                Write-Info "$INSTALL_DIR is already in PATH"
             }
         }
-        else {
-            Write-Info "$INSTALL_DIR is already in PATH"
+        catch {
+            Write-Warning-Custom "Failed to add to PATH automatically: $_"
+            Write-Info "Please add manually: $INSTALL_DIR"
         }
 
         # Run init to add shims directory to PATH

@@ -178,3 +178,15 @@ func containsPathModification(configFile, shimsDir string) bool {
 
 	return false
 }
+
+// RegistryPaths reports how the PATH values are stored in the Windows
+// registry. There is no such registry on this platform.
+func RegistryPaths() ([]RegistryPath, error) {
+	return nil, nil
+}
+
+// RepairUserPathType rewrites the User PATH as REG_EXPAND_SZ on Windows.
+// There is no such registry on this platform.
+func RepairUserPathType() error {
+	return fmt.Errorf("the PATH registry only exists on Windows")
+}

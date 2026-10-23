@@ -397,3 +397,4 @@ Use `internal/ui` for all user-facing output:
 - **Version strings**: Strip `v` prefix (e.g., "v22.0.0" → "22.0.0")
 - **Registry is global**: Providers auto-register on import via `init()`
 - **Verbose mode**: Set `DTVEM_VERBOSE=1` for debug output
+- **Windows PATH in the registry**: write it with `writePathValue` (`internal/path/registry_windows.go`), never `registry.Key.SetStringValue` or .NET's `[Environment]::SetEnvironmentVariable`. Those write `REG_SZ`, and Windows only expands `%VAR%` entries such as `%SystemRoot%\system32` in a `REG_EXPAND_SZ` value. `dtvem doctor` (`path-registry-type`) repairs a converted User PATH.
