@@ -991,3 +991,101 @@ func stringSliceEqual(a, b []string) bool {
 	}
 	return true
 }
+
+// shimsDirOfOtherRoot creates a dtvem shims directory for another root
+// and returns its path.
+func shimsDirOfOtherRoot(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "other", ".dtvem", "shims")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("creating %s: %v", dir, err)
+	}
+	return dir
+}
+
+func TestClassifyShimsEntries(t *testing.T) {
+	root := t.TempDir()
+	current := filepath.Join(root, "current", ".dtvem", "shims")
+	other := shimsDirOfOtherRoot(t)
+	missing := filepath.Join(root, "gone", ".dtvem", "shims")
+	plain := filepath.Join(root, "tools")
+
+	got := ClassifyShimsEntries([]string{plain, other, "", missing, current}, current)
+
+	if want := []string{plain, other, current}; strings.Join(got.Kept, "|") != strings.Join(want, "|") {
+		t.Errorf("Kept = %v, want %v", got.Kept, want)
+	}
+	if want := []string{missing}; strings.Join(got.Stale, "|") != strings.Join(want, "|") {
+		t.Errorf("Stale = %v, want %v", got.Stale, want)
+	}
+	if want := []string{other}; strings.Join(got.OtherRoots, "|") != strings.Join(want, "|") {
+		t.Errorf("OtherRoots = %v, want %v", got.OtherRoots, want)
+	}
+
+	if stale := FindStaleShimsEntries([]string{other, missing}, current); len(stale) != 1 || stale[0] != missing {
+		t.Errorf("FindStaleShimsEntries() = %v, want only the missing directory", stale)
+	}
+	if others := FindOtherRootShimsEntries([]string{other, missing}, current); len(others) != 1 || others[0] != other {
+		t.Errorf("FindOtherRootShimsEntries() = %v, want only the existing directory", others)
+	}
+}
+
+// envSpelling returns dir written with an environment reference to its
+// parent, the way a registry value or shell config might spell it.
+func envSpelling(t *testing.T, dir string) string {
+	t.Helper()
+	t.Setenv("DTVEM_TEST_PARENT", filepath.Dir(dir))
+	if runtime.GOOS == constants.OSWindows {
+		return `%DTVEM_TEST_PARENT%\` + filepath.Base(dir)
+	}
+	return "$DTVEM_TEST_PARENT/" + filepath.Base(dir)
+}
+
+func TestClassifyShimsEntries_EnvironmentSpelling(t *testing.T) {
+	current := filepath.Join(t.TempDir(), "current", ".dtvem", "shims")
+	spelled := envSpelling(t, current)
+
+	// The current shims dir spelled with an environment reference is the
+	// current dir, not a stale entry, even though it doesn't exist on disk.
+	got := ClassifyShimsEntries([]string{spelled}, current)
+	if len(got.Stale) != 0 || len(got.OtherRoots) != 0 || len(got.Kept) != 1 {
+		t.Errorf("ClassifyShimsEntries(%q) = %+v, want it kept as the current dir", spelled, got)
+	}
+}
+
+func TestClassifyShimsEntries_EnvironmentSpellingOfOtherRoot(t *testing.T) {
+	current := filepath.Join(t.TempDir(), "current", ".dtvem", "shims")
+	other := shimsDirOfOtherRoot(t)
+	spelled := envSpelling(t, other)
+
+	got := ClassifyShimsEntries([]string{spelled}, current)
+	if len(got.OtherRoots) != 1 || len(got.Stale) != 0 {
+		t.Errorf("ClassifyShimsEntries(%q) = %+v, want it reported as another root", spelled, got)
+	}
+}
+
+func TestRemoveDtvemMarkerBlocks_KeepsOtherRoots(t *testing.T) {
+	if runtime.GOOS == constants.OSWindows {
+		// Shell-config exports are a Unix concern, and the "<dir>:$PATH"
+		// parsing can't take a Windows temp path with a drive colon.
+		t.Skip("shell config PATH exports are Unix-only")
+	}
+	current := filepath.Join(t.TempDir(), "current", "dtvem", "shims")
+	other := shimsDirOfOtherRoot(t)
+	missing := filepath.Join(t.TempDir(), "gone", ".dtvem", "shims")
+	input := strings.Join([]string{
+		"# Added by dtvem",
+		`export PATH="` + other + `:$PATH"`,
+		"# Added by dtvem",
+		`export PATH="` + missing + `:$PATH"`,
+	}, "\n")
+
+	out, removed := removeDtvemMarkerBlocks(input, current)
+
+	if len(removed) != 1 || removed[0] != missing {
+		t.Errorf("removed = %v, want only %s", removed, missing)
+	}
+	if want := "# Added by dtvem\n" + `export PATH="` + other + `:$PATH"`; out != want {
+		t.Errorf("output = %q, want the other root's block kept:\n%q", out, want)
+	}
+}

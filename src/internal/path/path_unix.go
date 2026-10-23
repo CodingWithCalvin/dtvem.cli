@@ -190,3 +190,9 @@ func RegistryPaths() ([]RegistryPath, error) {
 func RepairUserPathType() error {
 	return fmt.Errorf("the PATH registry only exists on Windows")
 }
+
+// expandPathEntry expands environment references such as $HOME in a PATH
+// entry, as the shell would.
+func expandPathEntry(entry string) string {
+	return os.ExpandEnv(entry)
+}

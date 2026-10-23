@@ -242,3 +242,92 @@ func TestStaleShimsCheck_FixPropagatesImplError(t *testing.T) {
 		t.Errorf("Fix err = %v, want chain containing %v", err, wantErr)
 	}
 }
+
+// existingOtherRootShims creates another dtvem root's shims directory, as a
+// second install or the default install would have.
+func existingOtherRootShims(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "other", ".dtvem", "shims")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("creating %s: %v", dir, err)
+	}
+	return dir
+}
+
+func TestStaleShimsCheck_OtherRootIsAWarningWithoutFix(t *testing.T) {
+	_, shims := withDtvemRoot(t)
+	other := existingOtherRootShims(t)
+	withPathEnv(t, []string{shims, other, "/usr/local/bin"})
+
+	got := newStaleShimsCheck().Run()
+	if got.OK {
+		t.Fatal("expected a finding for another install's shims directory, got OK")
+	}
+	if got.Severity != SeverityWarning {
+		t.Errorf("Severity = %v, want warning: another root is not an error", got.Severity)
+	}
+	if got.Fixable() {
+		t.Error("finding is fixable; another root's shims must never be removed automatically")
+	}
+
+	var gotOther bool
+	for _, d := range got.Details {
+		if d.Key == "Other install" && d.Value == other {
+			gotOther = true
+		}
+		if d.Key == "Found" {
+			t.Errorf("Details report %s as stale (Found); it still exists", d.Value)
+		}
+	}
+	if !gotOther {
+		t.Errorf("Details = %v, want an \"Other install\" entry for %s", got.Details, other)
+	}
+	if !strings.Contains(got.Resolution, "no longer used") {
+		t.Errorf("Resolution %q should explain when to remove the entry", got.Resolution)
+	}
+}
+
+func TestStaleShimsCheck_RepeatedEntryReportedOnce(t *testing.T) {
+	_, shims := withDtvemRoot(t)
+	other := existingOtherRootShims(t)
+	// Windows puts the System PATH before the User PATH, so a directory
+	// added to both appears twice.
+	withPathEnv(t, []string{other, shims, other})
+
+	got := newStaleShimsCheck().Run()
+	count := 0
+	for _, d := range got.Details {
+		if d.Key == "Other install" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("Details list the other install %d times, want once: %v", count, got.Details)
+	}
+}
+
+func TestStaleShimsCheck_StaleAndOtherRoot(t *testing.T) {
+	_, shims := withDtvemRoot(t)
+	other := existingOtherRootShims(t)
+	missing := filepath.Join(t.TempDir(), "gone", ".dtvem", "shims")
+	withPathEnv(t, []string{missing, shims, other})
+
+	got := newStaleShimsCheck().Run()
+	if got.OK || got.Severity != SeverityError || !got.Fixable() {
+		t.Fatalf("Run() OK=%v severity=%v fixable=%v, want a fixable error for the missing directory", got.OK, got.Severity, got.Fixable())
+	}
+
+	found := map[string]string{}
+	for _, d := range got.Details {
+		found[d.Value] = d.Key
+	}
+	if found[missing] != "Found" {
+		t.Errorf("missing directory reported as %q, want \"Found\"", found[missing])
+	}
+	if found[other] != "Other install" {
+		t.Errorf("existing other root reported as %q, want \"Other install\"", found[other])
+	}
+	if !strings.Contains(got.Resolution, "left in place") {
+		t.Errorf("Resolution %q should say other installs' shims are left in place", got.Resolution)
+	}
+}
