@@ -3,7 +3,6 @@ package python
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
@@ -111,9 +110,9 @@ func TestPythonProvider_GetPipURL(t *testing.T) {
 			expectedURL: "https://bootstrap.pypa.io/get-pip.py",
 		},
 		{
-			name:        "Python 3.9 uses default URL",
+			name:        "Python 3.9 uses version-specific URL",
 			version:     "3.9.18",
-			expectedURL: "https://bootstrap.pypa.io/get-pip.py",
+			expectedURL: "https://bootstrap.pypa.io/pip/3.9/get-pip.py",
 		},
 		{
 			name:        "Python 3.8 uses version-specific URL",
@@ -145,97 +144,6 @@ func TestPythonProvider_GetPipURL(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestPythonProvider_EnableSitePackages tests the ._pth file modification
-func TestPythonProvider_EnableSitePackages(t *testing.T) {
-	provider := NewProvider()
-
-	t.Run("returns error for non-existent file", func(t *testing.T) {
-		err := provider.enableSitePackages("/nonexistent/path/python311._pth")
-		if err == nil {
-			t.Error("enableSitePackages() should return error for non-existent file")
-		}
-	})
-
-	t.Run("uncomments import site line", func(t *testing.T) {
-		// Create a temp file with commented import site
-		tempDir := t.TempDir()
-		pthFile := filepath.Join(tempDir, "python311._pth")
-		content := "python311.zip\n.\n#import site\n"
-		if err := os.WriteFile(pthFile, []byte(content), 0644); err != nil {
-			t.Fatalf("Failed to create test file: %v", err)
-		}
-
-		err := provider.enableSitePackages(pthFile)
-		if err != nil {
-			t.Fatalf("enableSitePackages() returned error: %v", err)
-		}
-
-		// Read and verify
-		result, err := os.ReadFile(pthFile)
-		if err != nil {
-			t.Fatalf("Failed to read result file: %v", err)
-		}
-
-		if !strings.Contains(string(result), "import site") {
-			t.Error("Result should contain 'import site'")
-		}
-		if strings.Contains(string(result), "#import site") {
-			t.Error("Result should not contain commented '#import site'")
-		}
-	})
-
-	t.Run("adds import site if missing", func(t *testing.T) {
-		// Create a temp file without import site
-		tempDir := t.TempDir()
-		pthFile := filepath.Join(tempDir, "python311._pth")
-		content := "python311.zip\n.\n"
-		if err := os.WriteFile(pthFile, []byte(content), 0644); err != nil {
-			t.Fatalf("Failed to create test file: %v", err)
-		}
-
-		err := provider.enableSitePackages(pthFile)
-		if err != nil {
-			t.Fatalf("enableSitePackages() returned error: %v", err)
-		}
-
-		// Read and verify
-		result, err := os.ReadFile(pthFile)
-		if err != nil {
-			t.Fatalf("Failed to read result file: %v", err)
-		}
-
-		if !strings.Contains(string(result), "import site") {
-			t.Error("Result should contain 'import site'")
-		}
-	})
-
-	t.Run("preserves already uncommented import site", func(t *testing.T) {
-		// Create a temp file with already uncommented import site
-		tempDir := t.TempDir()
-		pthFile := filepath.Join(tempDir, "python311._pth")
-		content := "python311.zip\n.\nimport site\n"
-		if err := os.WriteFile(pthFile, []byte(content), 0644); err != nil {
-			t.Fatalf("Failed to create test file: %v", err)
-		}
-
-		err := provider.enableSitePackages(pthFile)
-		if err != nil {
-			t.Fatalf("enableSitePackages() returned error: %v", err)
-		}
-
-		// Read and verify - should still have import site, not duplicated
-		result, err := os.ReadFile(pthFile)
-		if err != nil {
-			t.Fatalf("Failed to read result file: %v", err)
-		}
-
-		count := strings.Count(string(result), "import site")
-		if count != 1 {
-			t.Errorf("Expected exactly 1 'import site' line, got %d", count)
-		}
-	})
 }
 
 // TestPythonProvider_Shims tests the shim configuration

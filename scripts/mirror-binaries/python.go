@@ -223,27 +223,3 @@ func (s *PythonStandaloneSource) mapTripleToPlatform(triple string) string {
 		return ""
 	}
 }
-
-// PythonOfficialSource fetches Python versions from python.org
-// This is a fallback for versions not available in python-build-standalone
-type PythonOfficialSource struct{}
-
-func (s *PythonOfficialSource) Name() string {
-	return "python.org"
-}
-
-func (s *PythonOfficialSource) FetchVersions() ([]MirrorJob, error) {
-	// Python.org doesn't provide prebuilt binaries for most platforms
-	// Only Windows installers and source tarballs are available
-	// For now, we rely primarily on python-build-standalone
-	// This source can be expanded later if needed
-
-	// The official FTP has a complex structure:
-	// https://www.python.org/ftp/python/3.12.0/
-	// - Python-3.12.0.tar.xz (source)
-	// - python-3.12.0-amd64.exe (Windows installer - not a portable archive)
-	// - python-3.12.0-embed-amd64.zip (Windows embeddable - limited use)
-
-	// For now, return empty - python-build-standalone covers our needs
-	return []MirrorJob{}, nil
-}

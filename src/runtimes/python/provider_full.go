@@ -20,6 +20,7 @@ import (
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/constants"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/download"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/manifest"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/pth"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/shim"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
@@ -224,10 +225,16 @@ func (p *Provider) installPip(version string) error {
 
 	installPath := config.RuntimeVersionPath("python", version)
 
-	// For python.org embeddable packages, enable site-packages first.
-	// This file doesn't exist in python-build-standalone, so errors are ignored.
-	pthFile := filepath.Join(installPath, fmt.Sprintf("python%s._pth", strings.Join(strings.Split(version, ".")[:2], "")))
-	_ = p.enableSitePackages(pthFile) // Best effort - ignore errors
+	// python.org embeddable packages ship a ._pth file that runs Python in
+	// isolated mode: no script directory on sys.path, PYTHONPATH ignored,
+	// site-packages off. Turning it off makes the install behave like a
+	// regular one. Full builds have no ._pth file.
+	if disabled, err := pth.Disable(installPath); err != nil {
+		ui.Warning("Could not disable the ._pth file in %s: %v", installPath, err)
+		ui.Info("Python %s will run in isolated mode until it is renamed to <name>._pth.disabled", version)
+	} else if len(disabled) > 0 {
+		ui.Debug("Disabled %v so Python %s runs as a regular install", disabled, version)
+	}
 
 	// Step 1: ensurepip bootstraps the pip module on distributions that
 	// ship without one (python.org embeddable). It's a no-op on python-
@@ -338,42 +345,19 @@ func (p *Provider) installPipWithGetPip(version, pythonPath, installPath string)
 }
 
 // getPipURL returns the appropriate get-pip.py URL for the given Python version.
-// Older Python versions (3.8 and below) require version-specific URLs since the
+// Older Python versions (3.9 and below) require version-specific URLs since the
 // main get-pip.py no longer supports end-of-life Python versions.
 func (p *Provider) getPipURL(version string) string {
 	parts := strings.Split(version, ".")
 	if len(parts) >= 2 && parts[0] == "3" {
+		// The main get-pip.py requires Python 3.10+; older versions
+		// have their own under /pip/3.x/.
 		minor, err := strconv.Atoi(parts[1])
-		if err == nil && minor <= 8 {
+		if err == nil && minor <= 9 {
 			return fmt.Sprintf("https://bootstrap.pypa.io/pip/%s.%s/get-pip.py", parts[0], parts[1])
 		}
 	}
 	return "https://bootstrap.pypa.io/get-pip.py"
-}
-
-// enableSitePackages modifies the ._pth file to enable site-packages.
-func (p *Provider) enableSitePackages(pthFile string) error {
-	content, err := os.ReadFile(pthFile)
-	if err != nil {
-		return err
-	}
-
-	lines := strings.Split(string(content), "\n")
-	found := false
-	for i, line := range lines {
-		if strings.Contains(line, "import site") {
-			lines[i] = "import site"
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		lines = append(lines, "import site")
-	}
-
-	newContent := strings.Join(lines, "\n")
-	return os.WriteFile(pthFile, []byte(newContent), 0644)
 }
 
 // Uninstall removes an installed version.
