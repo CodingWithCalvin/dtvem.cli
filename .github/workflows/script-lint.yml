@@ -6,18 +6,24 @@ on:
     paths:
       - 'install.sh'
       - 'install.ps1'
+      - 'uninstall.sh'
+      - 'uninstall.ps1'
+      - '.github/workflows/script-lint.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'install.sh'
       - 'install.ps1'
+      - 'uninstall.sh'
+      - 'uninstall.ps1'
+      - '.github/workflows/script-lint.yml'
 
 permissions:
   contents: read
 
 jobs:
   shellcheck:
-    name: Lint install.sh
+    name: Lint install.sh and uninstall.sh
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -27,10 +33,10 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: '.'
-          additional_files: 'install.sh'
+          additional_files: 'install.sh uninstall.sh'
 
   psscriptanalyzer:
-    name: Lint install.ps1
+    name: Lint install.ps1 and uninstall.ps1
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -40,10 +46,19 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          # Exclude PSAvoidUsingWriteHost - Write-Host is intentional for colored installer output
-          $results = Invoke-ScriptAnalyzer -Path ./install.ps1 -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost,PSUseBOMForUnicodeEncodedFile
-          if ($results) {
-            $results | Format-Table -AutoSize
+          $failed = $false
+          foreach ($script in './install.ps1', './uninstall.ps1') {
+            # Exclude PSAvoidUsingWriteHost - Write-Host is intentional for colored installer output
+            $results = Invoke-ScriptAnalyzer -Path $script -Severity Error,Warning -ExcludeRule PSAvoidUsingWriteHost,PSUseBOMForUnicodeEncodedFile
+            if ($results) {
+              Write-Host "Issues in ${script}:"
+              $results | Format-Table -AutoSize
+              $failed = $true
+            }
+            else {
+              Write-Host "✅ No issues found in $script"
+            }
+          }
+          if ($failed) {
             exit 1
           }
-          Write-Host "✅ No issues found in install.ps1"

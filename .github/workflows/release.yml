@@ -223,7 +223,9 @@ jobs:
         name: install-scripts
         path: |
           install.sh
+          uninstall.sh
           install.ps1
+          uninstall.ps1
         retention-days: 1
 
   changelog:
@@ -279,7 +281,9 @@ jobs:
           artifacts/build-windows-amd64/dtvem-${{ github.event.inputs.version }}-windows-amd64.zip
           artifacts/build-windows-arm64/dtvem-${{ github.event.inputs.version }}-windows-arm64.zip
           install.sh
+          uninstall.sh
           install.ps1
+          uninstall.ps1
         body: |
           ## What's New in v${{ github.event.inputs.version }}
 

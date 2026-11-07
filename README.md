@@ -51,6 +51,20 @@ irm dtvem.io/install.ps1 | iex
 
 See [Getting Started](https://dtvem.io/docs/user-guide/getting-started) for manual installation, building from source, and PATH configuration.
 
+### 🗑️ Uninstalling
+
+**macOS / Linux:**
+```bash
+curl -fsSL dtvem.io/uninstall.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm dtvem.io/uninstall.ps1 | iex
+```
+
+This removes dtvem, every runtime version installed with it, and the PATH changes it made, after showing what it will remove and asking first. Version files in your projects are left alone.
+
 ## 🚀 Quick Start
 
 ```bash
