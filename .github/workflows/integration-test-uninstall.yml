@@ -1,0 +1,253 @@
+name: Integration Tests - Uninstall Scripts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'uninstall.sh'
+      - 'uninstall.ps1'
+      - 'install.sh'
+      - 'install.ps1'
+      - 'src/cmd/init.go'
+      - 'src/internal/path/**'
+      - '.github/workflows/integration-test-uninstall.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'uninstall.sh'
+      - 'uninstall.ps1'
+      - 'install.sh'
+      - 'install.ps1'
+      - 'src/cmd/init.go'
+      - 'src/internal/path/**'
+      - '.github/workflows/integration-test-uninstall.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    name: Uninstall (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    env:
+      SHELL: /bin/bash
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build dtvem
+        run: go build -o "$RUNNER_TEMP/dtvem" ./src
+
+      - name: Install dtvem as install.sh does
+        run: |
+          set -eu
+          if [ "$(uname -s)" = Linux ]; then
+            root="$HOME/.local/share/dtvem"
+          else
+            root="$HOME/.dtvem"
+          fi
+          mkdir -p "$root/bin"
+          cp "$RUNNER_TEMP/dtvem" "$root/bin/dtvem"
+
+          # The PATH line install.sh adds, and one the user wrote themselves
+          touch ~/.bashrc
+          {
+            echo ""
+            echo "# Added by dtvem installer"
+            echo "export PATH=\"$root/bin:\$PATH\""
+            echo "export DTVEM_VERBOSE=1"
+          } >> ~/.bashrc
+
+          # Adds the shims PATH line
+          "$root/bin/dtvem" init -y
+
+          # A runtime version holding a read-only directory and a link to a
+          # directory outside the root (as `npm link` makes)
+          version="$root/versions/node/22.0.0"
+          mkdir -p "$version/lib/node_modules" "$version/readonly" "$RUNNER_TEMP/linked-project"
+          echo keep > "$RUNNER_TEMP/linked-project/keep.txt"
+          ln -s "$RUNNER_TEMP/linked-project" "$version/lib/node_modules/linked"
+          touch "$version/readonly/file"
+          chmod 555 "$version/readonly"
+
+          echo "DTVEM_TEST_ROOT=$root" >> "$GITHUB_ENV"
+          cat ~/.bashrc
+
+      # On macOS this is the stock bash 3.2, which `curl | bash` runs there
+      - name: Uninstall
+        run: /bin/bash ./uninstall.sh --yes
+
+      - name: Verify
+        run: |
+          fail=0
+          check() {
+            if eval "$1"; then echo "✓ $2"; else echo "✗ $2"; fail=1; fi
+          }
+          check '[ ! -e "$DTVEM_TEST_ROOT" ]' "dtvem root removed"
+          check '[ -f "$RUNNER_TEMP/linked-project/keep.txt" ]' "linked directory outside the root kept"
+          check '! grep -q "Added by dtvem" ~/.bashrc' "dtvem PATH lines removed"
+          check '! grep -qF "$DTVEM_TEST_ROOT" ~/.bashrc' "no PATH line names the root"
+          check 'grep -q "DTVEM_VERBOSE" ~/.bashrc' "the user's own line kept"
+          cat ~/.bashrc
+          exit $fail
+
+      - name: Uninstall again (nothing to remove)
+        run: /bin/bash ./uninstall.sh --yes
+
+      - name: Custom DTVEM_ROOT keeps other files
+        run: |
+          set -eu
+          root="$RUNNER_TEMP/tools"
+          mkdir -p "$root/bin" "$root/shims" "$root/versions/ruby/3.4.1"
+          cp "$RUNNER_TEMP/dtvem" "$root/bin/dtvem"
+          echo keep > "$root/bin/other-tool"
+          echo keep > "$root/notes.txt"
+          DTVEM_ROOT="$root" /bin/bash ./uninstall.sh --yes
+          if [ ! -f "$root/bin/other-tool" ] || [ ! -f "$root/notes.txt" ]; then
+            echo "✗ files dtvem didn't create were removed"
+            exit 1
+          fi
+          if [ -e "$root/shims" ] || [ -e "$root/versions" ] || [ -e "$root/bin/dtvem" ]; then
+            echo "✗ dtvem's files are still there"
+            exit 1
+          fi
+          echo "✓ only dtvem's files were removed"
+
+  windows:
+    name: Uninstall (windows, ${{ matrix.shell }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [pwsh, powershell]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build dtvem
+        run: go build -o "$env:RUNNER_TEMP\dtvem.exe" ./src
+
+      - name: Install dtvem as install.ps1 does
+        run: |
+          $root = Join-Path $env:USERPROFILE '.dtvem'
+          New-Item -ItemType Directory "$root\bin" -Force | Out-Null
+          Copy-Item "$env:RUNNER_TEMP\dtvem.exe" "$root\bin\dtvem.exe"
+
+          # User PATH: the install directory (as install.ps1 adds it), a
+          # stale shims entry from an old install, and a %VAR% entry that
+          # must stay unexpanded
+          $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+          $userPath = $key.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $key.SetValue('Path', "$root\bin;C:\old-install\.dtvem\shims;$userPath;%USERPROFILE%\keep-me", 'ExpandString')
+          $key.Close()
+
+          # System PATH: runner images store it as REG_SZ with no %VAR%
+          # entries. Make it REG_EXPAND_SZ with one, so the test shows the
+          # uninstaller keeps both.
+          $system = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment', $true)
+          "System PATH was stored as $($system.GetValueKind('Path'))"
+          $systemPath = $system.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $system.SetValue('Path', "$systemPath;%SystemRoot%\keep-me", 'ExpandString')
+          $system.Close()
+
+          # System PATH: the shims directory (the runner is an administrator)
+          & "$root\bin\dtvem.exe" init -y
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+          # A runtime version holding a read-only file, a path over 260
+          # characters, and a junction to a directory outside the root (as
+          # `npm link` makes)
+          $version = "$root\versions\node\22.0.0"
+          New-Item -ItemType Directory "$version\node_modules", "$env:RUNNER_TEMP\linked-project" -Force | Out-Null
+          Set-Content "$env:RUNNER_TEMP\linked-project\keep.txt" 'keep'
+          New-Item -ItemType Junction -Path "$version\node_modules\linked" -Target "$env:RUNNER_TEMP\linked-project" | Out-Null
+          Set-Content "$version\readonly.txt" 'x'
+          (Get-Item "$version\readonly.txt").IsReadOnly = $true
+          $deep = $version + (('\' + ('d' * 50)) * 6)
+          [IO.Directory]::CreateDirectory("\\?\$deep") | Out-Null
+          [IO.File]::WriteAllText("\\?\$deep\deep.txt", 'x')
+
+          # What RubyInstaller registered when older dtvem versions used it:
+          # a Programs and Features entry, a file type, the .rb association,
+          # a Start menu folder and a System PATH entry, all pointing at the
+          # deleted %TEMP%\dtvem-ruby-<version> directory
+          $staging = Join-Path $env:TEMP 'dtvem-ruby-3.3.9\installed'
+          $uninstall = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\RubyInstaller-3.3-x64-mingw-ucrt_is1'
+          New-Item -Path $uninstall -Force | Out-Null
+          New-ItemProperty -Path $uninstall -Name DisplayName -Value 'Ruby 3.3.9-1-x64' | Out-Null
+          New-ItemProperty -Path $uninstall -Name InstallLocation -Value "$staging\" | Out-Null
+          New-Item -Path 'HKCU:\Software\Classes\RubyFile\shell\open\command' -Force | Out-Null
+          Set-Item -Path 'HKCU:\Software\Classes\RubyFile\shell\open\command' -Value "`"$staging\bin\ruby.exe`" `"%1`" %*"
+          New-Item -Path 'HKCU:\Software\Classes\.rb\OpenWithProgids' -Force | Out-Null
+          Set-Item -Path 'HKCU:\Software\Classes\.rb' -Value 'RubyFile'
+          $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Ruby 3.3.9-1-x64'
+          New-Item -ItemType Directory $menu -Force | Out-Null
+          $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut("$menu\Interactive Ruby.lnk")
+          $shortcut.TargetPath = "$staging\bin\irb.bat"
+          $shortcut.Save()
+          $system = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment', $true)
+          $systemPath = $system.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $system.SetValue('Path', "$systemPath;$staging\bin", $system.GetValueKind('Path'))
+          $system.Close()
+
+          "DTVEM_TEST_ROOT=$root" >> $env:GITHUB_ENV
+
+      - name: Uninstall
+        run: |
+          & ${{ matrix.shell }} -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Yes
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Verify
+        run: |
+          $failed = $false
+          function Check($ok, $name) {
+            if ($ok) { "✓ $name" } else { "✗ $name"; $script:failed = $true }
+          }
+
+          $user = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
+          $userPath = $user.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $userKind = $user.GetValueKind('Path')
+          $user.Close()
+          $system = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment')
+          $systemPath = $system.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $systemKind = $system.GetValueKind('Path')
+          $system.Close()
+
+          Check (-not (Test-Path $env:DTVEM_TEST_ROOT)) 'dtvem root removed'
+          Check (Test-Path "$env:RUNNER_TEMP\linked-project\keep.txt") 'junction target outside the root kept'
+          Check ($userPath -notmatch 'dtvem') "User PATH has no dtvem entries: $userPath"
+          Check ($userPath -like '*%USERPROFILE%\keep-me*') 'User PATH %VAR% entry kept unexpanded'
+          Check ($userKind -eq 'ExpandString') "User PATH is still REG_EXPAND_SZ ($userKind)"
+          Check ($systemPath -notmatch 'dtvem') "System PATH has no dtvem entries: $systemPath"
+          Check ($systemPath -match 'system32') 'System PATH keeps its other entries'
+          Check ($systemPath -like '*%SystemRoot%\keep-me*') 'System PATH %VAR% entry kept unexpanded'
+          Check ($systemKind -eq 'ExpandString') "System PATH is still REG_EXPAND_SZ ($systemKind)"
+          Check (-not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\RubyInstaller-3.3-x64-mingw-ucrt_is1')) 'Programs and Features entry removed'
+          Check (-not (Test-Path 'HKCU:\Software\Classes\RubyFile')) 'RubyFile file type removed'
+          Check (-not (Get-Item 'HKCU:\Software\Classes\.rb').GetValue('')) '.rb association removed'
+          Check (Test-Path 'HKCU:\Software\Classes\.rb\OpenWithProgids') "other programs' .rb registrations kept"
+          Check (-not (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Ruby 3.3.9-1-x64'))) 'Start menu folder removed'
+          if ($failed) { exit 1 }
+
+      - name: Uninstall again (nothing to remove)
+        run: |
+          & ${{ matrix.shell }} -NoProfile -ExecutionPolicy Bypass -File .\uninstall.ps1 -Yes
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }

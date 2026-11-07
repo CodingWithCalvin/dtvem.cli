@@ -316,7 +316,8 @@ cd src && go test -cover ./...    # With coverage
 | `build.yml` | PR, push to main | Lint, build, test on Windows/macOS/Linux. Posts coverage reports on PRs |
 | `release.yml` | Manual dispatch | Full release: validate, build 5 platforms, create GitHub Release, notify |
 | `commit-lint.yml` | PR | Validate PR titles follow conventional commits |
-| `script-lint.yml` | PR (install scripts) | Lint install.sh and install.ps1 with shellcheck/PSScriptAnalyzer |
+| `script-lint.yml` | PR (install scripts) | Lint the install and uninstall scripts with shellcheck/PSScriptAnalyzer |
+| `integration-test-uninstall.yml` | PR (uninstall/install scripts, `init`, `internal/path`) | Install as the installer and `dtvem init` do, run the uninstall scripts, and check nothing is left (Linux, macOS bash 3.2, Windows pwsh and PowerShell 5.1) |
 | `contributors.yml` | Push to main | Auto-update contributors section in README |
 | `preview-changelog.yml` | PR | Preview release notes for PRs |
 | `integration-test.yml` | Manual dispatch | Full integration test suite (runtimes + migrations) |
@@ -366,6 +367,23 @@ irm dtvem.io/install.ps1 | iex
 ```
 
 Features: Auto platform detection, PATH configuration, runs `dtvem init`.
+
+### Uninstallers
+
+```bash
+curl -fsSL dtvem.io/uninstall.sh | bash          # --yes skips the prompt
+```
+
+```powershell
+irm dtvem.io/uninstall.ps1 | iex                  # -Yes skips the prompt
+```
+
+They list what they will remove and ask first. They remove:
+- **Every dtvem root**: `DTVEM_ROOT`, `XDG_DATA_HOME/dtvem`, `~/.local/share/dtvem` and `~/.dtvem`. A root not named `dtvem` or `.dtvem` (a custom `DTVEM_ROOT`) only loses the entries dtvem creates in it. The scripts refuse `/`, a drive root and the home directory.
+- **PATH changes** from the installers and `dtvem init`. On Unix that is the `# Added by dtvem` / `# Added by dtvem installer` blocks in shell config files; lines without the marker are listed, never edited. On Windows it is User and System PATH entries, written back as in `writePathValue`.
+- **RubyInstaller leftovers (Windows)**: what RubyInstaller registered when older dtvem versions installed Ruby with its `.exe` (Programs and Features entries, Start menu folders, PATH entries, the `.rb`/`.rbw` association, all pointing at a deleted `%TEMP%\dtvem-ruby-<version>`).
+
+A PATH entry, line or registration is removed when it points into a root being removed, or no longer exists and was in a `dtvem`, `.dtvem` or `dtvem-ruby-*` directory; another install's existing directory is kept. Changes that need admin go through one UAC prompt. `uninstall.ps1` must stay ASCII: Windows PowerShell 5.1 reads a file without a BOM in the ANSI code page. When the installers or `dtvem init` change what they write, update the uninstallers to match.
 
 ---
 
