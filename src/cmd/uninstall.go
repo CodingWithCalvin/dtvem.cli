@@ -24,7 +24,10 @@ This command removes a specific version of a runtime from your system.
 The version directory and all its contents will be deleted.
 
 Safety features:
-  - Cannot uninstall the currently active global version
+  - Cannot uninstall the global version while other versions are installed
+    (set a different global version first)
+  - Uninstalling the only installed version clears the global version, so
+    the runtime's commands fall back to your system PATH
   - Prompts for confirmation before deletion
   - Automatically regenerates shims after uninstall
 
@@ -58,21 +61,39 @@ Examples:
 			return
 		}
 
-		// Check if this is the currently active global version
+		// The global version can only go while nothing else could replace
+		// it: with other versions installed the user picks the new global
+		// first, and with none the global setting is cleared afterwards.
+		// Install sets the first version as global, so refusing outright
+		// would leave the last version impossible to remove.
+		clearGlobal := false
 		globalVersion, err := provider.GlobalVersion()
 		if err == nil && globalVersion == version {
-			ui.Error("Cannot uninstall the currently active global version")
-			ui.Info("Current global version: v%s", globalVersion)
-			ui.Info("Set a different global version first: dtvem global %s <version>", runtimeName)
-			return
+			installed, err := provider.ListInstalled()
+			if err != nil {
+				ui.Error("Could not list installed %s versions: %v", provider.DisplayName(), err)
+				return
+			}
+			if others := otherVersions(installed, version); len(others) > 0 {
+				ui.Error("Cannot uninstall the global version while other versions are installed")
+				ui.Info("Current global version: v%s", globalVersion)
+				ui.Info("Other installed versions: %s", strings.Join(others, ", "))
+				ui.Info("Set a different global version first: dtvem global %s <version>", runtimeName)
+				return
+			}
+			clearGlobal = true
 		}
 
-		// Check if this is the currently active local version
-		localVersion, err := provider.LocalVersion()
-		if err == nil && localVersion == version {
+		// Check if a project file pins this version for the working directory
+		if source := localPinSource(provider.Name(), version); source != "" {
 			ui.Warning("This is the currently active local version in this directory")
-			ui.Info("Local version file: dtvem.config.json")
+			ui.Info("Local version file: %s", source)
 			ui.Info("You may need to update or remove it after uninstalling")
+		}
+
+		if clearGlobal {
+			ui.Warning("v%s is the global %s version and the only one installed", version, provider.DisplayName())
+			ui.Info("The global %s version will be cleared", provider.DisplayName())
 		}
 
 		// Prompt for confirmation (unless --yes flag is provided)
@@ -104,6 +125,15 @@ Examples:
 
 		spinner.Success(fmt.Sprintf("%s v%s removed", provider.DisplayName(), version))
 
+		if clearGlobal {
+			if err := config.UnsetGlobalVersion(provider.Name()); err != nil {
+				ui.Warning("Could not clear the global %s version: %v", provider.DisplayName(), err)
+				ui.Info("Remove the %q entry from %s", provider.Name(), config.GlobalConfigPath())
+			} else {
+				ui.Info("Cleared the global %s version", provider.DisplayName())
+			}
+		}
+
 		// Regenerate shims
 		shimSpinner := ui.NewSpinner("Regenerating shims...")
 		shimSpinner.Start()
@@ -123,6 +153,30 @@ Examples:
 
 		ui.Success("Successfully uninstalled %s v%s", provider.DisplayName(), version)
 	},
+}
+
+// localPinSource returns the file that sets version for runtimeName in the
+// working directory or one of its parents, or "" when none does. The global
+// config does not count: provider.LocalVersion falls back to it, which made
+// the global version look pinned locally everywhere.
+func localPinSource(runtimeName, version string) string {
+	res, err := config.Resolve(runtimeName)
+	if err != nil || res.Version != version || res.Source == config.GlobalConfigPath() {
+		return ""
+	}
+	return res.Source
+}
+
+// otherVersions returns the installed versions other than version, in the
+// order given.
+func otherVersions(installed []runtime.InstalledVersion, version string) []string {
+	var others []string
+	for _, iv := range installed {
+		if iv.Version.Raw != version {
+			others = append(others, iv.Version.Raw)
+		}
+	}
+	return others
 }
 
 func init() {

@@ -482,6 +482,110 @@ func TestGlobalVersion_RuntimeNotInConfig(t *testing.T) {
 	}
 }
 
+func TestUnsetGlobalVersion_RemovesOnlyThatRuntime(t *testing.T) {
+	useTempRoot(t)
+
+	for runtimeName, version := range map[string]string{"ruby": "3.4.7", "node": "22.12.0"} {
+		if err := SetGlobalVersion(runtimeName, version); err != nil {
+			t.Fatalf("SetGlobalVersion(%q) setup error: %v", runtimeName, err)
+		}
+	}
+
+	if err := UnsetGlobalVersion("ruby"); err != nil {
+		t.Fatalf("UnsetGlobalVersion() error: %v", err)
+	}
+
+	if version, err := GlobalVersion("ruby"); err != nil || version != "" {
+		t.Errorf("GlobalVersion(ruby) after unset = (%q, %v), want (\"\", nil)", version, err)
+	}
+	if version, err := GlobalVersion("node"); err != nil || version != "22.12.0" {
+		t.Errorf("GlobalVersion(node) after unsetting ruby = (%q, %v), want (%q, nil)", version, err, "22.12.0")
+	}
+}
+
+func TestUnsetGlobalVersion_LastRuntimeLeavesEmptyConfig(t *testing.T) {
+	useTempRoot(t)
+
+	if err := SetGlobalVersion("ruby", "3.4.7"); err != nil {
+		t.Fatalf("SetGlobalVersion() setup error: %v", err)
+	}
+	if err := UnsetGlobalVersion("ruby"); err != nil {
+		t.Fatalf("UnsetGlobalVersion() error: %v", err)
+	}
+
+	data, err := os.ReadFile(GlobalConfigPath())
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+	var config RuntimesConfig
+	if err := json.Unmarshal(data, &config); err != nil {
+		t.Fatalf("Config is not valid JSON after unset: %v\n%s", err, data)
+	}
+	if len(config) != 0 {
+		t.Errorf("Config after unsetting the only runtime = %v, want empty", config)
+	}
+}
+
+func TestUnsetGlobalVersion_NoConfigFile(t *testing.T) {
+	useTempRoot(t)
+
+	if err := UnsetGlobalVersion("ruby"); err != nil {
+		t.Errorf("UnsetGlobalVersion() with no config file error: %v", err)
+	}
+	if _, err := os.Stat(GlobalConfigPath()); !os.IsNotExist(err) {
+		t.Errorf("UnsetGlobalVersion() with no config file should not create one (stat err: %v)", err)
+	}
+}
+
+func TestUnsetGlobalVersion_RuntimeNotInConfig(t *testing.T) {
+	useTempRoot(t)
+
+	if err := SetGlobalVersion("python", "3.12.12"); err != nil {
+		t.Fatalf("SetGlobalVersion() setup error: %v", err)
+	}
+	before, err := os.ReadFile(GlobalConfigPath())
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+
+	if err := UnsetGlobalVersion("ruby"); err != nil {
+		t.Errorf("UnsetGlobalVersion() for a runtime not in config error: %v", err)
+	}
+
+	after, err := os.ReadFile(GlobalConfigPath())
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+	if string(after) != string(before) {
+		t.Errorf("Config changed when unsetting a runtime not in it:\nbefore: %s\nafter:  %s", before, after)
+	}
+}
+
+func TestUnsetGlobalVersion_CorruptConfigIsNotRewritten(t *testing.T) {
+	useTempRoot(t)
+
+	configPath := GlobalConfigPath()
+	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+	corrupt := []byte(`{"ruby": "3.4.7", `)
+	if err := os.WriteFile(configPath, corrupt, 0644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	if err := UnsetGlobalVersion("ruby"); err == nil {
+		t.Error("UnsetGlobalVersion() with corrupt config should return an error")
+	}
+
+	after, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+	if string(after) != string(corrupt) {
+		t.Errorf("Corrupt config was rewritten: got %s", after)
+	}
+}
+
 func TestSetLocalVersion_CreatesDirectoryAndFile(t *testing.T) {
 	// Create temp directory and change to it
 	tmpRoot := t.TempDir()
