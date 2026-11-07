@@ -3,10 +3,12 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/config"
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/runtime"
 )
 
 func TestUninstallCommand_VersionStripping(t *testing.T) {
@@ -207,4 +209,131 @@ func TestUninstallCommand_ConfirmationResponse(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOtherVersions(t *testing.T) {
+	installed := func(versions ...string) []runtime.InstalledVersion {
+		out := make([]runtime.InstalledVersion, 0, len(versions))
+		for _, v := range versions {
+			out = append(out, runtime.InstalledVersion{Version: runtime.NewVersion(v)})
+		}
+		return out
+	}
+
+	tests := []struct {
+		name      string
+		installed []runtime.InstalledVersion
+		version   string
+		want      []string
+	}{
+		{
+			name:      "Only version installed",
+			installed: installed("3.4.7"),
+			version:   "3.4.7",
+			want:      nil,
+		},
+		{
+			name:      "Other versions installed",
+			installed: installed("22.0.0", "22.12.0", "25.2.0"),
+			version:   "25.2.0",
+			want:      []string{"22.0.0", "22.12.0"},
+		},
+		{
+			name:      "Version not in the list",
+			installed: installed("3.12.12", "3.9.9"),
+			version:   "3.8.9",
+			want:      []string{"3.12.12", "3.9.9"},
+		},
+		{
+			name:      "Nothing installed",
+			installed: nil,
+			version:   "3.4.7",
+			want:      nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := otherVersions(tt.installed, tt.version)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("otherVersions(%v, %q) = %v, want %v", tt.installed, tt.version, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLocalPinSource(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("DTVEM_ROOT", filepath.Join(tmp, "dtvem"))
+	config.ResetPathsCache()
+	t.Cleanup(config.ResetPathsCache)
+
+	if err := os.MkdirAll(config.RuntimeVersionPath("ruby", "3.4.7"), 0755); err != nil {
+		t.Fatalf("Failed to create installed version: %v", err)
+	}
+	if err := config.SetGlobalVersion("ruby", "3.4.7"); err != nil {
+		t.Fatalf("SetGlobalVersion() setup error: %v", err)
+	}
+
+	pinned := filepath.Join(tmp, "pinned")
+	unpinned := filepath.Join(tmp, "unpinned")
+	for _, dir := range []string{pinned, unpinned} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatalf("Failed to create %s: %v", dir, err)
+		}
+	}
+	versionFile := filepath.Join(pinned, ".ruby-version")
+	if err := os.WriteFile(versionFile, []byte("3.4\n"), 0644); err != nil {
+		t.Fatalf("Failed to write .ruby-version: %v", err)
+	}
+
+	originalDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(originalDir) })
+
+	chdir := func(dir string) {
+		t.Helper()
+		if err := os.Chdir(dir); err != nil {
+			t.Fatalf("Failed to change directory: %v", err)
+		}
+	}
+
+	t.Run("Global version is not a local pin", func(t *testing.T) {
+		chdir(unpinned)
+		if got := localPinSource("ruby", "3.4.7"); got != "" {
+			t.Errorf("localPinSource() with only a global version = %q, want \"\"", got)
+		}
+	})
+
+	t.Run("Project file pins the version", func(t *testing.T) {
+		chdir(pinned)
+		got := localPinSource("ruby", "3.4.7")
+		if got == "" || !sameFile(t, got, versionFile) {
+			t.Errorf("localPinSource() = %q, want %q", got, versionFile)
+		}
+	})
+
+	t.Run("Project file pins a different version", func(t *testing.T) {
+		chdir(pinned)
+		if got := localPinSource("ruby", "3.3.0"); got != "" {
+			t.Errorf("localPinSource() for another version = %q, want \"\"", got)
+		}
+	})
+}
+
+// sameFile reports whether two paths name the same file. Temp paths can
+// differ only by symlinks (macOS reports /var/... as /private/var/...).
+func sameFile(t *testing.T, a, b string) bool {
+	t.Helper()
+	ai, err := os.Stat(a)
+	if err != nil {
+		t.Fatalf("Failed to stat %s: %v", a, err)
+	}
+	bi, err := os.Stat(b)
+	if err != nil {
+		t.Fatalf("Failed to stat %s: %v", b, err)
+	}
+	return os.SameFile(ai, bi)
 }

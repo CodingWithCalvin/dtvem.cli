@@ -253,6 +253,40 @@ func SetGlobalVersion(runtimeName, version string) error {
 	return os.WriteFile(configPath, data, 0644)
 }
 
+// UnsetGlobalVersion removes a runtime's entry from the global config, so
+// the runtime has no global version. Other runtimes' entries are kept.
+// It does nothing when there is no global config or no entry for the
+// runtime, and returns an error rather than rewriting a config it cannot
+// parse.
+func UnsetGlobalVersion(runtimeName string) error {
+	configPath := GlobalConfigPath()
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read global config: %w", err)
+	}
+
+	config := make(RuntimesConfig)
+	if err := json.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("failed to parse global config %s: %w", configPath, err)
+	}
+
+	if _, ok := config[runtimeName]; !ok {
+		return nil
+	}
+	delete(config, runtimeName)
+
+	data, err = json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(configPath, data, 0644)
+}
+
 // SetLocalVersion sets the local version for a runtime in the current directory
 func SetLocalVersion(runtimeName, version string) error {
 	configDir := LocalConfigDir()
