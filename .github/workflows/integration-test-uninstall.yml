@@ -159,6 +159,15 @@ jobs:
           $key.SetValue('Path', "$root\bin;C:\old-install\.dtvem\shims;$userPath;%USERPROFILE%\keep-me", 'ExpandString')
           $key.Close()
 
+          # System PATH: runner images store it as REG_SZ with no %VAR%
+          # entries. Make it REG_EXPAND_SZ with one, so the test shows the
+          # uninstaller keeps both.
+          $system = [Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Control\Session Manager\Environment', $true)
+          "System PATH was stored as $($system.GetValueKind('Path'))"
+          $systemPath = $system.GetValue('Path', '', 'DoNotExpandEnvironmentNames')
+          $system.SetValue('Path', "$systemPath;%SystemRoot%\keep-me", 'ExpandString')
+          $system.Close()
+
           # System PATH: the shims directory (the runner is an administrator)
           & "$root\bin\dtvem.exe" init -y
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -229,6 +238,7 @@ jobs:
           Check ($userKind -eq 'ExpandString') "User PATH is still REG_EXPAND_SZ ($userKind)"
           Check ($systemPath -notmatch 'dtvem') "System PATH has no dtvem entries: $systemPath"
           Check ($systemPath -match 'system32') 'System PATH keeps its other entries'
+          Check ($systemPath -like '*%SystemRoot%\keep-me*') 'System PATH %VAR% entry kept unexpanded'
           Check ($systemKind -eq 'ExpandString') "System PATH is still REG_EXPAND_SZ ($systemKind)"
           Check (-not (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\RubyInstaller-3.3-x64-mingw-ucrt_is1')) 'Programs and Features entry removed'
           Check (-not (Test-Path 'HKCU:\Software\Classes\RubyFile')) 'RubyFile file type removed'
