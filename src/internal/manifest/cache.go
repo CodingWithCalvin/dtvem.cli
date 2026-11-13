@@ -16,6 +16,21 @@ type CachedSource struct {
 	source   Source
 	cacheDir string
 	ttl      time.Duration
+	// version is the dtvem version reading and writing the cache. A cache
+	// file written by another version is treated as missing.
+	version string
+}
+
+// cliVersion is the running dtvem version, recorded by SetCLIVersion.
+var cliVersion string
+
+// SetCLIVersion records the running dtvem version. The default source's
+// cache then ignores manifests cached by any other version, so installing a
+// new dtvem always fetches fresh manifests instead of reading one cached
+// before the new version's manifest fields existed. Call it before
+// DefaultSource.
+func SetCLIVersion(version string) {
+	cliVersion = version
 }
 
 // cacheFormat is the format of the cache files this version writes. A cache
@@ -28,9 +43,10 @@ const cacheFormat = 2
 
 // cacheEntry stores a manifest along with its cache timestamp.
 type cacheEntry struct {
-	Format   int       `json:"format,omitempty"`
-	CachedAt time.Time `json:"cached_at"`
-	Manifest *Manifest `json:"manifest"`
+	Format     int       `json:"format,omitempty"`
+	CLIVersion string    `json:"cli_version,omitempty"`
+	CachedAt   time.Time `json:"cached_at"`
+	Manifest   *Manifest `json:"manifest"`
 }
 
 // NewCachedSource creates a Source that caches results from the underlying source.
@@ -124,9 +140,10 @@ func (s *CachedSource) loadFromCache(runtime string) (*Manifest, error) {
 		return nil, err
 	}
 
-	// Check if cache is still valid
-	if entry.Format != cacheFormat || time.Since(entry.CachedAt) > s.ttl {
-		return nil, os.ErrNotExist // Treat expired or older-format cache as not found
+	// A cache written in another format, by another dtvem version, or too long
+	// ago is treated as not found
+	if entry.Format != cacheFormat || entry.CLIVersion != s.version || time.Since(entry.CachedAt) > s.ttl {
+		return nil, os.ErrNotExist
 	}
 
 	return entry.Manifest, nil
@@ -138,9 +155,10 @@ func (s *CachedSource) saveToCache(runtime string, manifest *Manifest) error {
 	}
 
 	entry := cacheEntry{
-		Format:   cacheFormat,
-		CachedAt: time.Now(),
-		Manifest: manifest,
+		Format:     cacheFormat,
+		CLIVersion: s.version,
+		CachedAt:   time.Now(),
+		Manifest:   manifest,
 	}
 
 	data, err := json.Marshal(entry)
