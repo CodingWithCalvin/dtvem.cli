@@ -84,10 +84,12 @@ func getUpstreamSources(runtime string) ([]UpstreamSource, error) {
 	case "python":
 		return []UpstreamSource{
 			&PythonStandaloneSource{},
-			// Full Windows builds for versions python-build-standalone
-			// lacks, in place of python.org's embeddable zips.
+			// python.org's full Windows builds: published at the
+			// python.org location for `dtvem install --signed`, and at the
+			// default location for versions python-build-standalone lacks.
 			&PythonMSISource{},
 			&PythonNuGetSource{},
+			&PythonInstallManagerSource{},
 		}, nil
 	case "ruby":
 		return []UpstreamSource{
@@ -112,10 +114,15 @@ func fetchJobsFromUpstream(runtime string) ([]MirrorJob, error) {
 // collectJobs fetches mirror jobs from each source in order. A failing source
 // does not stop the others: jobs from the sources that succeeded are returned
 // together with an error describing every source that failed.
+//
+// When several jobs publish to the same place (the same metadata key), the
+// first source's job wins. A version's default build is at
+// <runtime>/<version>/<platform>; python.org's builds also have a place of
+// their own, which python-build-standalone's never claim.
 func collectJobs(sources []UpstreamSource) ([]MirrorJob, error) {
 	var allJobs []MirrorJob
 	var errs []error
-	seen := make(map[string]bool) // Track version+platform to avoid duplicates
+	seen := make(map[string]bool) // Metadata keys already claimed
 
 	for _, source := range sources {
 		fmt.Printf("  Fetching from %s...\n", source.Name())
@@ -129,14 +136,13 @@ func collectJobs(sources []UpstreamSource) ([]MirrorJob, error) {
 		// Add jobs, avoiding duplicates (first source wins)
 		added := 0
 		for _, job := range jobs {
-			key := fmt.Sprintf("%s/%s", job.Version, job.Platform)
-			if !seen[key] {
-				seen[key] = true
+			if !seen[job.MetaKey] {
+				seen[job.MetaKey] = true
 				allJobs = append(allJobs, job)
 				added++
 			}
 		}
-		fmt.Printf("  Found %d versions from %s (%d new)\n", len(jobs), source.Name(), added)
+		fmt.Printf("  Found %d jobs from %s (%d new)\n", len(jobs), source.Name(), added)
 	}
 
 	return allJobs, errors.Join(errs...)

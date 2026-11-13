@@ -63,27 +63,7 @@ func listAllRuntimes() {
 		}
 
 		hasAny = true
-		runtimeName := provider.Name()
-		globalVersion, _ := provider.GlobalVersion()
-		localVersion, _ := config.LocalVersion(runtimeName)
-
-		// Create table for this runtime with title
-		table := tui.NewTable("Version", "Status")
-		table.SetTitle(provider.DisplayName())
-
-		for _, v := range versions {
-			version := v.String()
-			status := getVersionStatus(version, globalVersion, localVersion)
-			isActive := isVersionActive(version, globalVersion, localVersion)
-
-			if isActive {
-				table.AddActiveRow(version, status)
-			} else {
-				table.AddRow(version, status)
-			}
-		}
-
-		fmt.Println(table.Render())
+		fmt.Println(installedVersionsTable(provider, versions).Render())
 	}
 
 	if !hasAny {
@@ -111,26 +91,55 @@ func listSingleRuntime(runtimeName string) {
 		return
 	}
 
-	globalVersion, _ := provider.GlobalVersion()
-	localVersion, _ := config.LocalVersion(runtimeName)
+	fmt.Println(installedVersionsTable(provider, versions).Render())
+}
 
-	// Create table with title
-	table := tui.NewTable("Version", "Status")
+// installedVersionsTable lists a runtime's installed versions with their
+// global/local status and, for runtimes with signed builds on this
+// platform, which build each one is.
+func installedVersionsTable(provider runtime.Provider, versions []runtime.InstalledVersion) *tui.Table {
+	globalVersion, _ := provider.GlobalVersion()
+	localVersion, _ := config.LocalVersion(provider.Name())
+
+	signed, _ := provider.(runtime.SignedBuildProvider)
+	if signed != nil && !signed.SignedBuildsSupported() {
+		signed = nil
+	}
+
+	var table *tui.Table
+	if signed != nil {
+		table = tui.NewTable("Version", "Status", "Build")
+	} else {
+		table = tui.NewTable("Version", "Status")
+	}
 	table.SetTitle(provider.DisplayName())
 
 	for _, v := range versions {
 		version := v.String()
-		status := getVersionStatus(version, globalVersion, localVersion)
-		isActive := isVersionActive(version, globalVersion, localVersion)
+		cells := []string{version, getVersionStatus(version, globalVersion, localVersion)}
+		if signed != nil {
+			cells = append(cells, describeBuild(signed.InstalledBuild(version)))
+		}
 
-		if isActive {
-			table.AddActiveRow(version, status)
+		if isVersionActive(version, globalVersion, localVersion) {
+			table.AddActiveRow(cells...)
 		} else {
-			table.AddRow(version, status)
+			table.AddRow(cells...)
 		}
 	}
+	return table
+}
 
-	fmt.Println(table.Render())
+// describeBuild says which build an install is and whether it is signed.
+func describeBuild(info runtime.BuildInfo) string {
+	switch {
+	case info.Name == "":
+		return "unknown"
+	case info.Signed:
+		return info.Name + ", signed"
+	default:
+		return info.Name + ", not signed"
+	}
 }
 
 // getVersionStatus returns a status string for a version (global, local, or empty)

@@ -26,8 +26,9 @@ import (
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 )
 
-// downloadAndExtract downloads and extracts the Python archive.
-func (p *Provider) downloadAndExtract(version, downloadURL, archiveName string) (extractDir string, cleanup func(), err error) {
+// downloadAndExtract downloads and extracts the Python archive, checking it
+// against expectedSHA256 unless that is empty.
+func (p *Provider) downloadAndExtract(version, downloadURL, archiveName, expectedSHA256 string) (extractDir string, cleanup func(), err error) {
 	ui.Progress("Downloading from %s", downloadURL)
 
 	tempDir, err := config.CreateStagingDir("python", version)
@@ -38,7 +39,12 @@ func (p *Provider) downloadAndExtract(version, downloadURL, archiveName string) 
 	cleanupFunc := func() { _ = os.RemoveAll(tempDir) }
 
 	archivePath := filepath.Join(tempDir, archiveName)
-	if err := download.File(downloadURL, archivePath); err != nil {
+	if expectedSHA256 != "" {
+		err = download.FileVerified(downloadURL, archivePath, expectedSHA256)
+	} else {
+		err = download.File(downloadURL, archivePath)
+	}
+	if err != nil {
 		cleanupFunc()
 		return "", nil, fmt.Errorf("failed to download: %w", err)
 	}
@@ -100,28 +106,64 @@ func (p *Provider) installPipIfNeeded(version string) {
 	}
 }
 
-// Install downloads and installs a specific version.
+// Install downloads and installs a specific version: its default build in
+// the manifest, which is python-build-standalone's wherever it has one.
 func (p *Provider) Install(version string) error {
-	ui.Debug("Starting Python installation for version %s", version)
+	return p.install(version, "")
+}
+
+// InstallSigned downloads and installs python.org's build of a version,
+// whose executables carry the Python Software Foundation's Authenticode
+// signature. It fails with a *runtime.NoSignedBuildError when the manifest
+// has no python.org build of the version for this platform.
+func (p *Provider) InstallSigned(version string) error {
+	if !p.SignedBuildsSupported() {
+		return fmt.Errorf("signed Python builds are only offered on Windows")
+	}
+	return p.install(version, manifest.BuildPythonOrg)
+}
+
+// install installs the named build of a version, or its default build when
+// build is empty.
+func (p *Provider) install(version, build string) error {
+	ui.Debug("Starting Python installation for version %s (build %q)", version, build)
 
 	if err := config.EnsureDirectories(); err != nil {
 		return fmt.Errorf("failed to create dtvem directories: %w", err)
 	}
 
 	if installed, _ := p.IsInstalled(version); installed {
-		return fmt.Errorf("Python %s is already installed", version)
+		return p.alreadyInstalledError(version, build)
 	}
 
-	ui.Header("Installing Python v%s...", version)
+	if build == "" {
+		ui.Header("Installing Python v%s...", version)
+	} else {
+		ui.Header("Installing Python v%s (%s build)...", version, build)
+	}
 
-	downloadURL, archiveName, err := p.getDownloadURL(version)
+	m, err := manifest.DefaultSource().GetManifest("python")
 	if err != nil {
-		return fmt.Errorf("failed to get download URL: %w", err)
+		return fmt.Errorf("failed to get download URL: failed to load manifest: %w", err)
 	}
-	ui.Debug("Download URL: %s", downloadURL)
+	dl, err := selectDownload(m, version, manifest.CurrentPlatform(), build)
+	if err != nil {
+		if build == "" {
+			return fmt.Errorf("failed to get download URL: %w", err)
+		}
+		return err
+	}
+	archiveName := filepath.Base(dl.URL)
+	ui.Debug("Download URL: %s", dl.URL)
 	ui.Debug("Archive name: %s", archiveName)
 
-	extractDir, cleanup, err := p.downloadAndExtract(version, downloadURL, archiveName)
+	// Only a build asked for by name is checked against the manifest's
+	// checksum, so a default install downloads exactly as it always has.
+	expectedSHA256 := ""
+	if build != "" {
+		expectedSHA256 = dl.SHA256
+	}
+	extractDir, cleanup, err := p.downloadAndExtract(version, dl.URL, archiveName, expectedSHA256)
 	if err != nil {
 		return err
 	}
@@ -142,6 +184,10 @@ func (p *Provider) Install(version string) error {
 		return fmt.Errorf("failed to move to install location: %w", err)
 	}
 
+	if err := writeBuildMarker(installPath, dl); err != nil {
+		ui.Warning("Could not record which build Python %s came from: %v", version, err)
+	}
+
 	// Install/configure pip first (so executables exist before creating shims)
 	p.installPipIfNeeded(version)
 
@@ -157,24 +203,6 @@ func (p *Provider) Install(version string) error {
 	ui.Info("Location: %s", installPath)
 
 	return nil
-}
-
-// getDownloadURL returns the download URL and archive name for a given version.
-func (p *Provider) getDownloadURL(version string) (string, string, error) {
-	m, err := manifest.DefaultSource().GetManifest("python")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to load manifest: %w", err)
-	}
-
-	platform := manifest.CurrentPlatform()
-	dl := m.GetDownload(version, platform)
-	if dl == nil {
-		return "", "", fmt.Errorf("Python %s is not available for %s", version, platform)
-	}
-
-	archiveName := filepath.Base(dl.URL)
-
-	return dl.URL, archiveName, nil
 }
 
 // createShims creates shims for Python executables and registers them in the

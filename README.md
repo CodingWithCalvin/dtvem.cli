@@ -88,6 +88,19 @@ dtvem migrate python
 
 See [Getting Started](https://dtvem.io/docs/user-guide/getting-started) for more examples.
 
+### 🔏 Signed Python Builds (Windows)
+
+On Windows, dtvem installs [python-build-standalone](https://github.com/astral-sh/python-build-standalone)'s build of Python by default, and its executables are not Authenticode-signed. To install python.org's own build instead, signed by the Python Software Foundation, add `--signed`:
+
+```powershell
+dtvem install python 3.12.10 --signed   # python.org's build of 3.12.10
+dtvem install python 3.12 --signed      # the newest 3.12.x with a python.org build
+dtvem list-all python                   # the Signed column shows which versions have one
+dtvem list python                       # the Build column shows which build each install is
+```
+
+python.org ships no Windows binaries for security-only releases (3.12.11 onward, for example), so those versions have no signed build. dtvem says so and names the nearest version that has one, rather than installing an unsigned build. A signed build can therefore lack security fixes that newer releases on the same line carry, and dtvem warns when it does.
+
 ## 📚 Documentation
 
 | Topic | Description |

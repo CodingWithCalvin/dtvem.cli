@@ -68,6 +68,24 @@
         "source": {
           "type": "string",
           "description": "Build source indicator: 'built-from-source' when the binary was compiled by dtvem rather than obtained from upstream"
+        },
+        "build": {
+          "type": "string",
+          "enum": ["python-build-standalone", "python.org"],
+          "description": "Whose build of the runtime this is, for runtimes with more than one. Python: 'python-build-standalone', or 'python.org' for python.org's own build (on Windows, Authenticode-signed by the Python Software Foundation)"
+        },
+        "alternates": {
+          "type": "array",
+          "description": "Other builds of the same version for the same platform, installed only when asked for (dtvem install python <version> --signed). Released CLIs that predate this field ignore it and install the entry's own url",
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/download" },
+              {
+                "required": ["build"],
+                "not": { "required": ["alternates"] }
+              }
+            ]
+          }
         }
       }
     }
@@ -78,9 +96,18 @@
       "versions": {
         "3.13.1": {
           "windows-amd64": {
-            "url": "https://builds.dtvem.io/python/3.13.1/windows-amd64.zip",
+            "url": "https://builds.dtvem.io/python/3.13.1/windows-amd64.tar.gz",
             "sha256": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
-            "sha256_source": "upstream"
+            "sha256_source": "upstream",
+            "build": "python-build-standalone",
+            "alternates": [
+              {
+                "url": "https://builds.dtvem.io/python/3.13.1/python.org/windows-amd64.tar.gz",
+                "sha256": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+                "sha256_source": "dtvem",
+                "build": "python.org"
+              }
+            ]
           },
           "darwin-arm64": null,
           "linux-amd64": {

@@ -18,8 +18,17 @@ type CachedSource struct {
 	ttl      time.Duration
 }
 
+// cacheFormat is the format of the cache files this version writes. A cache
+// file of another format is treated as missing: it holds the manifest as
+// the CLI that wrote it parsed it, without the fields that CLI did not know.
+//
+//   - 0: no format field; written before builds and alternates existed
+//   - 2: keeps Download.Build and Download.Alternates
+const cacheFormat = 2
+
 // cacheEntry stores a manifest along with its cache timestamp.
 type cacheEntry struct {
+	Format   int       `json:"format,omitempty"`
 	CachedAt time.Time `json:"cached_at"`
 	Manifest *Manifest `json:"manifest"`
 }
@@ -116,8 +125,8 @@ func (s *CachedSource) loadFromCache(runtime string) (*Manifest, error) {
 	}
 
 	// Check if cache is still valid
-	if time.Since(entry.CachedAt) > s.ttl {
-		return nil, os.ErrNotExist // Treat expired cache as not found
+	if entry.Format != cacheFormat || time.Since(entry.CachedAt) > s.ttl {
+		return nil, os.ErrNotExist // Treat expired or older-format cache as not found
 	}
 
 	return entry.Manifest, nil
@@ -129,6 +138,7 @@ func (s *CachedSource) saveToCache(runtime string, manifest *Manifest) error {
 	}
 
 	entry := cacheEntry{
+		Format:   cacheFormat,
 		CachedAt: time.Now(),
 		Manifest: manifest,
 	}
