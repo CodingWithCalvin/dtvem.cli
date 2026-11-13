@@ -54,9 +54,10 @@ func TestNextPageURL(t *testing.T) {
 }
 
 // newReleasesServer serves total releases tagged "1".."total" (newest first),
-// paginated like the GitHub releases API. If failPage is non-zero, that page
-// responds with HTTP 403. The returned counter tracks requests served.
-func newReleasesServer(t *testing.T, total, failPage int) (*httptest.Server, *atomic.Int32) {
+// paginated like the GitHub releases API. If intercept is not nil, it sees
+// each request's page first and answers it instead when it returns true. The
+// returned counter tracks requests served.
+func newReleasesServer(t *testing.T, total int, intercept func(w http.ResponseWriter, page int) bool) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
 
 	var requests atomic.Int32
@@ -73,8 +74,7 @@ func newReleasesServer(t *testing.T, total, failPage int) (*httptest.Server, *at
 			page, _ = strconv.Atoi(p)
 		}
 
-		if page == failPage {
-			http.Error(w, "rate limited", http.StatusForbidden)
+		if intercept != nil && intercept(w, page) {
 			return
 		}
 
@@ -151,7 +151,7 @@ func TestFetchGitHubReleases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv, requests := newReleasesServer(t, tt.total, 0)
+			srv, requests := newReleasesServer(t, tt.total, nil)
 
 			releases, err := fetchGitHubReleases(srv.URL+"/releases", tt.pageSize, tt.maxReleases)
 			if err != nil {
@@ -176,8 +176,40 @@ func TestFetchGitHubReleases(t *testing.T) {
 	}
 }
 
+// A page cut off part way is fetched again. GitHub does this now and then to
+// the large python-build-standalone pages ("stream error: ... CANCEL").
+func TestFetchGitHubReleases_CutOffPage(t *testing.T) {
+	noRetryDelay(t)
+
+	var cutOff atomic.Bool
+	srv, requests := newReleasesServer(t, 25, func(w http.ResponseWriter, page int) bool {
+		if page != 2 || !cutOff.CompareAndSwap(false, true) {
+			return false
+		}
+		writeCutOff(t, w)
+		return true
+	})
+
+	releases, err := fetchGitHubReleases(srv.URL+"/releases", 10, 100)
+	if err != nil {
+		t.Fatalf("fetchGitHubReleases() error = %v, want nil", err)
+	}
+	if got := len(releases); got != 25 {
+		t.Errorf("len(releases) = %d, want 25", got)
+	}
+	if got := requests.Load(); got != 4 {
+		t.Errorf("requests = %d, want 4 (page 2 twice)", got)
+	}
+}
+
 func TestFetchGitHubReleases_PageError(t *testing.T) {
-	srv, _ := newReleasesServer(t, 30, 2)
+	srv, _ := newReleasesServer(t, 30, func(w http.ResponseWriter, page int) bool {
+		if page != 2 {
+			return false
+		}
+		http.Error(w, "rate limited", http.StatusForbidden)
+		return true
+	})
 
 	releases, err := fetchGitHubReleases(srv.URL+"/releases", 10, 100)
 	if err == nil {

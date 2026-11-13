@@ -125,18 +125,17 @@ func fetchGitHubReleases(releasesURL string, pageSize, maxReleases int) ([]githu
 // fetchGitHubReleasesPage fetches a single page of releases and returns it
 // along with the URL of the next page ("" on the last page).
 func fetchGitHubReleasesPage(url string) ([]githubRelease, string, error) {
-	resp, err := httpGetWithRetry(url, 3)
+	resp, err := fetchWithRetry(url, 3)
 	if err != nil {
 		return nil, "", fmt.Errorf("fetching releases: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf("fetching releases: HTTP %d", resp.StatusCode)
 	}
 
 	var releases []githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+	if err := json.Unmarshal(resp.Body, &releases); err != nil {
 		return nil, "", fmt.Errorf("parsing releases: %w", err)
 	}
 
