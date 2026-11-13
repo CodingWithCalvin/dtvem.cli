@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -89,6 +90,40 @@ func TestNetwork_BuildFromNuGet(t *testing.T) {
 	leafURL := nugetRegistrationURL + "python/3.5.2.json"
 	if _, err := buildFromNuGet(nupkgURL, leafURL); !errors.Is(err, errNotFullBuild) {
 		t.Errorf("buildFromNuGet(python 3.5.2) = %v, want errNotFullBuild", err)
+	}
+}
+
+func TestNetwork_InstallManager(t *testing.T) {
+	requireNetworkTests(t)
+
+	jobs, err := (&PythonInstallManagerSource{}).FetchVersions()
+	if err != nil {
+		t.Fatalf("PythonInstallManagerSource.FetchVersions: %v", err)
+	}
+	have := make(map[string]bool)
+	for _, j := range jobs {
+		have[j.Version] = true
+		if parts, _ := parseVersion(j.Version); compareVersions(parts, firstSigstoreOnlyPython) < 0 {
+			t.Errorf("install-manager source has a job for %s, which the MSIs cover", j.Version)
+		}
+	}
+	t.Logf("python.org install manager: %d x64 releases", len(have))
+	for _, v := range []string{"3.14.0", "3.15.2"} {
+		if !have[v] {
+			t.Errorf("install-manager source has no job for %s", v)
+		}
+	}
+
+	// The first 3.14 release; its python.exe should carry python.org's
+	// Authenticode signature (check on Windows with MIRROR_NETWORK_OUT).
+	for _, j := range jobs {
+		if j.Version == "3.14.0" && strings.Contains(j.R2Key, "/python.org/") {
+			archive, err := j.Build()
+			if err != nil {
+				t.Fatalf("building 3.14.0: %v", err)
+			}
+			checkRealArchive(t, "python-3.14.0-windows-amd64-python.org.tar.gz", archive, false)
+		}
 	}
 }
 

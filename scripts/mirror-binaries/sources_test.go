@@ -79,16 +79,22 @@ func TestCollectJobs(t *testing.T) {
 	primary := &fakeSource{
 		name: "primary",
 		jobs: []MirrorJob{
-			{Version: "3.13.16", Platform: "windows-amd64", URL: "primary"},
-			{Version: "3.13.16", Platform: "linux-amd64", URL: "primary"},
+			{Version: "3.13.16", Platform: "windows-amd64", URL: "primary", MetaKey: "python/3.13.16/windows-amd64.meta.json"},
+			{Version: "3.13.16", Platform: "linux-amd64", URL: "primary", MetaKey: "python/3.13.16/linux-amd64.meta.json"},
 		},
 	}
 	fallback := &fakeSource{
 		name: "fallback",
 		jobs: []MirrorJob{
-			{Version: "3.13.16", Platform: "windows-amd64", URL: "fallback"},
-			{Version: "3.11.17", Platform: "windows-amd64", URL: "fallback"},
+			{Version: "3.13.16", Platform: "windows-amd64", URL: "fallback", MetaKey: "python/3.13.16/windows-amd64.meta.json"},
+			{Version: "3.11.17", Platform: "windows-amd64", URL: "fallback", MetaKey: "python/3.11.17/windows-amd64.meta.json"},
 		},
+	}
+	// python.org's builds also go to a place of their own, which an earlier
+	// source covering the same version does not take away.
+	pythonOrg := &fakeSource{
+		name: "python.org",
+		jobs: pythonOrgJobs("3.13.16", "windows-amd64", "python.org", nil),
 	}
 	broken := &fakeSource{name: "broken", err: errors.New("fetching releases: HTTP 504")}
 
@@ -102,6 +108,16 @@ func TestCollectJobs(t *testing.T) {
 			name:     "first source wins on duplicates",
 			sources:  []UpstreamSource{primary, fallback},
 			wantURLs: []string{"primary", "primary", "fallback"},
+		},
+		{
+			name:     "python.org location kept when default is covered",
+			sources:  []UpstreamSource{primary, pythonOrg},
+			wantURLs: []string{"primary", "primary", "python.org"},
+		},
+		{
+			name:     "python.org fills the default location when uncovered",
+			sources:  []UpstreamSource{pythonOrg, primary},
+			wantURLs: []string{"python.org", "python.org", "primary"},
 		},
 		{
 			name:        "failing source keeps jobs from healthy sources",
@@ -140,8 +156,9 @@ func TestCollectJobs(t *testing.T) {
 }
 
 // The first source to offer a version and platform wins, so the order sets
-// which build a version gets: python-build-standalone where it has one, then
-// python.org's MSIs (full x64 builds with tkinter), then its NuGet packages.
+// which build a version gets by default: python-build-standalone where it
+// has one, then python.org's MSIs (full x64 builds with tkinter), then its
+// NuGet packages, then its install-manager zips (x64 from 3.14 on).
 func TestGetUpstreamSources_PythonOrder(t *testing.T) {
 	sources, err := getUpstreamSources("python")
 	if err != nil {
@@ -152,7 +169,7 @@ func TestGetUpstreamSources_PythonOrder(t *testing.T) {
 	for _, s := range sources {
 		got = append(got, s.Name())
 	}
-	want := []string{"python-build-standalone", "python.org MSIs", "python.org NuGet packages"}
+	want := []string{"python-build-standalone", "python.org MSIs", "python.org NuGet packages", "python.org install manager"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Errorf("python sources = %v, want %v", got, want)
 	}

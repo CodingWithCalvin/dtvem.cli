@@ -21,6 +21,15 @@ package main
 // Either way the result is a .tar.gz with everything under python/, the
 // layout of python-build-standalone's Windows archives, so dtvem installs it
 // without changes.
+//
+// Each python.org build is published twice over: at the version's default
+// location (python/<version>/<platform>.tar.gz), which it only gets when no
+// earlier source covers that version, and always at the python.org location
+// (python/<version>/python.org/<platform>.tar.gz). The python.org location
+// is what `dtvem install python <version> --signed` installs: python.org's
+// own build, whose binaries carry the Python Software Foundation's
+// Authenticode signature, where the default build is python-build-
+// standalone's unsigned one.
 
 import (
 	"archive/tar"
@@ -64,7 +73,39 @@ const (
 	// msiDiscoveryWorkers bounds concurrent requests to python.org while
 	// checking which releases have signed MSIs.
 	msiDiscoveryWorkers = 8
+
+	// pythonOrgBuildDir is the folder under python/<version>/ that holds
+	// python.org's build of that version for each platform.
+	pythonOrgBuildDir = "python.org"
 )
+
+// pythonOrgJobs returns the two jobs that publish one python.org build:
+// at the version's default location, which collectJobs drops when an
+// earlier source already covers the version, and at the python.org
+// location. Each job runs build itself, so a build both jobs mirror is
+// assembled twice rather than held in memory between them.
+func pythonOrgJobs(version, platform, sourceURL string, build func() ([]byte, error)) []MirrorJob {
+	return []MirrorJob{
+		{
+			Runtime:  "python",
+			Version:  version,
+			Platform: platform,
+			URL:      sourceURL,
+			R2Key:    fmt.Sprintf("python/%s/%s.tar.gz", version, platform),
+			MetaKey:  fmt.Sprintf("python/%s/%s.meta.json", version, platform),
+			Build:    build,
+		},
+		{
+			Runtime:  "python",
+			Version:  version,
+			Platform: platform,
+			URL:      sourceURL,
+			R2Key:    fmt.Sprintf("python/%s/%s/%s.tar.gz", version, pythonOrgBuildDir, platform),
+			MetaKey:  fmt.Sprintf("python/%s/%s/%s.meta.json", version, pythonOrgBuildDir, platform),
+			Build:    build,
+		},
+	}
+}
 
 // pythonWindowsSigningKey is the armored public key for
 // pythonWindowsSigningFingerprint, committed so the mirror never depends on
@@ -177,17 +218,9 @@ func (s *PythonMSISource) FetchVersions() ([]MirrorJob, error) {
 			continue
 		}
 		dirURL := base + v + "/amd64/"
-		jobs = append(jobs, MirrorJob{
-			Runtime:  "python",
-			Version:  v,
-			Platform: "windows-amd64",
-			URL:      dirURL,
-			R2Key:    fmt.Sprintf("python/%s/windows-amd64.tar.gz", v),
-			MetaKey:  fmt.Sprintf("python/%s/windows-amd64.meta.json", v),
-			Build: func() ([]byte, error) {
-				return buildFromMSIs(dirURL, verifier, s.extract)
-			},
-		})
+		jobs = append(jobs, pythonOrgJobs(v, "windows-amd64", dirURL, func() ([]byte, error) {
+			return buildFromMSIs(dirURL, verifier, s.extract)
+		})...)
 	}
 	return jobs, nil
 }
@@ -311,17 +344,9 @@ func (s *PythonNuGetSource) FetchVersions() ([]MirrorJob, error) {
 			id := pkg.id
 			nupkgURL := fmt.Sprintf("%s%s/%s/%s.%s.nupkg", flat, id, v, id, v)
 			leafURL := fmt.Sprintf("%s%s/%s.json", registration, id, v)
-			jobs = append(jobs, MirrorJob{
-				Runtime:  "python",
-				Version:  v,
-				Platform: pkg.platform,
-				URL:      nupkgURL,
-				R2Key:    fmt.Sprintf("python/%s/%s.tar.gz", v, pkg.platform),
-				MetaKey:  fmt.Sprintf("python/%s/%s.meta.json", v, pkg.platform),
-				Build: func() ([]byte, error) {
-					return buildFromNuGet(nupkgURL, leafURL)
-				},
-			})
+			jobs = append(jobs, pythonOrgJobs(v, pkg.platform, nupkgURL, func() ([]byte, error) {
+				return buildFromNuGet(nupkgURL, leafURL)
+			})...)
 		}
 	}
 	return jobs, nil
@@ -469,6 +494,14 @@ func archiveDir(dir string, requireTk bool) ([]byte, error) {
 // archiveNuGetTools packs the full install under tools/ in a NuGet package,
 // dropping the package's own files.
 func archiveNuGetTools(pkg []byte) ([]byte, error) {
+	// NuGet stores part names URI-escaped ("script%20(dev).tmpl").
+	return archiveZipTree(pkg, "tools/", true)
+}
+
+// archiveZipTree packs the full install found under prefix in a zip ("" for
+// the whole zip), dropping everything outside it. escaped says the zip's
+// entry names are URI-escaped, as in a NuGet package.
+func archiveZipTree(pkg []byte, prefix string, escaped bool) ([]byte, error) {
 	zr, err := zip.NewReader(bytes.NewReader(pkg), int64(len(pkg)))
 	if err != nil {
 		return nil, fmt.Errorf("reading package: %w", err)
@@ -478,11 +511,12 @@ func archiveNuGetTools(pkg []byte) ([]byte, error) {
 	var files []string
 	for _, f := range zr.File {
 		name := f.Name
-		// NuGet stores part names URI-escaped ("script%20(dev).tmpl").
-		if unescaped, err := url.PathUnescape(name); err == nil {
-			name = unescaped
+		if escaped {
+			if unescaped, err := url.PathUnescape(name); err == nil {
+				name = unescaped
+			}
 		}
-		rel, ok := strings.CutPrefix(name, "tools/")
+		rel, ok := strings.CutPrefix(name, prefix)
 		if !ok || rel == "" || strings.HasSuffix(rel, "/") {
 			continue
 		}
