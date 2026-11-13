@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,6 +34,27 @@ type ManifestDownload struct {
 	SHA256       string `json:"sha256,omitempty"`
 	SHA256Source string `json:"sha256_source,omitempty"`
 	Source       string `json:"source,omitempty"` // "built-from-source" when not from upstream
+
+	// Build names whose build of the runtime this is, for runtimes with
+	// more than one (Python: "python-build-standalone" or "python.org").
+	Build string `json:"build,omitempty"`
+
+	// Alternates are other builds of the same version for the same
+	// platform, which dtvem installs only when asked for by name. CLIs
+	// released before alternates existed ignore them.
+	Alternates []*ManifestDownload `json:"alternates,omitempty"`
+}
+
+// Build names, as recorded in ManifestDownload.Build.
+const (
+	buildPythonStandalone = "python-build-standalone"
+	buildPythonOrg        = "python.org"
+)
+
+// alternateBuildDirs are the folders under <runtime>/<version>/ that hold
+// builds other than the default, mapped to the build each holds.
+var alternateBuildDirs = map[string]string{
+	"python/python.org": buildPythonOrg,
 }
 
 // Manifest represents the output manifest structure
@@ -52,8 +74,10 @@ var (
 	dryRun       = flag.Bool("dry-run", false, "Report what would be generated without writing files")
 )
 
-// metaKeyPattern matches paths like "node/20.18.0/linux-amd64.meta.json"
-var metaKeyPattern = regexp.MustCompile(`^([^/]+)/([^/]+)/([^/]+)\.meta\.json$`)
+// metaKeyPattern matches a version's default build, like
+// "node/20.18.0/linux-amd64.meta.json", and a build in a folder of its own,
+// like "python/3.12.10/python.org/windows-amd64.meta.json".
+var metaKeyPattern = regexp.MustCompile(`^([^/]+)/([^/]+)/(?:([^/]+)/)?([^/]+)\.meta\.json$`)
 
 func main() {
 	flag.Parse()
@@ -139,11 +163,6 @@ func createS3Client() (*s3.Client, error) {
 }
 
 func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
-	manifest := &Manifest{
-		Version:  1,
-		Versions: make(map[string]map[string]*ManifestDownload),
-	}
-
 	// List all files for this runtime, separating meta files from binary keys
 	prefix := runtime + "/"
 	paginator := s3.NewListObjectsV2Paginator(client, &s3.ListObjectsV2Input{
@@ -170,61 +189,165 @@ func generateManifest(client *s3.Client, runtime string) (*Manifest, error) {
 
 	fmt.Printf("  Found %d metadata files\n", len(metaFiles))
 
-	// Process each metadata file
+	metas := make(map[string]*BinaryMeta)
 	for _, metaKey := range metaFiles {
-		// Parse the key to extract runtime, version, platform
-		matches := metaKeyPattern.FindStringSubmatch(metaKey)
-		if matches == nil {
-			fmt.Printf("  Warning: skipping invalid meta key: %s\n", metaKey)
-			continue
-		}
-
-		rt := matches[1]
-		version := matches[2]
-		platform := matches[3]
-
-		if rt != runtime {
-			continue
-		}
-
-		// Download and parse metadata
 		meta, err := downloadMeta(client, metaKey)
 		if err != nil {
 			fmt.Printf("  Warning: failed to read metadata for %s: %v\n", metaKey, err)
 			continue
 		}
-
-		// Determine the binary file extension from source URL
-		ext := getExtension(meta.SourceURL)
-		if !isValidArchiveExt(ext) {
-			// Source URL doesn't contain a valid extension (e.g., "built-from-source"),
-			// probe R2 for the actual binary file
-			ext = findBinaryExtension(allKeys, runtime, version, platform)
-			if ext == "" {
-				fmt.Printf("  Warning: no valid binary found for %s/%s/%s, skipping\n", runtime, version, platform)
-				continue
-			}
-		}
-		binaryURL := fmt.Sprintf("%s/%s/%s/%s%s", *baseURL, runtime, version, platform, ext)
-
-		// Add to manifest
-		if manifest.Versions[version] == nil {
-			manifest.Versions[version] = make(map[string]*ManifestDownload)
-		}
-
-		download := &ManifestDownload{
-			URL:          binaryURL,
-			SHA256:       meta.SHA256,
-			SHA256Source: meta.SHA256Source,
-		}
-		if meta.SourceURL == "built-from-source" {
-			download.Source = "built-from-source"
-		}
-
-		manifest.Versions[version][platform] = download
+		metas[metaKey] = meta
 	}
 
-	return manifest, nil
+	return assembleManifest(runtime, *baseURL, metas, allKeys), nil
+}
+
+// manifestEntry is one build found in R2: a metadata file and where its
+// binary is.
+type manifestEntry struct {
+	version  string
+	platform string
+	// keyBase is the binary's key without its extension, e.g.
+	// "python/3.12.10/python.org/windows-amd64".
+	keyBase string
+	// build is the build this entry is, for builds in a folder of their own
+	// ("" for a version's default build).
+	build string
+	meta  *BinaryMeta
+}
+
+// assembleManifest builds a runtime's manifest from the metadata files in
+// R2 (keyed by their R2 key) and the set of every key under the runtime.
+//
+// Each version and platform gets its default build, labeled with whose
+// build it is where that is known. Builds in a folder of their own are
+// listed as alternates of the default; where there is no default build,
+// one of them takes its place, and one that is the same build as the
+// default is left out.
+func assembleManifest(runtime, baseURL string, metas map[string]*BinaryMeta, allKeys map[string]bool) *Manifest {
+	manifest := &Manifest{
+		Version:  1,
+		Versions: make(map[string]map[string]*ManifestDownload),
+	}
+
+	var defaults, alternates []manifestEntry
+	for metaKey, meta := range metas {
+		matches := metaKeyPattern.FindStringSubmatch(metaKey)
+		if matches == nil {
+			fmt.Printf("  Warning: skipping invalid meta key: %s\n", metaKey)
+			continue
+		}
+		rt, version, dir, platform := matches[1], matches[2], matches[3], matches[4]
+		if rt != runtime {
+			continue
+		}
+
+		entry := manifestEntry{version: version, platform: platform, meta: meta}
+		if dir == "" {
+			entry.keyBase = fmt.Sprintf("%s/%s/%s", runtime, version, platform)
+			defaults = append(defaults, entry)
+			continue
+		}
+		build, ok := alternateBuildDirs[runtime+"/"+dir]
+		if !ok {
+			fmt.Printf("  Warning: skipping %s, in unknown build folder %q\n", metaKey, dir)
+			continue
+		}
+		entry.keyBase = fmt.Sprintf("%s/%s/%s/%s", runtime, version, dir, platform)
+		entry.build = build
+		alternates = append(alternates, entry)
+	}
+
+	for _, e := range defaults {
+		download := newManifestDownload(runtime, baseURL, e, allKeys)
+		if download == nil {
+			continue
+		}
+		if manifest.Versions[e.version] == nil {
+			manifest.Versions[e.version] = make(map[string]*ManifestDownload)
+		}
+		manifest.Versions[e.version][e.platform] = download
+	}
+
+	// Attach alternates in a fixed order, so the output does not depend on
+	// map iteration.
+	sort.Slice(alternates, func(i, j int) bool { return alternates[i].keyBase < alternates[j].keyBase })
+	for _, e := range alternates {
+		download := newManifestDownload(runtime, baseURL, e, allKeys)
+		if download == nil {
+			continue
+		}
+		if manifest.Versions[e.version] == nil {
+			manifest.Versions[e.version] = make(map[string]*ManifestDownload)
+		}
+		def := manifest.Versions[e.version][e.platform]
+		switch {
+		case def == nil:
+			manifest.Versions[e.version][e.platform] = download
+		case def.Build == download.Build:
+			// The default already is this build.
+		default:
+			def.Alternates = append(def.Alternates, download)
+		}
+	}
+
+	return manifest
+}
+
+// newManifestDownload returns the manifest entry for one build, or nil when
+// its binary cannot be found in R2.
+func newManifestDownload(runtime, baseURL string, e manifestEntry, allKeys map[string]bool) *ManifestDownload {
+	// The source URL's extension is the binary's, unless dtvem built or
+	// repacked it (built from source, or a Windows Python assembled from
+	// python.org's files); then R2 has the binary under another extension.
+	ext := getExtension(e.meta.SourceURL)
+	if !isValidArchiveExt(ext) || !allKeys[e.keyBase+ext] {
+		probed := findBinaryExtension(allKeys, e.keyBase)
+		switch {
+		case probed != "":
+			ext = probed
+		case !isValidArchiveExt(ext):
+			fmt.Printf("  Warning: no valid binary found for %s, skipping\n", e.keyBase)
+			return nil
+		}
+	}
+
+	download := &ManifestDownload{
+		URL:          fmt.Sprintf("%s/%s%s", baseURL, e.keyBase, ext),
+		SHA256:       e.meta.SHA256,
+		SHA256Source: e.meta.SHA256Source,
+		Build:        e.build,
+	}
+	if e.meta.SourceURL == "built-from-source" {
+		download.Source = "built-from-source"
+	}
+	if download.Build == "" {
+		download.Build = buildFromSourceURL(runtime, e.meta.SourceURL)
+	}
+	return download
+}
+
+// buildFromSourceURL names whose build a binary is, from the upstream URL
+// the mirror took it from. It returns "" for runtimes with a single build.
+func buildFromSourceURL(runtime, sourceURL string) string {
+	if runtime != "python" {
+		return ""
+	}
+	u, err := url.Parse(sourceURL)
+	if err != nil {
+		return ""
+	}
+	switch {
+	case strings.Contains(u.Path, "/python-build-standalone/"):
+		return buildPythonStandalone
+	case u.Host == "www.python.org", u.Host == "python.org":
+		// The MSIs, install-manager zips and embeddable zips
+		return buildPythonOrg
+	case u.Host == "api.nuget.org" && strings.Contains(u.Path, "/python"):
+		// python.org's NuGet packages
+		return buildPythonOrg
+	}
+	return ""
 }
 
 func downloadMeta(client *s3.Client, key string) (*BinaryMeta, error) {
@@ -250,25 +373,25 @@ func downloadMeta(client *s3.Client, key string) (*BinaryMeta, error) {
 	return &meta, nil
 }
 
-func getExtension(url string) string {
+func getExtension(sourceURL string) string {
 	// Handle common archive extensions
-	if strings.HasSuffix(url, ".tar.gz") {
+	if strings.HasSuffix(sourceURL, ".tar.gz") {
 		return ".tar.gz"
 	}
-	if strings.HasSuffix(url, ".tar.xz") {
+	if strings.HasSuffix(sourceURL, ".tar.xz") {
 		return ".tar.xz"
 	}
-	if strings.HasSuffix(url, ".tar.bz2") {
+	if strings.HasSuffix(sourceURL, ".tar.bz2") {
 		return ".tar.bz2"
 	}
-	if strings.HasSuffix(url, ".zip") {
+	if strings.HasSuffix(sourceURL, ".zip") {
 		return ".zip"
 	}
-	if strings.HasSuffix(url, ".7z") {
+	if strings.HasSuffix(sourceURL, ".7z") {
 		return ".7z"
 	}
 	// Fallback: extract from URL
-	base := filepath.Base(url)
+	base := filepath.Base(sourceURL)
 	if idx := strings.Index(base, "."); idx != -1 {
 		return base[idx:]
 	}
@@ -283,10 +406,11 @@ func isValidArchiveExt(ext string) bool {
 	return false
 }
 
-func findBinaryExtension(allKeys map[string]bool, runtime, version, platform string) string {
-	prefix := fmt.Sprintf("%s/%s/%s", runtime, version, platform)
+// findBinaryExtension returns the extension of the binary at keyBase
+// ("python/3.12.10/windows-amd64") in R2, or "" when there is none.
+func findBinaryExtension(allKeys map[string]bool, keyBase string) string {
 	for _, ext := range []string{".tar.gz", ".tar.xz", ".zip", ".7z"} {
-		if allKeys[prefix+ext] {
+		if allKeys[keyBase+ext] {
 			return ext
 		}
 	}
