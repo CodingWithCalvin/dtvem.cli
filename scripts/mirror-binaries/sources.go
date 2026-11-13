@@ -84,9 +84,9 @@ func getUpstreamSources(runtime string) ([]UpstreamSource, error) {
 	case "python":
 		return []UpstreamSource{
 			&PythonStandaloneSource{},
-			// python.org's full Windows builds: published at the
-			// python.org location for `dtvem install --signed`, and at the
-			// default location for versions python-build-standalone lacks.
+			// python.org's full Windows builds, published only at the
+			// python.org location, for `dtvem install --signed`. The default
+			// location is python-build-standalone's alone.
 			&PythonMSISource{},
 			&PythonNuGetSource{},
 			&PythonInstallManagerSource{},
@@ -117,8 +117,8 @@ func fetchJobsFromUpstream(runtime string) ([]MirrorJob, error) {
 //
 // When several jobs publish to the same place (the same metadata key), the
 // first source's job wins. A version's default build is at
-// <runtime>/<version>/<platform>; python.org's builds also have a place of
-// their own, which python-build-standalone's never claim.
+// <runtime>/<version>/<platform>; python.org's builds are at a place of
+// their own, so they never compete with python-build-standalone's.
 func collectJobs(sources []UpstreamSource) ([]MirrorJob, error) {
 	var allJobs []MirrorJob
 	var errs []error

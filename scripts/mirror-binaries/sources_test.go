@@ -90,11 +90,11 @@ func TestCollectJobs(t *testing.T) {
 			{Version: "3.11.17", Platform: "windows-amd64", URL: "fallback", MetaKey: "python/3.11.17/windows-amd64.meta.json"},
 		},
 	}
-	// python.org's builds also go to a place of their own, which an earlier
-	// source covering the same version does not take away.
+	// python.org's builds go to a place of their own, never a version's
+	// default location.
 	pythonOrg := &fakeSource{
 		name: "python.org",
-		jobs: pythonOrgJobs("3.13.16", "windows-amd64", "python.org", nil),
+		jobs: []MirrorJob{pythonOrgJob("3.13.16", "windows-amd64", "python.org", nil)},
 	}
 	broken := &fakeSource{name: "broken", err: errors.New("fetching releases: HTTP 504")}
 
@@ -110,14 +110,23 @@ func TestCollectJobs(t *testing.T) {
 			wantURLs: []string{"primary", "primary", "fallback"},
 		},
 		{
-			name:     "python.org location kept when default is covered",
+			name:     "python.org build kept alongside the default",
 			sources:  []UpstreamSource{primary, pythonOrg},
 			wantURLs: []string{"primary", "primary", "python.org"},
 		},
 		{
-			name:     "python.org fills the default location when uncovered",
+			name:     "python.org build never takes the default location",
 			sources:  []UpstreamSource{pythonOrg, primary},
-			wantURLs: []string{"python.org", "python.org", "primary"},
+			wantURLs: []string{"python.org", "primary", "primary"},
+		},
+		{
+			// A failed python-build-standalone listing must not let a
+			// python.org build take a default location, where a sync would
+			// never replace it.
+			name:        "python.org build stays in place when the default source fails",
+			sources:     []UpstreamSource{broken, pythonOrg},
+			wantURLs:    []string{"python.org"},
+			wantErrText: "broken: fetching releases: HTTP 504",
 		},
 		{
 			name:        "failing source keeps jobs from healthy sources",
@@ -155,10 +164,10 @@ func TestCollectJobs(t *testing.T) {
 	}
 }
 
-// The first source to offer a version and platform wins, so the order sets
-// which build a version gets by default: python-build-standalone where it
-// has one, then python.org's MSIs (full x64 builds with tkinter), then its
-// NuGet packages, then its install-manager zips (x64 from 3.14 on).
+// python-build-standalone fills the default location. python.org's MSIs
+// (full x64 builds with tkinter, up to 3.13), NuGet packages (arm64) and
+// install-manager zips (x64 from 3.14 on) fill the python.org location; for
+// a version and platform two of them offer, the first wins.
 func TestGetUpstreamSources_PythonOrder(t *testing.T) {
 	sources, err := getUpstreamSources("python")
 	if err != nil {

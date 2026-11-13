@@ -99,9 +99,9 @@ func (s *PythonInstallManagerSource) FetchVersions() ([]MirrorJob, error) {
 		seen[e.SortVersion] = true
 
 		zipURL, want := e.URL, strings.ToLower(e.Hash.SHA256)
-		jobs = append(jobs, pythonOrgJobs(e.SortVersion, "windows-amd64", zipURL, func() ([]byte, error) {
+		jobs = append(jobs, pythonOrgJob(e.SortVersion, "windows-amd64", zipURL, func() ([]byte, error) {
 			return buildFromInstallManagerZip(zipURL, want)
-		})...)
+		}))
 	}
 	return jobs, nil
 }
