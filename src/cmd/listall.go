@@ -19,7 +19,9 @@ var listAllCmd = &cobra.Command{
 	Long: `Display all available versions of a runtime that can be installed.
 
 This command queries official sources to show all versions available for download.
-Installed versions are marked with a ✓ indicator.
+Installed versions are marked with a ✓ indicator. For Python on Windows, a
+Signed column marks the versions with a signed python.org build, which
+'dtvem install python <version> --signed' installs.
 
 Examples:
   dtvem list-all python
@@ -70,6 +72,9 @@ Examples:
 		globalVersion, _ := provider.GlobalVersion()
 		localVersion, _ := config.LocalVersion(runtimeName)
 
+		// Versions with a signed build, for runtimes that offer them here
+		signedVersions, showSigned := signedVersionSet(provider)
+
 		// Filter versions if requested
 		filteredVersions := available
 		if filter != "" {
@@ -99,7 +104,12 @@ Examples:
 			}
 
 			// Create table for this page
-			table := tui.NewTable("", "Version", "Status")
+			var table *tui.Table
+			if showSigned {
+				table = tui.NewTable("", "Version", "Status", "Signed")
+			} else {
+				table = tui.NewTable("", "Version", "Status")
+			}
 			table.SetTitle(provider.DisplayName())
 
 			for i := 0; i < pageSize; i++ {
@@ -109,13 +119,21 @@ Examples:
 				// Check if installed
 				marker := ""
 				if installedMap[version] {
-					marker = tui.CheckMark
+					marker = tui.GetCheckMark()
 				}
 
 				// Build status: combine global/local indicators with lifecycle
 				status := getVersionStatusWithLifecycle(version, globalVersion, localVersion, v.LifecycleStatus)
 
-				table.AddRow(marker, version, status)
+				if showSigned {
+					signedMarker := ""
+					if signedVersions[version] {
+						signedMarker = tui.GetCheckMark()
+					}
+					table.AddRow(marker, version, status, signedMarker)
+				} else {
+					table.AddRow(marker, version, status)
+				}
 			}
 
 			fmt.Println()
@@ -142,7 +160,29 @@ Examples:
 
 		fmt.Println()
 		ui.Info("Install a version with: dtvem install %s <version>", runtimeName)
+		if showSigned {
+			ui.Info("Install a signed build with: dtvem install %s <version> --signed", runtimeName)
+		}
 	},
+}
+
+// signedVersionSet returns the versions with a signed build, and whether
+// the provider offers signed builds on this platform at all.
+func signedVersionSet(provider runtime.Provider) (map[string]bool, bool) {
+	signed, ok := provider.(runtime.SignedBuildProvider)
+	if !ok || !signed.SignedBuildsSupported() {
+		return nil, false
+	}
+	versions, err := signed.SignedVersions()
+	if err != nil {
+		ui.Warning("Could not check which versions have signed builds: %v", err)
+		return nil, false
+	}
+	set := make(map[string]bool, len(versions))
+	for _, v := range versions {
+		set[v] = true
+	}
+	return set, true
 }
 
 func init() {
