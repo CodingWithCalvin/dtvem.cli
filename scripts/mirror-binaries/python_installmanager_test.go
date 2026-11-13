@@ -100,7 +100,7 @@ func TestPythonInstallManagerSource_FetchVersions(t *testing.T) {
 		t.Fatalf("FetchVersions() error: %v", err)
 	}
 
-	versions := checkPythonOrgJobPairs(t, jobs)
+	versions := checkPythonOrgJobs(t, jobs)
 	if want := []string{"3.15.2", "3.14.0"}; !reflect.DeepEqual(versions, want) {
 		t.Errorf("FetchVersions() versions = %v, want %v", versions, want)
 	}

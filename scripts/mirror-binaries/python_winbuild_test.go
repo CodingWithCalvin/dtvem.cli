@@ -200,7 +200,7 @@ func TestPythonMSISource_FetchVersions(t *testing.T) {
 		t.Fatalf("FetchVersions() error: %v", err)
 	}
 
-	versions := checkPythonOrgJobPairs(t, jobs)
+	versions := checkPythonOrgJobs(t, jobs)
 	for _, j := range jobs {
 		if j.Platform != "windows-amd64" {
 			t.Errorf("job %s: platform %q, want windows-amd64", j.Version, j.Platform)
@@ -220,34 +220,25 @@ func TestPythonMSISource_FetchVersions(t *testing.T) {
 	}
 }
 
-// checkPythonOrgJobPairs checks that jobs come in the pairs pythonOrgJobs
-// makes, one at the default location and one at the python.org location,
-// and returns the version of each pair.
-func checkPythonOrgJobPairs(t *testing.T, jobs []MirrorJob) []string {
+// checkPythonOrgJobs checks that every job publishes a python.org build at
+// the python.org location, never at a version's default location, and
+// returns the version of each job.
+func checkPythonOrgJobs(t *testing.T, jobs []MirrorJob) []string {
 	t.Helper()
-	if len(jobs)%2 != 0 {
-		t.Fatalf("got %d jobs, want pairs of default and python.org jobs", len(jobs))
-	}
 	var versions []string
-	for i := 0; i < len(jobs); i += 2 {
-		def, org := jobs[i], jobs[i+1]
-		v, p := def.Version, def.Platform
+	for _, j := range jobs {
+		v, p := j.Version, j.Platform
 		versions = append(versions, v)
 
-		if org.Version != v || org.Platform != p || org.URL != def.URL {
-			t.Errorf("pair %d: python.org job %s/%s from %s, want %s/%s from %s", i/2, org.Version, org.Platform, org.URL, v, p, def.URL)
-		}
-		if def.Build == nil || org.Build == nil {
-			t.Errorf("pair %s/%s: Build set %v and %v, want both", v, p, def.Build != nil, org.Build != nil)
+		if j.Build == nil {
+			t.Errorf("job %s/%s has no Build step", v, p)
 		}
 		for _, c := range []struct{ got, want string }{
-			{def.R2Key, fmt.Sprintf("python/%s/%s.tar.gz", v, p)},
-			{def.MetaKey, fmt.Sprintf("python/%s/%s.meta.json", v, p)},
-			{org.R2Key, fmt.Sprintf("python/%s/python.org/%s.tar.gz", v, p)},
-			{org.MetaKey, fmt.Sprintf("python/%s/python.org/%s.meta.json", v, p)},
+			{j.R2Key, fmt.Sprintf("python/%s/python.org/%s.tar.gz", v, p)},
+			{j.MetaKey, fmt.Sprintf("python/%s/python.org/%s.meta.json", v, p)},
 		} {
 			if c.got != c.want {
-				t.Errorf("pair %s/%s: key %q, want %q", v, p, c.got, c.want)
+				t.Errorf("job %s/%s: key %q, want %q", v, p, c.got, c.want)
 			}
 		}
 	}
@@ -606,7 +597,7 @@ func TestPythonNuGetSource_FetchVersions(t *testing.T) {
 		t.Fatalf("FetchVersions() error: %v", err)
 	}
 
-	got := checkPythonOrgJobPairs(t, jobs)
+	got := checkPythonOrgJobs(t, jobs)
 	for _, j := range jobs {
 		if j.Platform != "windows-arm64" {
 			t.Errorf("job %s: platform %q, want windows-arm64", j.Version, j.Platform)
@@ -616,8 +607,8 @@ func TestPythonNuGetSource_FetchVersions(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("FetchVersions() versions = %v, want %v", got, want)
 	}
-	if want := srv.URL + "/flat/pythonarm64/3.11.4/pythonarm64.3.11.4.nupkg"; jobs[2].URL != want {
-		t.Errorf("arm64 job URL = %q, want %q", jobs[2].URL, want)
+	if want := srv.URL + "/flat/pythonarm64/3.11.4/pythonarm64.3.11.4.nupkg"; jobs[1].URL != want {
+		t.Errorf("arm64 job URL = %q, want %q", jobs[1].URL, want)
 	}
 	for _, p := range requested.list() {
 		if strings.HasPrefix(p, "/flat/python/") {
@@ -657,8 +648,8 @@ func TestBuildFromNuGet(t *testing.T) {
 	)
 	src := &PythonNuGetSource{flatContainerURL: srv.URL + "/flat/", registrationURL: srv.URL + "/registration/"}
 	jobs, err := src.FetchVersions()
-	if err != nil || len(jobs) != 2 {
-		t.Fatalf("FetchVersions() = %d jobs, %v; want a default and a python.org job", len(jobs), err)
+	if err != nil || len(jobs) != 1 {
+		t.Fatalf("FetchVersions() = %d jobs, %v; want 1 job", len(jobs), err)
 	}
 
 	archive, err := jobs[0].Build()
@@ -680,8 +671,8 @@ func TestBuildFromNuGet_HashMismatch(t *testing.T) {
 	)
 	src := &PythonNuGetSource{flatContainerURL: srv.URL + "/flat/", registrationURL: srv.URL + "/registration/"}
 	jobs, err := src.FetchVersions()
-	if err != nil || len(jobs) != 2 {
-		t.Fatalf("FetchVersions() = %d jobs, %v; want a default and a python.org job", len(jobs), err)
+	if err != nil || len(jobs) != 1 {
+		t.Fatalf("FetchVersions() = %d jobs, %v; want 1 job", len(jobs), err)
 	}
 
 	if _, err := jobs[0].Build(); err == nil || !strings.Contains(err.Error(), "SHA-512 mismatch") {

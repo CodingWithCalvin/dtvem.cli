@@ -193,3 +193,34 @@ func TestBuildFromSourceURL(t *testing.T) {
 		}
 	}
 }
+
+// A release python.org ships before python-build-standalone does is listed
+// with python.org's build as its default; once python-build-standalone's
+// build is mirrored, that becomes the default and python.org's the
+// alternate.
+func TestAssembleManifest_DefaultArrivesLater(t *testing.T) {
+	org := meta("https://www.python.org/ftp/python/3.14.11/python-3.14.11-amd64.zip", "org")
+	before := assembleManifest("python", testBaseURL,
+		map[string]*BinaryMeta{"python/3.14.11/python.org/windows-amd64.meta.json": org},
+		keys("python/3.14.11/python.org/windows-amd64.tar.gz"))
+
+	d := before.Versions["3.14.11"]["windows-amd64"]
+	if d == nil || d.Build != buildPythonOrg || d.URL != testBaseURL+"/python/3.14.11/python.org/windows-amd64.tar.gz" || len(d.Alternates) != 0 {
+		t.Fatalf("before python-build-standalone: %+v, want python.org's build as the default", d)
+	}
+
+	after := assembleManifest("python", testBaseURL,
+		map[string]*BinaryMeta{
+			"python/3.14.11/python.org/windows-amd64.meta.json": org,
+			"python/3.14.11/windows-amd64.meta.json":            meta("https://github.com/astral-sh/python-build-standalone/releases/download/20261120/cpython-3.14.11%2B20261120-x86_64-pc-windows-msvc-install_only.tar.gz", "pbs"),
+		},
+		keys("python/3.14.11/python.org/windows-amd64.tar.gz", "python/3.14.11/windows-amd64.tar.gz"))
+
+	d = after.Versions["3.14.11"]["windows-amd64"]
+	if d == nil || d.Build != buildPythonStandalone || d.URL != testBaseURL+"/python/3.14.11/windows-amd64.tar.gz" {
+		t.Fatalf("after python-build-standalone: %+v, want its build as the default", d)
+	}
+	if len(d.Alternates) != 1 || d.Alternates[0].Build != buildPythonOrg || d.Alternates[0].SHA256 != "org" {
+		t.Errorf("after python-build-standalone: alternates %+v, want python.org's build", d.Alternates)
+	}
+}

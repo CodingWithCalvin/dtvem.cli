@@ -1,7 +1,6 @@
 package main
 
-// Full Windows builds for Python versions python-build-standalone does not
-// cover.
+// python.org's own full Windows builds of Python.
 //
 // python.org's embeddable zips, which the mirror used to fall back to, are a
 // trimmed runtime meant to be shipped inside an application: a ._pth file
@@ -22,14 +21,22 @@ package main
 // layout of python-build-standalone's Windows archives, so dtvem installs it
 // without changes.
 //
-// Each python.org build is published twice over: at the version's default
-// location (python/<version>/<platform>.tar.gz), which it only gets when no
-// earlier source covers that version, and always at the python.org location
-// (python/<version>/python.org/<platform>.tar.gz). The python.org location
+// python.org's builds are published at the python.org location,
+// python/<version>/python.org/<platform>.tar.gz, and never at a version's
+// default location, which only python-build-standalone fills. That location
 // is what `dtvem install python <version> --signed` installs: python.org's
 // own build, whose binaries carry the Python Software Foundation's
 // Authenticode signature, where the default build is python-build-
-// standalone's unsigned one.
+// standalone's unsigned one. For a version python-build-standalone has no
+// build of, the manifest generator lists python.org's build as the default
+// until it does.
+//
+// The mirror once filled default locations with python.org's builds for
+// versions python-build-standalone lacked. A sync never replaces a file
+// already mirrored, so a release python.org shipped before python-build-
+// standalone did, or one mirrored while the python-build-standalone listing
+// failed, would have kept python.org's build as its default for good.
+// Those already mirrored (3.9.13, for example) stay as they are.
 
 import (
 	"archive/tar"
@@ -79,31 +86,17 @@ const (
 	pythonOrgBuildDir = "python.org"
 )
 
-// pythonOrgJobs returns the two jobs that publish one python.org build:
-// at the version's default location, which collectJobs drops when an
-// earlier source already covers the version, and at the python.org
-// location. Each job runs build itself, so a build both jobs mirror is
-// assembled twice rather than held in memory between them.
-func pythonOrgJobs(version, platform, sourceURL string, build func() ([]byte, error)) []MirrorJob {
-	return []MirrorJob{
-		{
-			Runtime:  "python",
-			Version:  version,
-			Platform: platform,
-			URL:      sourceURL,
-			R2Key:    fmt.Sprintf("python/%s/%s.tar.gz", version, platform),
-			MetaKey:  fmt.Sprintf("python/%s/%s.meta.json", version, platform),
-			Build:    build,
-		},
-		{
-			Runtime:  "python",
-			Version:  version,
-			Platform: platform,
-			URL:      sourceURL,
-			R2Key:    fmt.Sprintf("python/%s/%s/%s.tar.gz", version, pythonOrgBuildDir, platform),
-			MetaKey:  fmt.Sprintf("python/%s/%s/%s.meta.json", version, pythonOrgBuildDir, platform),
-			Build:    build,
-		},
+// pythonOrgJob returns the job that publishes one python.org build at the
+// python.org location.
+func pythonOrgJob(version, platform, sourceURL string, build func() ([]byte, error)) MirrorJob {
+	return MirrorJob{
+		Runtime:  "python",
+		Version:  version,
+		Platform: platform,
+		URL:      sourceURL,
+		R2Key:    fmt.Sprintf("python/%s/%s/%s.tar.gz", version, pythonOrgBuildDir, platform),
+		MetaKey:  fmt.Sprintf("python/%s/%s/%s.meta.json", version, pythonOrgBuildDir, platform),
+		Build:    build,
 	}
 }
 
@@ -218,9 +211,9 @@ func (s *PythonMSISource) FetchVersions() ([]MirrorJob, error) {
 			continue
 		}
 		dirURL := base + v + "/amd64/"
-		jobs = append(jobs, pythonOrgJobs(v, "windows-amd64", dirURL, func() ([]byte, error) {
+		jobs = append(jobs, pythonOrgJob(v, "windows-amd64", dirURL, func() ([]byte, error) {
 			return buildFromMSIs(dirURL, verifier, s.extract)
-		})...)
+		}))
 	}
 	return jobs, nil
 }
@@ -311,8 +304,7 @@ func (s *PythonNuGetSource) Name() string {
 }
 
 // FetchVersions returns a job for every release package from
-// minWindowsPython onward. Sources registered earlier win for any version
-// and platform they also provide.
+// minWindowsPython onward.
 func (s *PythonNuGetSource) FetchVersions() ([]MirrorJob, error) {
 	flat := s.flatContainerURL
 	if flat == "" {
@@ -344,9 +336,9 @@ func (s *PythonNuGetSource) FetchVersions() ([]MirrorJob, error) {
 			id := pkg.id
 			nupkgURL := fmt.Sprintf("%s%s/%s/%s.%s.nupkg", flat, id, v, id, v)
 			leafURL := fmt.Sprintf("%s%s/%s.json", registration, id, v)
-			jobs = append(jobs, pythonOrgJobs(v, pkg.platform, nupkgURL, func() ([]byte, error) {
+			jobs = append(jobs, pythonOrgJob(v, pkg.platform, nupkgURL, func() ([]byte, error) {
 				return buildFromNuGet(nupkgURL, leafURL)
-			})...)
+			}))
 		}
 	}
 	return jobs, nil
