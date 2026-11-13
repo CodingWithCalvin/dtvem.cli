@@ -195,3 +195,87 @@ func TestCachedSource_IgnoresOlderFormat(t *testing.T) {
 		t.Error("manifest has no python.org alternate; the older-format cache was used")
 	}
 }
+
+// A newly installed dtvem fetches the manifests again instead of reading
+// ones another version cached, even in the current format. A pre-release
+// build may have cached a manifest from before the release's fields existed.
+func TestCachedSource_IgnoresOtherVersion(t *testing.T) {
+	tests := []struct {
+		name          string
+		writer        string // version that cached the manifest
+		reader        string // version reading it
+		wantFetches   int
+		wantAlternate bool
+	}{
+		{name: "pre-release cache, new release", writer: "dev", reader: "0.7.4", wantFetches: 1, wantAlternate: true},
+		{name: "older release cache, new release", writer: "0.7.3", reader: "0.7.4", wantFetches: 1, wantAlternate: true},
+		{name: "cache from no recorded version, new release", writer: "", reader: "0.7.4", wantFetches: 1, wantAlternate: true},
+		{name: "same version reads its own cache", writer: "0.7.4", reader: "0.7.4", wantFetches: 0, wantAlternate: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+
+			// The cached manifest predates the python.org builds
+			stale, err := ParseManifest([]byte(`{"version":1,"versions":{"3.12.10":{"windows-amd64":{"url":"https://builds.dtvem.io/python/3.12.10/windows-amd64.tar.gz","sha256":"x"}}}}`))
+			if err != nil {
+				t.Fatalf("ParseManifest(stale) error: %v", err)
+			}
+			writer := NewCachedSource(newMockSource(), dir, time.Hour)
+			writer.version = tt.writer
+			if err := writer.saveToCache("python", stale); err != nil {
+				t.Fatalf("saveToCache() error: %v", err)
+			}
+
+			fresh, err := ParseManifest([]byte(buildsManifestJSON))
+			if err != nil {
+				t.Fatalf("ParseManifest(fresh) error: %v", err)
+			}
+			mock := newMockSource()
+			mock.manifests["python"] = fresh
+			reader := NewCachedSource(mock, dir, time.Hour)
+			reader.version = tt.reader
+
+			got, err := reader.GetManifest("python")
+			if err != nil {
+				t.Fatalf("GetManifest() error: %v", err)
+			}
+			if mock.callCount["python"] != tt.wantFetches {
+				t.Errorf("source called %d times, want %d", mock.callCount["python"], tt.wantFetches)
+			}
+			hasAlternate := got.GetDownload("3.12.10", "windows-amd64").ForBuild(BuildPythonOrg) != nil
+			if hasAlternate != tt.wantAlternate {
+				t.Errorf("python.org alternate present = %v, want %v", hasAlternate, tt.wantAlternate)
+			}
+
+			// The refetched manifest is cached for the reading version
+			if tt.wantFetches > 0 {
+				if _, err := reader.GetManifest("python"); err != nil {
+					t.Fatalf("second GetManifest() error: %v", err)
+				}
+				if mock.callCount["python"] != tt.wantFetches {
+					t.Errorf("second call fetched again: source called %d times, want %d", mock.callCount["python"], tt.wantFetches)
+				}
+			}
+		})
+	}
+}
+
+func TestSetCLIVersion_DefaultSource(t *testing.T) {
+	t.Cleanup(func() {
+		SetCLIVersion("")
+		ResetDefaultSource()
+	})
+
+	ResetDefaultSource()
+	SetCLIVersion("0.7.4")
+	DefaultSource()
+
+	if defaultCached == nil {
+		t.Fatal("DefaultSource() did not create the cached source")
+	}
+	if defaultCached.version != "0.7.4" {
+		t.Errorf("default cache version = %q, want %q", defaultCached.version, "0.7.4")
+	}
+}

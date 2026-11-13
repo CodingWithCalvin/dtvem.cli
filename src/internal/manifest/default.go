@@ -37,8 +37,9 @@ func createDefaultSource() Source {
 	// Remote source - fetches from manifests.dtvem.io
 	remote := NewHTTPSource(DefaultRemoteURL)
 
-	// Cached source - wraps remote with local disk cache
+	// Cached source - wraps remote with local disk cache, kept per dtvem version
 	defaultCached = NewCachedSource(remote, cacheDir, DefaultCacheTTL)
+	defaultCached.version = cliVersion
 
 	// Embedded source - bundled in binary, always available
 	defaultEmbedded = NewEmbeddedSource()

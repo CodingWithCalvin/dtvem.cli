@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/CodingWithCalvin/dtvem.cli/src/internal/manifest"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/tui"
 	"github.com/CodingWithCalvin/dtvem.cli/src/internal/ui"
 	"github.com/spf13/cobra"
@@ -21,6 +22,9 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	// Manifests cached by another dtvem version are fetched again
+	manifest.SetCLIVersion(Version)
+
 	// Check for --version or -v flag before Cobra parses
 	for _, arg := range os.Args[1:] {
 		if arg == "--version" || arg == "-v" {
