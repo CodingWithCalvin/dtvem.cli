@@ -23,18 +23,17 @@ var rubyInstallerPattern = regexp.MustCompile(
 func (s *RubyInstallerSource) FetchVersions() ([]MirrorJob, error) {
 	// Fetch releases from GitHub API with retries
 	url := "https://api.github.com/repos/oneclick/rubyinstaller2/releases?per_page=100"
-	resp, err := httpGetWithRetry(url, 3)
+	resp, err := fetchWithRetry(url, 3)
 	if err != nil {
 		return nil, fmt.Errorf("fetching releases: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("fetching releases: HTTP %d", resp.StatusCode)
 	}
 
 	var releases []githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+	if err := json.Unmarshal(resp.Body, &releases); err != nil {
 		return nil, fmt.Errorf("parsing releases: %w", err)
 	}
 
@@ -111,18 +110,17 @@ var rubyBuilderPattern = regexp.MustCompile(
 func (s *RubyBuilderSource) FetchVersions() ([]MirrorJob, error) {
 	// Fetch the toolcache release from GitHub API with retries
 	url := "https://api.github.com/repos/ruby/ruby-builder/releases/tags/toolcache"
-	resp, err := httpGetWithRetry(url, 3)
+	resp, err := fetchWithRetry(url, 3)
 	if err != nil {
 		return nil, fmt.Errorf("fetching release: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("fetching release: HTTP %d", resp.StatusCode)
 	}
 
 	var release githubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	if err := json.Unmarshal(resp.Body, &release); err != nil {
 		return nil, fmt.Errorf("parsing release: %w", err)
 	}
 

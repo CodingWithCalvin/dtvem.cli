@@ -2,7 +2,10 @@ package main
 
 import (
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -62,6 +65,142 @@ func TestNewRequest(t *testing.T) {
 func TestNewRequest_InvalidURL(t *testing.T) {
 	if _, err := newRequest("://bad"); err == nil {
 		t.Error("newRequest(\"://bad\") error = nil, want error")
+	}
+}
+
+// noRetryDelay makes retries immediate for the rest of the test.
+func noRetryDelay(t *testing.T) {
+	t.Helper()
+
+	old := retryDelay
+	retryDelay = 0
+	t.Cleanup(func() { retryDelay = old })
+}
+
+// writeCutOff starts a 200 response that promises more body than it sends and
+// then drops the connection, as when GitHub cancels a stream part way.
+func writeCutOff(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		t.Error("response writer cannot hijack the connection")
+		return
+	}
+	conn, buf, err := hijacker.Hijack()
+	if err != nil {
+		t.Errorf("hijacking connection: %v", err)
+		return
+	}
+	defer func() { _ = conn.Close() }()
+
+	_, _ = buf.WriteString("HTTP/1.1 200 OK\r\nContent-Length: 1000\r\n\r\n[{\"tag_name\":")
+	_ = buf.Flush()
+}
+
+func TestFetchWithRetry(t *testing.T) {
+	const body = `[{"tag_name":"20261113"}]`
+	writeBody := func(w http.ResponseWriter) { _, _ = w.Write([]byte(body)) }
+
+	tests := []struct {
+		name string
+		// respond answers the nth request (counting from 1).
+		respond      func(t *testing.T, w http.ResponseWriter, n int32)
+		wantStatus   int
+		wantBody     string
+		wantRequests int32
+		wantErrText  string
+	}{
+		{
+			name:         "complete on the first try",
+			respond:      func(_ *testing.T, w http.ResponseWriter, _ int32) { writeBody(w) },
+			wantStatus:   http.StatusOK,
+			wantBody:     body,
+			wantRequests: 1,
+		},
+		{
+			name: "body cut off, then complete",
+			respond: func(t *testing.T, w http.ResponseWriter, n int32) {
+				if n == 1 {
+					writeCutOff(t, w)
+					return
+				}
+				writeBody(w)
+			},
+			wantStatus:   http.StatusOK,
+			wantBody:     body,
+			wantRequests: 2,
+		},
+		{
+			name: "server error, then complete",
+			respond: func(_ *testing.T, w http.ResponseWriter, n int32) {
+				if n == 1 {
+					http.Error(w, "bad gateway", http.StatusBadGateway)
+					return
+				}
+				writeBody(w)
+			},
+			wantStatus:   http.StatusOK,
+			wantBody:     body,
+			wantRequests: 2,
+		},
+		{
+			name: "client error returned without a retry",
+			respond: func(_ *testing.T, w http.ResponseWriter, _ int32) {
+				http.Error(w, "not found", http.StatusNotFound)
+			},
+			wantStatus:   http.StatusNotFound,
+			wantBody:     "not found\n",
+			wantRequests: 1,
+		},
+		{
+			name:         "body cut off every time",
+			respond:      func(t *testing.T, w http.ResponseWriter, _ int32) { writeCutOff(t, w) },
+			wantRequests: 3,
+			wantErrText:  "after 3 attempts: reading response: ",
+		},
+		{
+			name: "server error every time",
+			respond: func(_ *testing.T, w http.ResponseWriter, _ int32) {
+				http.Error(w, "unavailable", http.StatusServiceUnavailable)
+			},
+			wantRequests: 3,
+			wantErrText:  "after 3 attempts: HTTP 503",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			noRetryDelay(t)
+
+			var requests atomic.Int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				tt.respond(t, w, requests.Add(1))
+			}))
+			t.Cleanup(srv.Close)
+
+			resp, err := fetchWithRetry(srv.URL, 3)
+
+			if got := requests.Load(); got != tt.wantRequests {
+				t.Errorf("requests = %d, want %d", got, tt.wantRequests)
+			}
+
+			if tt.wantErrText != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErrText) {
+					t.Errorf("fetchWithRetry() error = %v, want error containing %q", err, tt.wantErrText)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("fetchWithRetry() error = %v, want nil", err)
+			}
+			if resp.StatusCode != tt.wantStatus {
+				t.Errorf("StatusCode = %d, want %d", resp.StatusCode, tt.wantStatus)
+			}
+			if string(resp.Body) != tt.wantBody {
+				t.Errorf("Body = %q, want %q", resp.Body, tt.wantBody)
+			}
+		})
 	}
 }
 

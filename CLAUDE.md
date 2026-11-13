@@ -323,7 +323,7 @@ cd src && go test -cover ./...    # With coverage
 | `integration-test.yml` | Manual dispatch | Full integration test suite (runtimes + migrations) |
 | `integration-test-runtimes.yml` | Manual dispatch | Runtime install/uninstall tests only |
 | `integration-test-migrations.yml` | Manual dispatch | Migration tests only (all platforms/managers) |
-| `generate-manifests-from-r2.yml` | Manual/scheduled | Generate version manifests from R2 mirror |
+| `generate-manifests-from-r2.yml` | Manual, after Mirror Sync (also a failed one) | Generate version manifests from R2 mirror |
 | `deploy-manifests.yml` | Push to main (manifests/) | Deploy manifest files to R2 |
 | `mirror-all.yml` | Manual dispatch | Mirror all runtime binaries to R2 |
 | `mirror-sync.yml` | Scheduled | Sync new versions to R2 mirror (installs msitools for Python) |

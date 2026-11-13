@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"time"
@@ -41,8 +42,25 @@ func newRequest(url string) (*http.Request, error) {
 	return req, nil
 }
 
-// httpGetWithRetry performs an HTTP GET with retries for transient failures
-func httpGetWithRetry(url string, maxRetries int) (*http.Response, error) {
+// fetchedResponse is an HTTP response whose body has been read in full.
+type fetchedResponse struct {
+	StatusCode int
+	Header     http.Header
+	Body       []byte
+}
+
+// retryDelay is the wait before the second attempt of a request. Each later
+// attempt waits one retryDelay longer than the one before.
+var retryDelay = 2 * time.Second
+
+// fetchWithRetry performs an HTTP GET and reads the whole body. It tries again
+// when the request fails, when the body is cut off part way, or when the
+// server answers 5xx; any other status is returned for the caller to check.
+//
+// Reading the body inside the retry matters for GitHub's releases API, whose
+// pages run to tens of megabytes: GitHub sometimes drops one part way through
+// ("stream error: stream ID 13; CANCEL; received from peer").
+func fetchWithRetry(url string, maxRetries int) (*fetchedResponse, error) {
 	req, err := newRequest(url)
 	if err != nil {
 		return nil, err
@@ -50,28 +68,39 @@ func httpGetWithRetry(url string, maxRetries int) (*http.Response, error) {
 
 	var lastErr error
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			lastErr = err
-			if attempt < maxRetries {
-				time.Sleep(time.Duration(attempt) * 2 * time.Second)
-			}
-			continue
+		if attempt > 1 {
+			time.Sleep(time.Duration(attempt-1) * retryDelay)
 		}
 
-		// Retry on server errors (5xx)
+		resp, err := fetchOnce(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
 		if resp.StatusCode >= 500 {
-			resp.Body.Close()
 			lastErr = fmt.Errorf("HTTP %d", resp.StatusCode)
-			if attempt < maxRetries {
-				time.Sleep(time.Duration(attempt) * 2 * time.Second)
-			}
 			continue
 		}
 
 		return resp, nil
 	}
-	return nil, lastErr
+	return nil, fmt.Errorf("after %d attempts: %w", maxRetries, lastErr)
+}
+
+// fetchOnce sends req and reads the whole response body.
+func fetchOnce(req *http.Request) (*fetchedResponse, error) {
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	return &fetchedResponse{StatusCode: resp.StatusCode, Header: resp.Header, Body: body}, nil
 }
 
 // getUpstreamSources returns all upstream sources for a given runtime

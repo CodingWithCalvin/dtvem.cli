@@ -32,7 +32,10 @@ jobs:
   generate:
     name: Generate Manifests
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Runs after a failed sync too: one source or download failing must not
+    # hold back everything the other jobs mirrored. Manifests only list what
+    # R2 holds, and a build's metadata is uploaded after its archive.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
 
     steps:
       - name: Checkout
@@ -131,6 +134,10 @@ jobs:
         run: |
           echo "## Manifest Generation" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event.workflow_run.conclusion }}" = "failure" ]; then
+            echo "**Note:** [Mirror Sync](${{ github.event.workflow_run.html_url }}) failed. These manifests list what it did mirror; anything it missed waits for a later sync." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             echo "**Mode:** Dry run (no changes made)" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ steps.check-changes.outputs.changed }}" = "true" ]; then

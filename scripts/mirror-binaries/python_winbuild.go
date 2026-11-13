@@ -655,15 +655,14 @@ func (a *pythonArchive) close() ([]byte, error) {
 
 // download fetches url and returns its body, failing on any non-200 status.
 func download(url string) ([]byte, error) {
-	resp, err := httpGetWithRetry(url, 3)
+	resp, err := fetchWithRetry(url, 3)
 	if err != nil {
 		return nil, fmt.Errorf("downloading %s: %w", url, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("downloading %s: HTTP %d", url, resp.StatusCode)
 	}
-	return io.ReadAll(resp.Body)
+	return resp.Body, nil
 }
 
 func fetchText(url string) (string, error) {

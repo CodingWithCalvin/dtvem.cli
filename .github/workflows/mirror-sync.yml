@@ -71,4 +71,4 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Synced new binaries from upstream that were not already in R2." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "To generate updated manifests, run the 'Generate Manifests from R2' workflow." >> $GITHUB_STEP_SUMMARY
+          echo "'Generate Manifests from R2' runs when this workflow finishes, also after a failure." >> $GITHUB_STEP_SUMMARY
