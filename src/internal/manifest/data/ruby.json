@@ -2323,6 +2323,18 @@
         "sha256_source": "dtvem"
       }
     },
+    "3.3.14": {
+      "windows-386": {
+        "url": "https://builds.dtvem.io/ruby/3.3.14/windows-386.7z",
+        "sha256": "64bfd8be14c202be922b6d9f44508c6723c56216692c365c57f88355d77fcfe5",
+        "sha256_source": "dtvem"
+      },
+      "windows-amd64": {
+        "url": "https://builds.dtvem.io/ruby/3.3.14/windows-amd64.7z",
+        "sha256": "03b6ed68fba9e632f0f6e93af99c1bc55315e1bfad0296a105268296cbcdb8ba",
+        "sha256_source": "dtvem"
+      }
+    },
     "3.3.2": {
       "darwin-amd64": {
         "url": "https://builds.dtvem.io/ruby/3.3.2/darwin-amd64.tar.gz",
@@ -2705,6 +2717,18 @@
         "sha256_source": "dtvem"
       }
     },
+    "3.4.13": {
+      "windows-386": {
+        "url": "https://builds.dtvem.io/ruby/3.4.13/windows-386.7z",
+        "sha256": "c5a90c8535e97da6d35f0d8c1ab10da91fe2e830d53398e0e297176b907c3dbd",
+        "sha256_source": "dtvem"
+      },
+      "windows-amd64": {
+        "url": "https://builds.dtvem.io/ruby/3.4.13/windows-amd64.7z",
+        "sha256": "228d698c2311dee6207017634faac64a07b7208cdc7a6a50972c4b19d9153a42",
+        "sha256_source": "dtvem"
+      }
+    },
     "3.4.2": {
       "darwin-amd64": {
         "url": "https://builds.dtvem.io/ruby/3.4.2/darwin-amd64.tar.gz",
@@ -3048,6 +3072,13 @@
       "windows-amd64": {
         "url": "https://builds.dtvem.io/ruby/4.0.1/windows-amd64.7z",
         "sha256": "45cd5ac6aa0fdd976acbc0b0c768e38e8f5357b1b07d2c803cccafd7de758fb1",
+        "sha256_source": "dtvem"
+      }
+    },
+    "4.0.10": {
+      "windows-amd64": {
+        "url": "https://builds.dtvem.io/ruby/4.0.10/windows-amd64.7z",
+        "sha256": "0d8f693bb4027378d2c92c285c0bb405f9825623bfbf2caad0d52acabbd4978c",
         "sha256_source": "dtvem"
       }
     },
